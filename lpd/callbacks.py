@@ -74,8 +74,8 @@ class EpochEndStats(CallbackBase):
         self.prev_val_loss = v_curr_mean_loss
         self.lowest_val_loss = v_lowest_loss
 
-        print('') #EMPTY LINE SEPERATOR
-        print('-------------------[EpochEndPrint]--------------------')
+        print('[EpochEndStats] - ')
+        print('------------------------------------------------------')
         print(f'| Stats                ') 
         print(f'|   |-- Epoch:{c.epoch}')
         print(f'|   |-- Learning rate:{current_lr}')

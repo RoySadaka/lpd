@@ -83,12 +83,12 @@ class Trainer():
 
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
-            phase_description = f'[Val {self.current_epoch}/{self.num_epochs}]'
+            phase_description = f'[Val epoch {self.current_epoch}/{self.num_epochs}]'
             self.val_loss_stats, self.val_metric_name_to_stats = self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_loss_opt_handler)
 
     def _fwd_pass_train(self):
         self.model.train() #MARK STATUS AS TRAIN
-        phase_description = f'[Train {self.current_epoch}/{self.num_epochs}]'
+        phase_description = f'[Train epoch {self.current_epoch}/{self.num_epochs}]'
         self.train_loss_stats, self.train_metric_name_to_stats = self._fwd_pass_base(phase_description, self.train_data_loader, self.train_steps, self._train_loss_opt_handler)
 
     def _invoke_callbacks(self, phase):
@@ -99,12 +99,12 @@ class Trainer():
 
 
     def summary(self):
-        print('model summary:')
+        print('[Model Summary] - ')
         print(self.model)
 
         print("parameters name and device:")
         for p in self.model.named_parameters():
-            print(p[0],p[1].device)
+            print(f'name: {p[0]}, device: {p[1].device}')
             # print(p[1].data)
 
         print('optimizer', type(self.optimizer))

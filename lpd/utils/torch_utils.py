@@ -32,7 +32,7 @@ def what_torch_version_is_currently_running():
 
 def save_checkpoint(checkpoint_filepath, epoch, model, optimizer, scheduler, msg='', verbose=1):
     if verbose:
-      print(msg + " - Saving checkpoint")
+      print(f'{msg} - Saving checkpoint to {checkpoint_filepath}')
     checkpoint = {
                   'model': model.state_dict(), 
                   'optimizer': optimizer.state_dict(),
