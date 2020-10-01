@@ -254,7 +254,6 @@ class TransformerEncoderStack(nn.Module):
         self.pos_encoder = PositionalEncoding(self.in_dim, self.drop_out_proba, self.maximum_position_encoding)
 
     def forward(self, inputs, mask=None):
-        out_mask = mask
         outputs = inputs                                        # (batch, num_elements, emb_size)
 
         #POSITION
@@ -263,7 +262,7 @@ class TransformerEncoderStack(nn.Module):
 
         for encoder_layer in self.encoder_layers:
             outputs = encoder_layer(inputs=outputs, mask=mask)    
-        return outputs, out_mask                                # (batch, num_elements, out_dim)   <-- USUALLY out_dim = emb_size
+        return outputs                                # (batch, num_elements, out_dim)   <-- USUALLY out_dim = emb_size
 
 
 

@@ -2,8 +2,8 @@ import torch as T
 from statistics import mean 
 from tqdm import tqdm
 
-import callbacks as tc
-from trainer_stats import TrainerStats
+import lpd.callbacks as tc
+from lpd.trainer_stats import TrainerStats
 
 class Trainer():
     def __init__(self, model, 
