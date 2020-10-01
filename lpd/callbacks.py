@@ -7,6 +7,7 @@ CB_ON_TRAIN_BEGIN   = 'on_train_begin'
 CB_ON_TRAIN_END     = 'on_train_end'
 CB_ON_EPOCH_BEGIN   = 'on_epoch_begin'
 CB_ON_EPOCH_END     = 'on_epoch_end'
+
 #TODO - ADD SUPPPORT FOR THESE, TAKE INTO CONSIDERATION CALLBACK IN VALIDATION MODE
 # CB_ON_BATCH_BEGIN   = 'on_batch_begin'
 # CB_ON_BATCH_END     = 'on_batch_end'
@@ -174,4 +175,4 @@ class EarlyStopping(CallbackBase):
             return
 
         if self.verbose == 1:
-            print(f'[EarlyStopping] - patience:{self.patience_countdown}')
+            print(f'[EarlyStopping] - patience:{self.patience_countdown} epochs')
