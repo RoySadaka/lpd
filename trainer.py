@@ -36,6 +36,7 @@ class Trainer():
         self._print_trainer_properties()
         
     def _print_trainer_properties(self):
+        #TODO - EXPOSE SUMMARY METHOD WITH PRETTY PRINTING
         print('model summary:')
         print(self.model)
 
