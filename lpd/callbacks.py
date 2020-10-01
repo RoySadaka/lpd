@@ -1,37 +1,35 @@
-from torch.utils.tensorboard import SummaryWriter
-import math
-
-import utils.file_utils as fu
 from utils.torch_utils import save_checkpoint
-
+from torch.utils.tensorboard import SummaryWriter
+import utils.file_utils as fu
+import math
 
 CB_ON_TRAIN_BEGIN   = 'on_train_begin'
 CB_ON_TRAIN_END     = 'on_train_end'
 CB_ON_EPOCH_BEGIN   = 'on_epoch_begin'
 CB_ON_EPOCH_END     = 'on_epoch_end'
-CB_ON_BATCH_BEGIN   = 'on_batch_begin'
-CB_ON_BATCH_END     = 'on_batch_end'
-CB_ON_LOSS_BEGIN    = 'on_loss_begin'
-CB_ON_LOSS_END      = 'on_loss_end'
-
+#TODO - ADD SUPPPORT FOR THESE, TAKE INTO CONSIDERATION CALLBACK IN VALIDATION MODE
+# CB_ON_BATCH_BEGIN   = 'on_batch_begin'
+# CB_ON_BATCH_END     = 'on_batch_end'
 
 class CallbackContext():
     #REPRESENTS THE INPUT TO THE CALLBACK, NOTICE, SOME VALUES MIGHT BE NONE, DEPENDING ON THE PHASE OF THE CALLBACK
-    def __init__(self, epoch, train_loss_stats, train_metric_name_to_stats, val_loss_stats, val_metric_name_to_stats, trainer):
-        self.epoch = epoch
-        self.train_loss_stats = train_loss_stats
-        self.train_metric_name_to_stats = train_metric_name_to_stats
-        self.val_loss_stats = val_loss_stats
-        self.val_metric_name_to_stats = val_metric_name_to_stats
+    def __init__(self, trainer):
+        self.epoch = trainer.current_epoch
+        self.train_loss_stats = trainer.train_loss_stats
+        self.train_metric_name_to_stats = trainer.train_metric_name_to_stats
+        self.val_loss_stats = trainer.val_loss_stats
+        self.val_metric_name_to_stats = trainer.val_metric_name_to_stats
         self.trainer = trainer
 
 class CallbackBase():
-    def __init__(self):
-        self.cb_phase = ''
+    def __init__(self, cb_phase = None):
+        self.cb_phase = cb_phase
+        if self.cb_phase is None:
+            print('[CallbackBase] - No callback phase was provided')
 
 class EpochEndStats(CallbackBase):
-    def __init__(self):
-        self.cb_phase = CB_ON_EPOCH_END
+    def __init__(self, cb_phase=CB_ON_EPOCH_END):
+        super(EpochEndStats, self).__init__(cb_phase)
         self.prev_train_loss = math.inf
         self.prev_val_loss = math.inf
         self.lowest_train_loss = math.inf
@@ -95,8 +93,8 @@ class EpochEndStats(CallbackBase):
         print('') #EMPTY LINE SEPERATOR
 
 class ModelCheckPoint(CallbackBase):
-    def __init__(self, model_weights_dir, model_weights_file_name, monitor='val_loss', save_best_only=False):
-        self.cb_phase = CB_ON_EPOCH_END
+    def __init__(self, model_weights_dir, model_weights_file_name, monitor='val_loss', save_best_only=False, cb_phase=CB_ON_EPOCH_END):
+        super(ModelCheckPoint, self).__init__(cb_phase)
         self.monitor = monitor  #CAN BE  val_loss/train_loss
         self.save_best_only = save_best_only
         self.global_min_loss = math.inf
@@ -130,8 +128,8 @@ class ModelCheckPoint(CallbackBase):
             print(f'[ModelCheckPoint] - {self.monitor} did not improved.')
 
 class Tensorboard(CallbackBase):
-    def __init__(self, summary_writer_dir):
-        self.cb_phase = CB_ON_EPOCH_END
+    def __init__(self, summary_writer_dir, cb_phase=CB_ON_EPOCH_END):
+        super(Tensorboard, self).__init__(cb_phase)
         self.TRAIN_NAME = 'Train'
         self.VAL_NAME = 'Val'
         self.tensorboard_writer = SummaryWriter(summary_writer_dir + 'tensorboard_files')
@@ -147,8 +145,8 @@ class Tensorboard(CallbackBase):
         self._write_to_summary(self.VAL_NAME, c.epoch, c.val_loss_stats, c.val_metric_name_to_stats)
 
 class EarlyStopping(CallbackBase):
-    def __init__(self, patience, monitor='val_loss', verbose=1):
-        self.cb_phase = CB_ON_EPOCH_END
+    def __init__(self, patience, monitor='val_loss', cb_phase=CB_ON_EPOCH_END, verbose=1):
+        super(EarlyStopping, self).__init__(cb_phase)
         self.patience = patience # HOW MANY EPOCHS TO WAIT
         self.patience_countdown = patience
         self.monitor = monitor # CAN BE 'val_loss', 'train_loss'

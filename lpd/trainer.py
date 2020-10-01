@@ -2,8 +2,8 @@ import torch as T
 from statistics import mean 
 from tqdm import tqdm
 
-import torch_callbacks as tc
-from trainer_stats import TrainerStats
+import utils.callbacks as tc
+from utils.trainer_stats import TrainerStats
 
 class Trainer():
     def __init__(self, model, 
@@ -33,8 +33,14 @@ class Trainer():
         self.current_epoch = 0
         self.should_stop_train = False
         self.round_values_to = round_values_to
+
+        self.train_loss_stats = None
+        self.train_metric_name_to_stats = None
+        self.val_loss_stats = None
+        self.val_metric_name_to_stats = None
+
         self._print_trainer_properties()
-        
+
     def _print_trainer_properties(self):
         #TODO - EXPOSE SUMMARY METHOD WITH PRETTY PRINTING
         print('model summary:')
@@ -64,10 +70,10 @@ class Trainer():
             value = f(y_pred, y_true)
             metric_name_to_stats[metric_name].add_value(value.item())
 
-    def _fwd_pass_base(self, data_loader, steps, loss_opt_handler, loop_description=None):
+    def _fwd_pass_base(self, data_loader, steps, loss_opt_handler):
         loss_stats = TrainerStats(self.round_values_to)
         metric_name_to_stats = {metric_name:TrainerStats(self.round_values_to) for metric_name,_ in self.metric_name_to_func.items()}
-        loop = tqdm(data_loader, leave=True, total=steps-1)
+        loop = tqdm(data_loader, total=steps-1)
         for X_batch,y_batch in loop:
             steps -= 1
             inputs = []
@@ -80,27 +86,29 @@ class Trainer():
             self._metrics_handler_in_epoch(outputs, y, metric_name_to_stats)
             loss_opt_handler(loss)
             
-            if loop_description:
-                loop.set_description(loop_description)
-            loop.set_postfix(loss=loss_stats.get_mean(), 
-                             acc={metric_name:stats.get_mean() for metric_name, stats in metric_name_to_stats.items()})
+            loop.set_postfix(loss=loss_stats.get_mean(), acc={metric_name:stats.get_mean() for metric_name, stats in metric_name_to_stats.items()})
+            
             if steps == 0:
                 break
 
         return loss_stats, metric_name_to_stats
 
     def _fwd_pass_val(self):
+        if self.val_data_loader is None or self.val_steps == 0:
+            return
+
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
             print(f'[Val {self.current_epoch}/{self.num_epochs}]')
-            return self._fwd_pass_base(self.val_data_loader, self.val_steps, self._val_loss_opt_handler)
+            self.val_loss_stats, self.val_metric_name_to_stats = self._fwd_pass_base(self.val_data_loader, self.val_steps, self._val_loss_opt_handler)
 
     def _fwd_pass_train(self):
         self.model.train() #MARK STATUS AS TRAIN
         print(f'[Train {self.current_epoch}/{self.num_epochs}]')
-        return self._fwd_pass_base(self.train_data_loader, self.train_steps, self._train_loss_opt_handler)
+        self.train_loss_stats, self.train_metric_name_to_stats = self._fwd_pass_base(self.train_data_loader, self.train_steps, self._train_loss_opt_handler)
 
-    def _invoke_relevant_callbacks(self, phase, context):
+    def _invoke_callbacks(self, phase):
+        context = tc.CallbackContext(self)
         for cb in self.callbacks:
             if cb.cb_phase == phase:
                 cb(context)
@@ -110,19 +118,24 @@ class Trainer():
         self.should_stop_train = True
 
     def train(self, num_epochs):
+        self._invoke_callbacks(tc.CB_ON_TRAIN_BEGIN)
+
         self.num_epochs = num_epochs
         self.current_epoch = 0
 
         for epoch in range(1, self.num_epochs + 1):
             self.current_epoch = epoch
+            self._invoke_callbacks(tc.CB_ON_EPOCH_BEGIN)
 
-            t_loss_stats, t_metric_name_to_stats = self._fwd_pass_train()
-            v_loss_stats, v_metric_name_to_stats = self._fwd_pass_val()
+            self._fwd_pass_train()
+            self._fwd_pass_val()
 
-            self.scheduler.step(metrics=v_loss_stats.get_mean())
+            self.scheduler.step(metrics=self.val_loss_stats.get_mean())
             # self.scheduler.step()
 
-            self._invoke_relevant_callbacks(tc.CB_ON_EPOCH_END, tc.CallbackContext(epoch, t_loss_stats, t_metric_name_to_stats, v_loss_stats, v_metric_name_to_stats, self))
+            self._invoke_callbacks(tc.CB_ON_EPOCH_END)
             
             if self.should_stop_train:
                 break
+        
+        self._invoke_callbacks(tc.CB_ON_TRAIN_END)
