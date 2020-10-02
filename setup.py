@@ -16,8 +16,9 @@ with io_open(fndoc, mode='r', encoding='utf-8') as fd:
 
 setup(
     name='lpd',
-    version='0.0.3',
+    version='0.0.5',
     description='A Fast, Flexible Trainer and Extensions for Pytorch',
+    long_description_content_type='text/markdown',
     long_description=README_md,
     license='MIT Licences',
     url='https://github.com/roysadaka/lpd',

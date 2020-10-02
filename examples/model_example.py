@@ -67,7 +67,7 @@ def get_trainer(config,
                 checkpoint_file_name,
                 summary_writer_dir,
                 num_epochs):
-    device = tu.get_training_available_hardware()
+    device = tu.get_gpu_device_if_available()
 
     model = TestModel(config, num_embeddings).to(device)
    

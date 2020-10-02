@@ -10,20 +10,12 @@ def how_many_gpus_available():
     print('GPUs amount: ', amount)
     return amount
 
-def get_training_available_hardware():
+def get_gpu_device_if_available():
     if is_gpu_available():
       device = T.device('cuda:0')
     else:
       device = T.device('cpu')
     return device
-
-def assign_model_to_gpu(model):
-    if is_gpu_available(verbose = 0):
-      print('model is assigned to GPU')
-    else:
-      print('model is assigned to CPU')
-    device = get_training_available_hardware()
-    model.to(device)
 
 def what_torch_version_is_currently_running():
     v = T.__version__

@@ -14,7 +14,12 @@ A Fast, Flexible Trainer and Extensions for Pytorch
 ### Training your model
 
 ```python
-    device = tu.get_training_available_hardware()
+    from lpd.trainer import Trainer
+    import lpd.utils.torch_utils as tu
+    from lpd.callbacks import EpochEndStats, ModelCheckPoint, Tensorboard, EarlyStopping
+    from lpd.extensions.custom_metrics import binary_accuracy_with_logits
+
+    device = tu.get_gpu_device_if_available()
     model = TestModel(config, num_embeddings).to(device) #this is your model class, already sent to the relevant device
     optimizer = optim.SGD(params=model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True)
@@ -56,21 +61,23 @@ Notice that ``cb_phase`` will determine the execution phase.
 
 These are the current available phases, more will be added soon
 ```python
-    CB_ON_TRAIN_BEGIN   = 'on_train_begin'
-    CB_ON_TRAIN_END     = 'on_train_end'
-    CB_ON_EPOCH_BEGIN   = 'on_epoch_begin'
-    CB_ON_EPOCH_END     = 'on_epoch_end'
+    CB_ON_TRAIN_BEGIN
+    CB_ON_TRAIN_END  
+    CB_ON_EPOCH_BEGIN
+    CB_ON_EPOCH_END  
 ```
 
-``EpochEndStats`` will print an epoch summary at the end of every epoch
+``EpochEndStats`` callback will print an epoch summary at the end of every epoch
 
 ![EpochSummary](https://raw.githubusercontent.com/RoySadaka/lpd/master/images/epoch_summary.png)
 
 You can also create your own callbacks
 
 ```python
+    import lpd.callbacks as cbs
+    from lpd.callbacks import CallbackBase
     class MyAwesomeCallback(CallbackBase):
-        def __init__(self, cb_phase=CB_ON_EPOCH_END):
+        def __init__(self, cb_phase=cbs.CB_ON_TRAIN_BEGIN):
             super(MyAwesomeCallback, self).__init__(cb_phase)
 
         def __call__(self, callback_context):
@@ -93,3 +100,6 @@ So you can use them at your own will, we will add more layers from time to time.
 # TODOS (we add more todos as we go):
 * EpochEndStats - save best accuracies
 * handle scheduler.step() that takes parameters
+
+# Something is missing?! please share with us
+You can open an issue, but also feel free to email us at torch.lpd@gmail.com
