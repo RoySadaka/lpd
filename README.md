@@ -1,4 +1,4 @@
-![Logo](https://github.com/RoySadaka/lpd/blob/master/images/logo.png)
+![Logo](https://raw.githubusercontent.com/RoySadaka/lpd/master/images/logo.png)
 
 lpd
 ====
