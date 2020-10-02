@@ -135,9 +135,6 @@ class Trainer():
             self._fwd_pass_train()
             self._fwd_pass_val()
 
-            self.scheduler.step(metrics=self.val_loss_stats.get_mean())
-            # self.scheduler.step()
-
             self._invoke_callbacks(tc.CB_ON_EPOCH_END)
             
             if self.should_stop_train:

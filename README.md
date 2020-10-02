@@ -32,6 +32,7 @@ A Fast, Flexible Trainer and Extensions for Pytorch
 
     # you can use some of the defined callbacks, or you can create your own
     callbacks = [
+                SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_loss_stats.get_mean()), # for scheduler that takes loss in step()
                 ModelCheckPoint(checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=True), 
                 Tensorboard(summary_writer_dir=summary_writer_dir),
                 EarlyStopping(patience=10, monitor='val_loss'),
@@ -104,9 +105,10 @@ You can also create your own callbacks
 So you can use them at your own will, we will add more layers from time to time.
 
 
-# TODOS (we add more todos as we go)
-* EpochEndStats - save best accuracies
-* handle scheduler.step() that takes parameters
+# TODOS (more added frequently)
+* Add support for multiple schedulers 
+* Add support for multiple losses
+* EpochEndStats - save and print best accuracies
 
 # Something is missing?! please share with us
 You can open an issue, but also feel free to email us at torch.lpd@gmail.com

@@ -7,7 +7,6 @@ CB_ON_TRAIN_BEGIN   = 'on_train_begin'
 CB_ON_TRAIN_END     = 'on_train_end'
 CB_ON_EPOCH_BEGIN   = 'on_epoch_begin'
 CB_ON_EPOCH_END     = 'on_epoch_end'
-
 #TODO - ADD SUPPPORT FOR THESE, TAKE INTO CONSIDERATION CALLBACK IN VALIDATION MODE
 # CB_ON_BATCH_BEGIN   = 'on_batch_begin'
 # CB_ON_BATCH_END     = 'on_batch_end'
@@ -27,6 +26,28 @@ class CallbackBase():
         self.cb_phase = cb_phase
         if self.cb_phase is None:
             print('[CallbackBase] - No callback phase was provided')
+
+class SchedulerStep(CallbackBase):
+    """This callback will invoke a "step()" on the scheduler 
+        Since some schedulers takes parameters in step(param1, param2...)
+        And other schedulers step() are parametersless, provide:
+        scheduler_parameters_func
+        a function that except trainer and returns whatever information needed, 
+        
+        e.g. for scheduler that takes val_loss as parameter, initialize like this:
+            SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_loss_stats.get_mean())
+
+        if your scheduler step does not expect parameters, leave scheduler_parameters_func = None
+    """
+    def __init__(self, scheduler_parameters_func=None, cb_phase=CB_ON_EPOCH_END):
+        super(SchedulerStep, self).__init__(cb_phase)
+        self.scheduler_parameters_func = scheduler_parameters_func
+
+    def __call__(self, callback_context):
+        if self.scheduler_parameters_func:
+            callback_context.trainer.scheduler.step(self.scheduler_parameters_func(callback_context.trainer))
+        else:
+            callback_context.trainer.scheduler.step()
 
 class EpochEndStats(CallbackBase):
     def __init__(self, cb_phase=CB_ON_EPOCH_END):
@@ -148,13 +169,22 @@ class Tensorboard(CallbackBase):
         self._write_to_summary(self.VAL_NAME, c.epoch, c.val_loss_stats, c.val_metric_name_to_stats)
 
 class EarlyStopping(CallbackBase):
+    """
+        Stop training when a monitored loss has stopped improving.
+        Arguments:
+            patience - how much epochs to wait until decide to stop
+            monitor - can be 'val_loss', 'train_loss'
+            cb_phase - the phase to invoke this callback
+            verbose - 0 = no print, 1 = print all, 2 = print save only
+    """
+
     def __init__(self, patience, monitor='val_loss', cb_phase=CB_ON_EPOCH_END, verbose=1):
         super(EarlyStopping, self).__init__(cb_phase)
         self.patience = patience # HOW MANY EPOCHS TO WAIT
         self.patience_countdown = patience
-        self.monitor = monitor # CAN BE 'val_loss', 'train_loss'
+        self.monitor = monitor 
         self.global_min_loss = math.inf
-        self.verbose = verbose # 0 = NO PRINT, 1 = PRINT ALL, 2 = PRINT SAVE ONLY
+        self.verbose = verbose
 
     def __call__(self, callback_context):
         c = callback_context #READABILITY DOWN THE ROAD 

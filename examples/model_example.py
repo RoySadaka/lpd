@@ -5,7 +5,7 @@ import torch.optim as optim
 
 import lpd.utils.torch_utils as tu
 from lpd.extensions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
-from lpd.callbacks import EpochEndStats, ModelCheckPoint, Tensorboard, EarlyStopping
+from lpd.callbacks import EpochEndStats, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
 from lpd.extensions.custom_metrics import binary_accuracy_with_logits
 from lpd.trainer import Trainer
 from lpd.extensions.custom_schedulers import DoNothingToLR
@@ -84,6 +84,7 @@ def get_trainer(config,
     metric_name_to_func = {"acc":binary_accuracy_with_logits}
 
     cbs = [
+            SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_loss_stats.get_mean()),
             ModelCheckPoint(checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=True), 
             Tensorboard(summary_writer_dir=summary_writer_dir),
             EarlyStopping(patience=config.PATIENCE, monitor='val_loss'),
