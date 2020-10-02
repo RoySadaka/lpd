@@ -50,6 +50,8 @@ A Fast, Flexible Trainer and Extensions for Pytorch
                       val_steps,
                       num_epochs,
                       callbacks)
+    
+    trainer.train()
 ```
 
 ### Evaluating your model
