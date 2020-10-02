@@ -47,7 +47,7 @@ class Trainer():
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-    def _val_loss_opt_handler(self, loss):
+    def _val_test_loss_opt_handler(self, loss):
         pass
 
     def _metrics_handler_in_epoch(self, y_pred, y_true, metric_name_to_stats):
@@ -79,11 +79,11 @@ class Trainer():
 
         return loss_stats, metric_name_to_stats
 
-    def _fwd_pass_test(self):
+    def _fwd_pass_test(self, test_data_loader, test_steps):
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
             phase_description = f'[Test]'
-            self.test_loss_stats, self.test_metric_name_to_stats = self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_loss_opt_handler)
+            self.test_loss_stats, self.test_metric_name_to_stats = self._fwd_pass_base(phase_description, test_data_loader, test_steps, self._val_test_loss_opt_handler)
 
     def _fwd_pass_val(self):
         if self.val_data_loader is None or self.val_steps == 0:
@@ -92,7 +92,7 @@ class Trainer():
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
             phase_description = f'[Val   epoch {self.current_epoch}/{self.num_epochs}]'
-            self.val_loss_stats, self.val_metric_name_to_stats = self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_loss_opt_handler)
+            self.val_loss_stats, self.val_metric_name_to_stats = self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_test_loss_opt_handler)
 
     def _fwd_pass_train(self):
         self.model.train() #MARK STATUS AS TRAIN
@@ -146,7 +146,7 @@ class Trainer():
         self._invoke_callbacks(tc.CB_ON_TRAIN_END)
 
     def evaluate(self, test_data_loader, test_steps):
-        self._fwd_pass_test()
+        self._fwd_pass_test(test_data_loader, test_steps)
         test_mean_loss = self.test_loss_stats.get_mean()
         test_metrics = {metric_name:stats.get_mean() for metric_name,stats in self.test_metric_name_to_stats.items()}
         print(f'[Test Results] - loss: {test_mean_loss}, metric: {test_metrics}')

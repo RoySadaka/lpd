@@ -82,6 +82,7 @@ You can also create your own callbacks
 ```python
     import lpd.callbacks as cbs
     from lpd.callbacks import CallbackBase
+
     class MyAwesomeCallback(CallbackBase):
         def __init__(self, cb_phase=cbs.CB_ON_TRAIN_BEGIN):
             super(MyAwesomeCallback, self).__init__(cb_phase)
@@ -103,7 +104,7 @@ You can also create your own callbacks
 So you can use them at your own will, we will add more layers from time to time.
 
 
-# TODOS (we add more todos as we go):
+# TODOS (we add more todos as we go)
 * EpochEndStats - save best accuracies
 * handle scheduler.step() that takes parameters
 
