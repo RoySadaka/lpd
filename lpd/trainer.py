@@ -7,18 +7,18 @@ from lpd.trainer_stats import TrainerStats
 
 class Trainer():
     def __init__(self, model, 
-                        device, 
-                        loss_func, 
-                        optimizer, 
-                        scheduler, 
-                        metric_name_to_func, 
-                        train_data_loader, 
-                        val_data_loader,
-                        train_steps,
-                        val_steps,
-                        num_epochs=50,
-                        callbacks = [],
-                        print_round_values_to = None):
+                       device, 
+                       loss_func, 
+                       optimizer, 
+                       scheduler, 
+                       metric_name_to_func, 
+                       train_data_loader, 
+                       val_data_loader,
+                       train_steps,
+                       val_steps,
+                       num_epochs=50,
+                       callbacks = [],
+                       print_round_values_to = None):
         self.device = device
         self.model = model
         self.loss_func = loss_func
@@ -39,6 +39,8 @@ class Trainer():
         self.train_metric_name_to_stats = None
         self.val_loss_stats = None
         self.val_metric_name_to_stats = None
+        self.test_loss_stats = None
+        self.test_metric_name_to_stats = None
 
     def _train_loss_opt_handler(self, loss):
         loss.backward()
@@ -77,13 +79,19 @@ class Trainer():
 
         return loss_stats, metric_name_to_stats
 
+    def _fwd_pass_test(self):
+        with T.no_grad():
+            self.model.eval()  #MARK STATUS AS EVAL
+            phase_description = f'[Test]'
+            self.test_loss_stats, self.test_metric_name_to_stats = self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_loss_opt_handler)
+
     def _fwd_pass_val(self):
         if self.val_data_loader is None or self.val_steps == 0:
             return
 
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
-            phase_description = f'[Val epoch {self.current_epoch}/{self.num_epochs}]'
+            phase_description = f'[Val   epoch {self.current_epoch}/{self.num_epochs}]'
             self.val_loss_stats, self.val_metric_name_to_stats = self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_loss_opt_handler)
 
     def _fwd_pass_train(self):
@@ -136,3 +144,10 @@ class Trainer():
                 break
         
         self._invoke_callbacks(tc.CB_ON_TRAIN_END)
+
+    def evaluate(self, test_data_loader, test_steps):
+        self._fwd_pass_test()
+        test_mean_loss = self.test_loss_stats.get_mean()
+        test_metrics = {metric_name:stats.get_mean() for metric_name,stats in self.test_metric_name_to_stats.items()}
+        print(f'[Test Results] - loss: {test_mean_loss}, metric: {test_metrics}')
+

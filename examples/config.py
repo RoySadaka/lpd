@@ -8,7 +8,7 @@ class Config():
 		self.STEP_LR_GAMMA = 0.9
 
 		self.BATCH_SIZE = 512
-		self.NUM_EPOCHS = 500
+		self.NUM_EPOCHS = 30
 		self.PATIENCE = 11
 
 		self.VALIDATION_SPLIT = 0.1

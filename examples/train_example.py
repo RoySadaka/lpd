@@ -65,14 +65,9 @@ def run(config, base_path):
 
     num_embeddings = 10000 # ITS FAKE DATA, SO...
 
-    validation_data_stats = get_data_stats(data_generator(config, num_embeddings, num_cicles=1))
-    print(validation_data_stats)
-
-    validation_steps = validation_data_stats['steps']
-
-    train_data_stats = get_data_stats(data_generator(config, num_embeddings, num_cicles=1))
-    print(train_data_stats)
-    train_steps = train_data_stats['steps']
+    data_stats = get_data_stats(data_generator(config, num_embeddings, num_cicles=1))
+    print(data_stats)
+    steps = data_stats['steps']
 
     generator_infinite = data_generator(config, num_embeddings)
 
@@ -80,8 +75,8 @@ def run(config, base_path):
                             num_embeddings,                         
                             generator_infinite, 
                             generator_infinite,
-                            train_steps,
-                            validation_steps,
+                            steps,
+                            steps,
                             model_weights_dir,
                             config.MODEL_WEIGHTS_FILE_NAME,
                             tensorboard_data_dir,
@@ -90,4 +85,4 @@ def run(config, base_path):
 
     trainer.train()
 
-run(Config(), '') 
+    trainer.evaluate(generator_infinite, steps)

@@ -4,11 +4,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import lpd.utils.torch_utils as tu
-from lpd.extentions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
+from lpd.extensions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
 from lpd.callbacks import EpochEndStats, ModelCheckPoint, Tensorboard, EarlyStopping
-from lpd.extentions.custom_metrics import binary_accuracy_with_logits
+from lpd.extensions.custom_metrics import binary_accuracy_with_logits
 from lpd.trainer import Trainer
-from lpd.extentions.custom_schedulers import DoNothingToLR
+from lpd.extensions.custom_schedulers import DoNothingToLR
 
 class TestModel(nn.Module):
     def __init__(self, config, num_embeddings):
@@ -63,8 +63,8 @@ def get_trainer(config,
                 val_data_loader,
                 train_steps,
                 val_steps,
-                model_weights_dir,
-                model_weights_file_name,
+                checkpoint_dir,
+                checkpoint_file_name,
                 summary_writer_dir,
                 num_epochs):
     device = tu.get_training_available_hardware()
@@ -84,7 +84,7 @@ def get_trainer(config,
     metric_name_to_func = {"acc":binary_accuracy_with_logits}
 
     cbs = [
-            ModelCheckPoint(model_weights_dir=model_weights_dir, model_weights_file_name=model_weights_file_name, monitor='val_loss', save_best_only=True), 
+            ModelCheckPoint(checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=True), 
             Tensorboard(summary_writer_dir=summary_writer_dir),
             EarlyStopping(patience=config.PATIENCE, monitor='val_loss'),
             EpochEndStats() # BETTER TO PUT IT LAST (MAKES BETTER SENSE IN THE LOG PRINTS)

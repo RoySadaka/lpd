@@ -94,19 +94,19 @@ class EpochEndStats(CallbackBase):
         print('') #EMPTY LINE SEPERATOR
 
 class ModelCheckPoint(CallbackBase):
-    def __init__(self, model_weights_dir, model_weights_file_name, monitor='val_loss', save_best_only=False, verbose=1, cb_phase=CB_ON_EPOCH_END):
+    def __init__(self, checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=False, verbose=1, cb_phase=CB_ON_EPOCH_END):
         super(ModelCheckPoint, self).__init__(cb_phase)
         self.monitor = monitor  # CAN BE val_loss/train_loss
         self.save_best_only = save_best_only
         self.verbose = verbose  # VERBOSITY MODE, 0 OR 1.
         self.global_min_loss = math.inf
-        self.model_weights_dir = model_weights_dir
-        self.model_weights_file_name = model_weights_file_name
+        self.checkpoint_dir = checkpoint_dir
+        self.checkpoint_file_name = checkpoint_file_name
         self._ensure_folder_created()
 
     def _ensure_folder_created(self):
-        if not fu.is_folder_exists(self.model_weights_dir):
-            fu.create_folder(self.model_weights_dir)
+        if not fu.is_folder_exists(self.checkpoint_dir):
+            fu.create_folder(self.checkpoint_dir)
 
     def __call__(self, callback_context):
         c = callback_context #READABILITY DOWN THE ROAD 
@@ -122,9 +122,9 @@ class ModelCheckPoint(CallbackBase):
             self.global_min_loss = loss_to_consider
             #SAVE
             if self.save_best_only:
-                full_path = f'{self.model_weights_dir}{self.model_weights_file_name}_best_only'
+                full_path = f'{self.checkpoint_dir}{self.checkpoint_file_name}_best_only'
             else:
-                full_path = f'{self.model_weights_dir}{self.model_weights_file_name}_epoch_{c.epoch}'
+                full_path = f'{self.checkpoint_dir}{self.checkpoint_file_name}_epoch_{c.epoch}'
             save_checkpoint(full_path, c.epoch, c.trainer.model, c.trainer.optimizer, c.trainer.scheduler, msg=msg, verbose=self.verbose)
         else:
             if self.verbose:
