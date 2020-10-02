@@ -6,6 +6,10 @@ A Fast, Flexible Trainer and Extensions for Pytorch
 
 ``lpd`` derives from the Hebrew word *lapid* (לפיד) which means "torch".
 
+## For latest PyPI stable release
+```sh
+    pip install lpd
+```
 
 ## Usage
 
