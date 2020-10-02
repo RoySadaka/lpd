@@ -8,5 +8,6 @@ A Fast, Flexible Trainer and Extensions for Pytorch
 
 
 todos:
+* expose evaluate method
 * EpochEndStats - save best accuracies
 * handle scheduler.step() that takes parameters

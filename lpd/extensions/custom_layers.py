@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-class MatMul(nn.Module):   
+class MatMul2D(nn.Module):   
     def __init__(self, transpose_b, name=None): 
-        super(MatMul, self).__init__()
+        super(MatMul2D, self).__init__()
         #PARAMS
         self.transpose_b = transpose_b
         self.name = name if name else 'mat_mul'
@@ -48,8 +48,8 @@ class Attention(nn.Module):
         self.use_query_dense    = use_query_dense
         self.name               = name if name else 'attention'
         #LAYERS
-        self.mat_mul            = MatMul(transpose_b=False, name = f'{self.name}__MatMul')
-        self.mat_mul_t          = MatMul(transpose_b=True, name = f'{self.name}__MatMulT')
+        self.mat_mul2d            = MatMul2D(transpose_b=False, name = f'{self.name}__MatMul2D')
+        self.mat_mul2d_t          = MatMul2D(transpose_b=True, name = f'{self.name}__MatMul2DT')
         if self.use_query_dense:
             # SOMETIMES WE WANT TO GO TROUGH ANPTHER TRANSFORMATION BEFORE RUNNING THE QUERY, FOR EXAMPLE, WHEN THIS IS USED AS A STANDALONE LAYER
             self.query_dense    = Dense(in_dim=self.key_dim, out_dim=self.key_dim, use_bias=False, activation=None, name = f'{self.name}__Dense')
@@ -68,7 +68,7 @@ class Attention(nn.Module):
         if self.use_query_dense:
             q = self.query_dense(q)                                            # (batch, num_elements, key_dim)
 
-        q_k = self.mat_mul_t(q, k)                                             # (batch, ?, num_elements)
+        q_k = self.mat_mul2d_t(q, k)                                             # (batch, ?, num_elements)
         scores = q_k / self.sqrt_key_dim                                       # (batch, ?, num_elements)
 
         if mask is not None:
@@ -76,7 +76,7 @@ class Attention(nn.Module):
             scores += mask_ready                                               # (batch, ?, num_elements) (+= is doing broadcasting)
 
         attention_weights = F.softmax(scores, dim=-1)                          # (batch, ?, num_elements)
-        attention_output = self.mat_mul(attention_weights, v)                  # (batch, ?, key_dim)
+        attention_output = self.mat_mul2d(attention_weights, v)                  # (batch, ?, key_dim)
 
         return attention_output                                                # (batch, ?, key_dim)   
 

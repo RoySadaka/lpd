@@ -89,3 +89,5 @@ def run(config, base_path):
     trainer.summary()
 
     trainer.train()
+
+run(Config(), '') 

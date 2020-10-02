@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import lpd.utils.torch_utils as tu
-from lpd.extentions.custom_layers import TransformerEncoderStack, Attention, MatMul
+from lpd.extentions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
 from lpd.callbacks import EpochEndStats, ModelCheckPoint, Tensorboard, EarlyStopping
 from lpd.extentions.custom_metrics import binary_accuracy_with_logits
 from lpd.trainer import Trainer
@@ -31,7 +31,7 @@ class TestModel(nn.Module):
 
         self.external_query_attention = Attention(key_dim=config.EMBEDDINGS_SIZE, use_query_dense=True)
         self.norm = nn.LayerNorm(normalized_shape=config.EMBEDDINGS_SIZE) # WILL APPLY NORM OVER THE LAST DIMENTION ONLY
-        self.mat_mul = MatMul(transpose_b=True)
+        self.mat_mul2d = MatMul2D(transpose_b=True)
 
     def forward(self, x1, x2, x3):
         # x1   : sequence-Input  	(batch, num_elements)
@@ -53,7 +53,7 @@ class TestModel(nn.Module):
 
         x2_emb = self.embedding_layer(x2)                                                     # (batch, emb_size)
 
-        dot_product = self.mat_mul(x2_emb.unsqueeze(1), x1_with_x3_residual)                  # (batch, 1, 1)
+        dot_product = self.mat_mul2d(x2_emb.unsqueeze(1), x1_with_x3_residual)                  # (batch, 1, 1)
         dot_product = dot_product.squeeze(2).squeeze(1)  # safe on batch_size = 1             # (batch)
         return dot_product #NOTICE! LOGITS OUT, NOT SIGMOID, THE SIGMOID WILL BE APPLIED IN THE LOSS HANDLER FOR THIS EXAMPLE
 
