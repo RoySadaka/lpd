@@ -28,7 +28,7 @@ def save_checkpoint(checkpoint_filepath, epoch, model, optimizer, scheduler, msg
     checkpoint = {
                   'model': model.state_dict(), 
                   'optimizer': optimizer.state_dict(),
-                  'scheduler': scheduler.state_dict(),
+                  'scheduler':  scheduler.state_dict() if scheduler else None,
                   'epoch':epoch
                   }
     T.save(checkpoint, checkpoint_filepath)

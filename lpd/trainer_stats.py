@@ -1,6 +1,5 @@
 from lpd.stats import Stats
 
-
 class TrainerStats():
     def __init__(self, metric_name_to_func):
         self.metric_name_to_func = metric_name_to_func

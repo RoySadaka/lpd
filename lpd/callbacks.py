@@ -48,6 +48,9 @@ class SchedulerStep(CallbackBase):
         self.scheduler_parameters_func = scheduler_parameters_func
 
     def __call__(self, callback_context):
+        if callback_context.trainer.scheduler is None:
+            print('[SchedulerStep] - no scheduler defined in trainer')
+            return
         if self.scheduler_parameters_func:
             callback_context.trainer.scheduler.step(self.scheduler_parameters_func(callback_context.trainer))
         else:
@@ -57,7 +60,7 @@ class EpochEndStats(CallbackBase):
     """
         Informative summary at the trainer state, most likely at the end of the epoch, but you
         can change cb_phase if you need it on a different phase
-        Arguments:
+        Args:
             cb_phase - the phase to invoke this callback
             round_values_on_print_to - optional, it will round the numerical values in the prints
     """
@@ -136,7 +139,7 @@ class ModelCheckPoint(CallbackBase):
     """
         Saving a checkpoint when a monitored loss has improved.
         Checkpoint will save the model, optimizer, scheduler and epoch number
-        Arguments:
+        Args:
             checkpoint_dir - the folder to dave the model
             checkpoint_file_name - 
             monitor - can be 'val_loss', 'train_loss'
@@ -208,7 +211,7 @@ class Tensorboard(CallbackBase):
 class EarlyStopping(CallbackBase):
     """
         Stop training when a monitored loss has stopped improving.
-        Arguments:
+        Args:
             patience - how much epochs to wait until decide to stop
             monitor - can be 'val_loss', 'train_loss'
             cb_phase - the phase to invoke this callback

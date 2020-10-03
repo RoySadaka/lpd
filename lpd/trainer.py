@@ -1,13 +1,36 @@
 import torch as T
-from statistics import mean 
 from tqdm import tqdm
 
 import lpd.callbacks as tc
 from lpd.trainer_stats import TrainerStats
 
-
-
 class Trainer():
+    """
+        class that maintains all the participating objects and stats during training and evaluation
+
+        Args:
+            model - your model (nn.Module)
+            device - the device to send the inputs to
+            loss_func - the model's loss function
+            optimizer - the model's optimizer
+            scheduler - the model's scheduler (make sure you add SchedulerStep to your callbacks),
+                        pass None if you dont need scheduler
+            metric_name_to_func - a dictionary with string as key and metric function as value
+                        e.g.   {"binary_accuracy":lpd.extensions.custom_metrics.binary_accuracy_with_logits}  
+            train_data_loader - an iterable or generator to get the next train data batch
+            val_data_loader - an iterable or generator to get the next val data batch
+            train_steps - total number of steps (batches) before declaring the epoch as finished 
+            val_steps - total number of steps (batches) before declaring the epoch as finished 
+            num_epochs - number of epochs to train the model
+            callbacks - list of lpd.callbacks to apply during the differrent training phases
+        
+        Methods:
+            summary - will print information abour the trainer and the model
+            stop_training - will indicate this trainer to stop train (e.g. from a callback) after the current epoch is done
+            train - this is the training loop, it will invoke the training and validation phases, as well as callbacks and maintain stats
+            evaluate - will run a forward pass on the test data
+    """
+
     def __init__(self, model, 
                        device, 
                        loss_func, 
@@ -30,23 +53,31 @@ class Trainer():
         self.val_data_loader = val_data_loader
         self.train_steps = train_steps
         self.val_steps = val_steps
-        self.callbacks = callbacks
         self.num_epochs = num_epochs
+        self.callbacks = callbacks
 
         self._current_epoch = 0
         self._should_stop_train = False
 
         self.train_stats = TrainerStats(self.metric_name_to_func)
+        self.train_last_loss_object = None
         self.val_stats = TrainerStats(self.metric_name_to_func)
+        self.val_last_loss_object = None
         self.test_stats = TrainerStats(self.metric_name_to_func)
+        self.test_last_loss_object = None
+
 
     def _train_loss_opt_handler(self, loss):
+        self.train_last_loss_object = loss
         loss.backward()
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-    def _val_test_loss_opt_handler(self, loss):
-        pass
+    def _val_loss_opt_handler(self, loss):
+        self.val_last_loss_object = loss
+
+    def _test_loss_opt_handler(self, loss):
+        self.test_last_loss_object = loss
 
     def _fwd_pass_base(self, phase_description, data_loader, steps, loss_opt_handler, stats):
         stats.reset()
@@ -73,7 +104,7 @@ class Trainer():
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
             phase_description = f'[Test]'
-            self._fwd_pass_base(phase_description, test_data_loader, test_steps, self._val_test_loss_opt_handler, self.test_stats)
+            self._fwd_pass_base(phase_description, test_data_loader, test_steps, self._test_loss_opt_handler, self.test_stats)
 
     def _fwd_pass_val(self):
         if self.val_data_loader is None or self.val_steps == 0:
@@ -82,7 +113,7 @@ class Trainer():
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
             phase_description = f'[Val   epoch {self._current_epoch}/{self.num_epochs}]'
-            self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_test_loss_opt_handler, self.val_stats)
+            self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_loss_opt_handler, self.val_stats)
 
     def _fwd_pass_train(self):
         self.model.train() #MARK STATUS AS TRAIN
@@ -134,7 +165,4 @@ class Trainer():
 
     def evaluate(self, test_data_loader, test_steps):
         self._fwd_pass_test(test_data_loader, test_steps)
-        test_mean_loss = self.test_stats.get_loss()
-        test_metrics = self.test_stats.get_metrics()
-        print(f'[Test Results] - loss: {test_mean_loss}, metric: {test_metrics}')
 
