@@ -1,1 +1,3 @@
 Pipfile.lock
+examples/weights
+examples/tensorboard

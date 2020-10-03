@@ -14,18 +14,16 @@ CB_ON_EPOCH_END     = 'on_epoch_end'
 class CallbackContext():
     #REPRESENTS THE INPUT TO THE CALLBACK, NOTICE, SOME VALUES MIGHT BE NONE, DEPENDING ON THE PHASE OF THE CALLBACK
     def __init__(self, trainer):
-        self.epoch = trainer.current_epoch
-        self.train_loss_stats = trainer.train_loss_stats
-        self.train_metric_name_to_stats = trainer.train_metric_name_to_stats
-        self.val_loss_stats = trainer.val_loss_stats
-        self.val_metric_name_to_stats = trainer.val_metric_name_to_stats
+        self.epoch = trainer._current_epoch
+        self.train_stats = trainer.train_stats
+        self.val_stats = trainer.val_stats
         self.trainer = trainer
 
 class CallbackBase():
     def __init__(self, cb_phase = None):
         self.cb_phase = cb_phase
         if self.cb_phase is None:
-            print('[CallbackBase] - No callback phase was provided')
+            print('[CallbackBase][Error!] - No callback phase was provided')
 
 class SchedulerStep(CallbackBase):
     """This callback will invoke a "step()" on the scheduler 
@@ -35,7 +33,7 @@ class SchedulerStep(CallbackBase):
         a function that except trainer and returns whatever information needed, 
         
         e.g. for scheduler that takes val_loss as parameter, initialize like this:
-            SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_loss_stats.get_mean())
+            SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss())
 
         if your scheduler step does not expect parameters, leave scheduler_parameters_func = None
     """
@@ -50,6 +48,13 @@ class SchedulerStep(CallbackBase):
             callback_context.trainer.scheduler.step()
 
 class EpochEndStats(CallbackBase):
+    """
+        Informative summary at the trainer state, most likely at the end of the epoch, but you
+        can change cb_phase if you need it on a different phase
+        Arguments:
+            cb_phase - the phase to invoke this callback
+    """
+
     def __init__(self, cb_phase=CB_ON_EPOCH_END):
         super(EpochEndStats, self).__init__(cb_phase)
         self.prev_train_loss = math.inf
@@ -74,9 +79,8 @@ class EpochEndStats(CallbackBase):
             return self.RED_PRINT_COLOR + str(diff_loss) + self.END_PRINT_COLOR
         return self.YELLOW_PRINT_COLOR + str(diff_loss) + self.END_PRINT_COLOR
 
-
-    def _handle_stats(self, loss_stats, prev_loss, lowest_loss):
-        curr_mean_loss = loss_stats.get_mean()
+    def _handle_stats(self, stats, prev_loss, lowest_loss):
+        curr_mean_loss = stats.get_loss()
         diff_color_str = self._get_loss_with_print_color(prev_loss, curr_mean_loss)
         lowest_loss = min(lowest_loss, prev_loss, curr_mean_loss)
         return diff_color_str, curr_mean_loss, prev_loss, lowest_loss
@@ -85,13 +89,13 @@ class EpochEndStats(CallbackBase):
         c = callback_context #READABILITY DOWN THE ROAD 
         current_lr = round(self._get_current_lr(c.trainer.optimizer), 7)
 
-        train_metrics = {metric_name:stats.get_mean() for metric_name,stats in c.train_metric_name_to_stats.items()}
-        t_diff_color_str, t_curr_mean_loss, t_prev_loss, t_lowest_loss = self._handle_stats(c.train_loss_stats, self.prev_train_loss, self.lowest_train_loss)
+        train_metrics = c.train_stats.get_metrics()
+        t_diff_color_str, t_curr_mean_loss, t_prev_loss, t_lowest_loss = self._handle_stats(c.train_stats, self.prev_train_loss, self.lowest_train_loss)
         self.prev_train_loss = t_curr_mean_loss
         self.lowest_train_loss = t_lowest_loss
 
-        val_metrics = {metric_name:stats.get_mean() for metric_name,stats in c.val_metric_name_to_stats.items()}
-        v_diff_color_str, v_curr_mean_loss, v_prev_loss, v_lowest_loss = self._handle_stats(c.val_loss_stats, self.prev_val_loss, self.lowest_val_loss)
+        val_metrics = c.val_stats.get_metrics()
+        v_diff_color_str, v_curr_mean_loss, v_prev_loss, v_lowest_loss = self._handle_stats(c.val_stats, self.prev_val_loss, self.lowest_val_loss)
         self.prev_val_loss = v_curr_mean_loss
         self.lowest_val_loss = v_lowest_loss
 
@@ -115,6 +119,18 @@ class EpochEndStats(CallbackBase):
         print('') #EMPTY LINE SEPERATOR
 
 class ModelCheckPoint(CallbackBase):
+    """
+        Saving a checkpoint when a monitored loss has improved.
+        Checkpoint will save the model, optimizer, scheduler and epoch number
+        Arguments:
+            checkpoint_dir - the folder to dave the model
+            checkpoint_file_name - 
+            monitor - can be 'val_loss', 'train_loss'
+            save_best_only - if True, will override previouse best model, else, will keep both
+            verbose - 0 = no print, 1 = print
+            cb_phase - the phase to invoke this callback
+    """
+
     def __init__(self, checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=False, verbose=1, cb_phase=CB_ON_EPOCH_END):
         super(ModelCheckPoint, self).__init__(cb_phase)
         self.monitor = monitor  # CAN BE val_loss/train_loss
@@ -134,9 +150,9 @@ class ModelCheckPoint(CallbackBase):
         should_save = False
 
         if self.monitor == 'val_loss':
-            loss_to_consider = c.val_loss_stats.get_mean()
+            loss_to_consider = c.val_stats.get_loss()
         elif self.monitor == 'train_loss':
-            loss_to_consider = c.train_loss_stats.get_mean()
+            loss_to_consider = c.train_stats.get_loss()
 
         if loss_to_consider < self.global_min_loss:
             msg = f'[ModelCheckPoint] - {self.monitor} improved from {self.global_min_loss} to {loss_to_consider}'
@@ -152,21 +168,25 @@ class ModelCheckPoint(CallbackBase):
                 print(f'[ModelCheckPoint] - {self.monitor} did not improved.')
 
 class Tensorboard(CallbackBase):
+    """Writes entries directly to event files in the summary_writer_dir to be
+    consumed by TensorBoard.
+    """
+
     def __init__(self, summary_writer_dir, cb_phase=CB_ON_EPOCH_END):
         super(Tensorboard, self).__init__(cb_phase)
         self.TRAIN_NAME = 'Train'
         self.VAL_NAME = 'Val'
         self.tensorboard_writer = SummaryWriter(summary_writer_dir + 'tensorboard_files')
 
-    def _write_to_summary(self, phase_name ,epoch, loss_stats, metric_name_to_stats):
-        self.tensorboard_writer.add_scalar(f'{phase_name} loss', loss_stats.get_mean(), global_step=epoch)
-        for metric_name, stats in metric_name_to_stats.items():
-            self.tensorboard_writer.add_scalar(metric_name, stats.get_mean(), global_step=epoch)
+    def _write_to_summary(self, phase_name ,epoch, stats):
+        self.tensorboard_writer.add_scalar(f'{phase_name} loss', stats.get_loss(), global_step=epoch)
+        for metric_name, value in stats.get_metrics().items():
+            self.tensorboard_writer.add_scalar(metric_name, value, global_step=epoch)
 
     def __call__(self, callback_context):
         c = callback_context #READABILITY DOWN THE ROAD 
-        self._write_to_summary(self.TRAIN_NAME, c.epoch, c.train_loss_stats, c.train_metric_name_to_stats)
-        self._write_to_summary(self.VAL_NAME, c.epoch, c.val_loss_stats, c.val_metric_name_to_stats)
+        self._write_to_summary(self.TRAIN_NAME, c.epoch, c.train_stats)
+        self._write_to_summary(self.VAL_NAME, c.epoch, c.val_stats)
 
 class EarlyStopping(CallbackBase):
     """
@@ -190,9 +210,9 @@ class EarlyStopping(CallbackBase):
         c = callback_context #READABILITY DOWN THE ROAD 
 
         if self.monitor == 'val_loss':
-            loss_to_consider = c.val_loss_stats.get_mean()
+            loss_to_consider = c.val_stats.get_loss()
         elif self.monitor == 'train_loss':
-            loss_to_consider = c.train_loss_stats.get_mean()
+            loss_to_consider = c.train_stats.get_loss()
 
         if loss_to_consider < self.global_min_loss:
             self.global_min_loss = loss_to_consider

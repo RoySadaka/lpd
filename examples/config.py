@@ -2,17 +2,14 @@ class Config():
 	def __init__(self):
 		self.TENSORBOARD_DIR = './tensorboard/'
 
-		self.LOSS = 'binary_crossentropy'
-		self.LEARNING_RATE = 1e-3
+		self.LEARNING_RATE = 0.1
 		self.STEP_LR_STEP_SIZE = 1
 		self.STEP_LR_GAMMA = 0.9
 
 		self.BATCH_SIZE = 512
 		self.NUM_EPOCHS = 30
-		self.PATIENCE = 11
+		self.EARLY_STOPPING_PATIENCE = 11
 
-		self.VALIDATION_SPLIT = 0.1
-		self.TEST_SPLIT = 0.1
 		self.EMBEDDINGS_SIZE = 128										# "Attention Is all You Need" PAPER SAYS 512
 		self.NUM_RESERVED_EMBEDDINGS = 2								# +1 FOR MASKING/PADDING (IDX = 0), +1 FOR RESERVED SPECIAL EMB (IDX = 1)
 

@@ -20,11 +20,12 @@ A Fast, Flexible Trainer and Extensions for Pytorch
 ```python
     from lpd.trainer import Trainer
     import lpd.utils.torch_utils as tu
+    import lpd.callbacks as cbs 
     from lpd.callbacks import EpochEndStats, ModelCheckPoint, Tensorboard, EarlyStopping
     from lpd.extensions.custom_metrics import binary_accuracy_with_logits
 
-    device = tu.get_gpu_device_if_available()
-    model = TestModel(config, num_embeddings).to(device) #this is your model class, already sent to the relevant device
+    device = tu.get_gpu_device_if_available() # with fallback to CPU if GPU not avilable
+    model = TestModel(config, num_embeddings).to(device) #this is your model class, and its being sent to the relevant device
     optimizer = optim.SGD(params=model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True)
     loss_func = nn.BCEWithLogitsLoss().to(device) #this is your loss class, already sent to the relevant device
@@ -32,11 +33,11 @@ A Fast, Flexible Trainer and Extensions for Pytorch
 
     # you can use some of the defined callbacks, or you can create your own
     callbacks = [
-                SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_loss_stats.get_mean()), # for scheduler that takes loss in step()
+                SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss()), # notice lambda for scheduler that takes loss in step()
                 ModelCheckPoint(checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=True), 
                 Tensorboard(summary_writer_dir=summary_writer_dir),
                 EarlyStopping(patience=10, monitor='val_loss'),
-                EpochEndStats() # better to put it last (makes better sense in the log prints)
+                EpochEndStats(cb_phase=cbs.CB_ON_EPOCH_END) # better to put it last on the list (makes better sense in the log prints)
             ]
 
     trainer = Trainer(model, 
@@ -88,27 +89,29 @@ You can also create your own callbacks
         def __init__(self, cb_phase=cbs.CB_ON_TRAIN_BEGIN):
             super(MyAwesomeCallback, self).__init__(cb_phase)
 
-        def __call__(self, callback_context):
+        def __call__(self, callback_context): # <=== implement this method!
+            # your implementation here
             # using callback_context, you can access anything in your trainer
             # below are some examples to get the hang of it
-            val_loss = callback_context.val_loss_stats.get_mean()
-            train_loss = callback_context.train_loss_stats.get_mean()
-            train_metrics = callback_context.train_metric_name_to_stats
-            val_metrics = callback_context.val_metric_name_to_stats
+            val_loss = callback_context.val_stats.get_loss()
+            train_loss = callback_context.train_stats.get_loss()
+            train_metrics = callback_context.train_stats.get_metrics()
+            val_metrics = callback_context.val_stats.get_metrics()
             opt = callback_context.trainer.optimizer
             scheduler = callback_context.trainer.scheduler
 ```
 
-### Custom Layers
-``lpd.extensions`` provides some custom pytorch layers, this are just some layers we like using when we create our models, to gain better flexibility.
+### Extensions
+``lpd.extensions`` provides some custom pytorch layers, these are just some layers we like using when we create our models, to gain better flexibility.
 
-So you can use them at your own will, we will add more layers from time to time.
+So you can use them at your own will, there youll also find custom metrics and schedulers.
+We will add more layers, metrics and schedulers from time to time.
 
 
-# TODOS (more added frequently)
+## TODOS (more added frequently)
 * Add support for multiple schedulers 
 * Add support for multiple losses
 * EpochEndStats - save and print best accuracies
 
-# Something is missing?! please share with us
+## Something is missing?! please share with us
 You can open an issue, but also feel free to email us at torch.lpd@gmail.com

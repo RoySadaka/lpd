@@ -5,6 +5,8 @@ from tqdm import tqdm
 import lpd.callbacks as tc
 from lpd.trainer_stats import TrainerStats
 
+
+
 class Trainer():
     def __init__(self, model, 
                        device, 
@@ -31,16 +33,14 @@ class Trainer():
         self.val_steps = val_steps
         self.callbacks = callbacks
         self.num_epochs = num_epochs
-        self.current_epoch = 0
-        self.should_stop_train = False
-        self.print_round_values_to = print_round_values_to
+        self._print_round_values_to = print_round_values_to
 
-        self.train_loss_stats = None
-        self.train_metric_name_to_stats = None
-        self.val_loss_stats = None
-        self.val_metric_name_to_stats = None
-        self.test_loss_stats = None
-        self.test_metric_name_to_stats = None
+        self._current_epoch = 0
+        self._should_stop_train = False
+
+        self.train_stats = TrainerStats(self.metric_name_to_func, self._print_round_values_to)
+        self.val_stats = TrainerStats(self.metric_name_to_func, self._print_round_values_to)
+        self.test_stats = TrainerStats(self.metric_name_to_func, self._print_round_values_to)
 
     def _train_loss_opt_handler(self, loss):
         loss.backward()
@@ -50,14 +50,8 @@ class Trainer():
     def _val_test_loss_opt_handler(self, loss):
         pass
 
-    def _metrics_handler_in_epoch(self, y_pred, y_true, metric_name_to_stats):
-        for metric_name, f in self.metric_name_to_func.items():
-            value = f(y_pred, y_true)
-            metric_name_to_stats[metric_name].add_value(value.item())
-
-    def _fwd_pass_base(self, phase_description, data_loader, steps, loss_opt_handler):
-        loss_stats = TrainerStats(self.print_round_values_to)
-        metric_name_to_stats = {metric_name:TrainerStats(self.print_round_values_to) for metric_name,_ in self.metric_name_to_func.items()}
+    def _fwd_pass_base(self, phase_description, data_loader, steps, loss_opt_handler, stats):
+        stats.reset()
         loop = tqdm(data_loader, total=steps-1)
         for X_batch,y_batch in loop:
             steps -= 1
@@ -67,23 +61,21 @@ class Trainer():
             y = y_batch.to(self.device)
             outputs = self.model(*inputs)
             loss = self.loss_func(outputs, y)
-            loss_stats.add_value(loss.item())
-            self._metrics_handler_in_epoch(outputs, y, metric_name_to_stats)
+            stats.add_loss(loss)
+            stats.add_metrics(outputs, y)
             loss_opt_handler(loss)
             
             loop.set_description(phase_description)
-            loop.set_postfix(loss=loss_stats.get_mean(), acc={metric_name:stats.get_mean() for metric_name, stats in metric_name_to_stats.items()})
+            loop.set_postfix(loss=stats.get_loss(), acc=stats.get_metrics())
             
             if steps == 0:
                 break
-
-        return loss_stats, metric_name_to_stats
 
     def _fwd_pass_test(self, test_data_loader, test_steps):
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
             phase_description = f'[Test]'
-            self.test_loss_stats, self.test_metric_name_to_stats = self._fwd_pass_base(phase_description, test_data_loader, test_steps, self._val_test_loss_opt_handler)
+            self._fwd_pass_base(phase_description, test_data_loader, test_steps, self._val_test_loss_opt_handler, self.test_stats)
 
     def _fwd_pass_val(self):
         if self.val_data_loader is None or self.val_steps == 0:
@@ -91,13 +83,13 @@ class Trainer():
 
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
-            phase_description = f'[Val   epoch {self.current_epoch}/{self.num_epochs}]'
-            self.val_loss_stats, self.val_metric_name_to_stats = self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_test_loss_opt_handler)
+            phase_description = f'[Val   epoch {self._current_epoch}/{self.num_epochs}]'
+            self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_test_loss_opt_handler, self.val_stats)
 
     def _fwd_pass_train(self):
         self.model.train() #MARK STATUS AS TRAIN
-        phase_description = f'[Train epoch {self.current_epoch}/{self.num_epochs}]'
-        self.train_loss_stats, self.train_metric_name_to_stats = self._fwd_pass_base(phase_description, self.train_data_loader, self.train_steps, self._train_loss_opt_handler)
+        phase_description = f'[Train epoch {self._current_epoch}/{self.num_epochs}]'
+        self._fwd_pass_base(phase_description, self.train_data_loader, self.train_steps, self._train_loss_opt_handler, self.train_stats)
 
     def _invoke_callbacks(self, phase):
         context = tc.CallbackContext(self)
@@ -123,13 +115,13 @@ class Trainer():
 
     def stop_training(self):
         #MARKS THIS TRAINER AS DONE, MOST LIKELY DUE TO A CALLBACK (E.G. EARLY-STOPPING)
-        self.should_stop_train = True
+        self._should_stop_train = True
 
     def train(self):
         self._invoke_callbacks(tc.CB_ON_TRAIN_BEGIN)
-        self.current_epoch = 0
+        self._current_epoch = 0
         for epoch in range(1, self.num_epochs + 1):
-            self.current_epoch = epoch
+            self._current_epoch = epoch
             self._invoke_callbacks(tc.CB_ON_EPOCH_BEGIN)
 
             self._fwd_pass_train()
@@ -137,14 +129,14 @@ class Trainer():
 
             self._invoke_callbacks(tc.CB_ON_EPOCH_END)
             
-            if self.should_stop_train:
+            if self._should_stop_train:
                 break
         
         self._invoke_callbacks(tc.CB_ON_TRAIN_END)
 
     def evaluate(self, test_data_loader, test_steps):
         self._fwd_pass_test(test_data_loader, test_steps)
-        test_mean_loss = self.test_loss_stats.get_mean()
-        test_metrics = {metric_name:stats.get_mean() for metric_name,stats in self.test_metric_name_to_stats.items()}
+        test_mean_loss = self.test_stats.get_loss()
+        test_metrics = self.test_stats.get_metrics()
         print(f'[Test Results] - loss: {test_mean_loss}, metric: {test_metrics}')
 
