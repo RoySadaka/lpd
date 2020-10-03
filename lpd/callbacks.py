@@ -7,7 +7,7 @@ CB_ON_TRAIN_BEGIN   = 'on_train_begin'
 CB_ON_TRAIN_END     = 'on_train_end'
 CB_ON_EPOCH_BEGIN   = 'on_epoch_begin'
 CB_ON_EPOCH_END     = 'on_epoch_end'
-#TODO - ADD SUPPPORT FOR THESE, TAKE INTO CONSIDERATION CALLBACK IN VALIDATION MODE
+#TODO - ADD SUPPORT FOR THESE, TAKE INTO CONSIDERATION CALLBACK IN VALIDATION MODE
 # CB_ON_BATCH_BEGIN   = 'on_batch_begin'
 # CB_ON_BATCH_END     = 'on_batch_end'
 
@@ -25,19 +25,19 @@ class CallbackBase():
         if self.cb_phase is None:
             print('[CallbackBase][Error!] - No callback phase was provided')
         self.round_values_on_print_to = round_values_on_print_to
-    
+
     def round_to(self, value):
         if self.round_values_on_print_to:
             return round(value, self.round_values_on_print_to)
         return value
 
 class SchedulerStep(CallbackBase):
-    """This callback will invoke a "step()" on the scheduler 
+    """This callback will invoke a "step()" on the scheduler
         Since some schedulers takes parameters in step(param1, param2...)
-        And other schedulers step() are parametersless, provide:
+        And other schedulers step() are parameterless, provide:
         scheduler_parameters_func
-        a function that except trainer and returns whatever information needed, 
-        
+        a function that except trainer and returns whatever information needed,
+
         e.g. for scheduler that takes val_loss as parameter, initialize like this:
             SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss())
 
@@ -101,9 +101,9 @@ class EpochEndStats(CallbackBase):
         return metrics
 
     def __call__(self, callback_context):
-        c = callback_context #READABILITY DOWN THE ROAD 
-        r = self.round_to #READABILITY DOWN THE ROAD 
-        r_met = self._round_metrics #READABILITY DOWN THE ROAD 
+        c = callback_context #READABILITY DOWN THE ROAD
+        r = self.round_to #READABILITY DOWN THE ROAD
+        r_met = self._round_metrics #READABILITY DOWN THE ROAD
         current_lr = self._get_current_lr(c.trainer.optimizer)
 
         train_metrics = c.train_stats.get_metrics()
@@ -118,22 +118,22 @@ class EpochEndStats(CallbackBase):
 
         print('[EpochEndStats] - ')
         print('------------------------------------------------------')
-        print(f'| Stats                ') 
+        print(f'| Stats                ')
         print(f'|   |-- Epoch:{c.epoch}')
         print(f'|   |-- Learning rate:{r(current_lr)}')
-        print(f'|   |-- Train                ') 
+        print(f'|   |-- Train                ')
         print(f'|   |     |-- loss')
         print(f'|   |     |     |-- curr:{r(t_curr_mean_loss)}, prev:{r(t_prev_loss)}, change:{t_diff_color_str}, lowest:{r(self.lowest_train_loss)}')
         print(f'|   |     |-- metrics        ')
         print(f'|   |           |-- {r_met(train_metrics)}')
         print(f'|   |                        ')
-        print(f'|   |-- Validation           ')   
+        print(f'|   |-- Validation           ')
         print(f'|         |-- loss')
         print(f'|         |     |-- curr:{r(v_curr_mean_loss)}, prev:{r(v_prev_loss)}, change:{v_diff_color_str}, lowest:{r(self.lowest_val_loss)}')
-        print(f'|         |-- metrics        ') 
+        print(f'|         |-- metrics        ')
         print(f'|               |-- {r_met(val_metrics)}')
         print('------------------------------------------------------')
-        print('') #EMPTY LINE SEPERATOR
+        print('') #EMPTY LINE SEPARATOR
 
 class ModelCheckPoint(CallbackBase):
     """
@@ -141,9 +141,9 @@ class ModelCheckPoint(CallbackBase):
         Checkpoint will save the model, optimizer, scheduler and epoch number
         Args:
             checkpoint_dir - the folder to dave the model
-            checkpoint_file_name - 
+            checkpoint_file_name -
             monitor - can be 'val_loss', 'train_loss'
-            save_best_only - if True, will override previouse best model, else, will keep both
+            save_best_only - if True, will override previous best model, else, will keep both
             verbose - 0 = no print, 1 = print
             cb_phase - the phase to invoke this callback
             round_values_on_print_to - optional, it will round the numerical values in the prints
@@ -164,10 +164,8 @@ class ModelCheckPoint(CallbackBase):
             fu.create_folder(self.checkpoint_dir)
 
     def __call__(self, callback_context):
-        c = callback_context #READABILITY DOWN THE ROAD 
-        r = self.round_to #READABILITY DOWN THE ROAD 
-
-        should_save = False
+        c = callback_context #READABILITY DOWN THE ROAD
+        r = self.round_to #READABILITY DOWN THE ROAD
 
         if self.monitor == 'val_loss':
             loss_to_consider = c.val_stats.get_loss()
@@ -204,7 +202,7 @@ class Tensorboard(CallbackBase):
             self.tensorboard_writer.add_scalar(metric_name, value, global_step=epoch)
 
     def __call__(self, callback_context):
-        c = callback_context #READABILITY DOWN THE ROAD 
+        c = callback_context #READABILITY DOWN THE ROAD
         self._write_to_summary(self.TRAIN_NAME, c.epoch, c.train_stats)
         self._write_to_summary(self.VAL_NAME, c.epoch, c.val_stats)
 
@@ -222,12 +220,12 @@ class EarlyStopping(CallbackBase):
         super(EarlyStopping, self).__init__(cb_phase)
         self.patience = patience # HOW MANY EPOCHS TO WAIT
         self.patience_countdown = patience
-        self.monitor = monitor 
+        self.monitor = monitor
         self.global_min_loss = math.inf
         self.verbose = verbose
 
     def __call__(self, callback_context):
-        c = callback_context #READABILITY DOWN THE ROAD 
+        c = callback_context #READABILITY DOWN THE ROAD
 
         if self.monitor == 'val_loss':
             loss_to_consider = c.val_stats.get_loss()
