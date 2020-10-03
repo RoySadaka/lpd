@@ -18,7 +18,7 @@ class Config():
 		self.NUM_HEADS_PER_TRANSFORMER = 3 								# "Attention Is all You Need" PAPER SAYS 8
 		self.TRANSFORMER_DROP_OUT_PROBA = 0.1							# "Attention Is all You Need" PAPER SAYS 0.1
 		self.TRANSFORMER_KEY_DIM = self.EMBEDDINGS_SIZE // 2            # "Attention Is all You Need" PAPER SAYS (EMB // 4)
-		self.TRANSFORMER_FF_EXPANTION_RATE = 1							# "Attention Is all You Need" PAPER SAYS 4
+		self.TRANSFORMER_FF_EXPANSION_RATE = 1							# "Attention Is all You Need" PAPER SAYS 4
 
 		self.MODEL_WEIGHTS_FILE_NAME = 'weights'
 		self.MODEL_WEIGHTS_DIR = './weights/'

@@ -135,14 +135,14 @@ class TransformerEncoderFeedForward(nn.Module):
     def __init__(self, in_dim,
                        out_dim,
                        drop_out_proba,
-                       expantion_rate,
+                       expansion_rate,
                        name=None):
         super(TransformerEncoderFeedForward, self).__init__()
         #PARAMS
         self.in_dim = in_dim
         self.out_dim = out_dim
         self.drop_out_proba = drop_out_proba
-        self.expansion_rate = expantion_rate
+        self.expansion_rate = expansion_rate
         self.name = name if name else 'transformer_encoder__feed_forward'
 
         #LAYERS
@@ -153,7 +153,7 @@ class TransformerEncoderFeedForward(nn.Module):
         self.norm = nn.LayerNorm(normalized_shape=self.out_dim)   # WILL APPLY NORM OVER THE LAST DIMENSION ONLY
 
     def forward(self, inputs):                                              # (batch, num_elements, out_dim)
-        hidden_values = self.hidden_dense(inputs)                           # (batch, num_elements, out_dim * expantion_rate)
+        hidden_values = self.hidden_dense(inputs)                           # (batch, num_elements, out_dim * expansion_rate)
         output = self.output_dense(hidden_values)                           # (batch, num_elements, out_dim)
         self.dropout_inplace(output)                                        # (batch, num_elements, out_dim)
         return self.norm(inputs + output)    #RESIDUAL & NORM               # (batch, num_elements, out_dim)
@@ -164,7 +164,7 @@ class TransformerEncoder(nn.Module):
                        out_dim,
                        num_heads,
                        drop_out_proba,
-                       ff_expantion_rate,
+                       ff_expansion_rate,
                        name = None):
         super(TransformerEncoder, self).__init__()
         #PARAMS
@@ -173,7 +173,7 @@ class TransformerEncoder(nn.Module):
         self.out_dim = out_dim
         self.num_heads = num_heads
         self.drop_out_proba = drop_out_proba
-        self.ff_expantion_rate = ff_expantion_rate
+        self.ff_expansion_rate = ff_expansion_rate
         self.name = name if name else 'transformer_encoder'
         #LAYERS
         self.multi_head_self_attention = MultiHeadAttention(self.in_dim,
@@ -186,7 +186,7 @@ class TransformerEncoder(nn.Module):
         self.feed_forward = TransformerEncoderFeedForward(self.out_dim,
                                                           self.out_dim,
                                                           self.drop_out_proba,
-                                                          self.ff_expantion_rate,
+                                                          self.ff_expansion_rate,
                                                           name = f'{self.name}__FF')
 
 
@@ -228,7 +228,7 @@ class TransformerEncoderStack(nn.Module):
                        num_transformer_encoders,
                        num_heads_per_transformer,
                        drop_out_proba,
-                       ff_expantion_rate,
+                       ff_expansion_rate,
                        maximum_position_encoding=None,
                        name=None):
         super(TransformerEncoderStack, self).__init__()
@@ -239,7 +239,7 @@ class TransformerEncoderStack(nn.Module):
         self.num_transformer_encoders = num_transformer_encoders
         self.num_heads_per_transformer = num_heads_per_transformer
         self.drop_out_proba = drop_out_proba
-        self.ff_expantion_rate = ff_expantion_rate
+        self.ff_expansion_rate = ff_expansion_rate
         self.maximum_position_encoding = maximum_position_encoding
         self.name = name if name else 'transformer_encoder_stack'
 
@@ -249,7 +249,7 @@ class TransformerEncoderStack(nn.Module):
                                                     self.out_dim,
                                                     self.num_heads_per_transformer,
                                                     self.drop_out_proba,
-                                                    self.ff_expantion_rate,
+                                                    self.ff_expansion_rate,
                                                     name=f'{self.name}__E{i}')
                                                     for i in range(self.num_transformer_encoders)])
         self.pos_encoder = PositionalEncoding(self.in_dim, self.drop_out_proba, self.maximum_position_encoding)

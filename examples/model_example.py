@@ -28,7 +28,7 @@ class TestModel(nn.Module):
                                                             num_transformer_encoders=config.NUM_TRANSFORMER_ENCODERS,
                                                             num_heads_per_transformer=config.NUM_HEADS_PER_TRANSFORMER,
                                                             drop_out_proba=config.TRANSFORMER_DROP_OUT_PROBA,
-                                                            ff_expantion_rate=config.TRANSFORMER_FF_EXPANTION_RATE)
+                                                            ff_expansion_rate=config.TRANSFORMER_FF_EXPANSION_RATE)
 
         self.external_query_attention = Attention(key_dim=config.EMBEDDINGS_SIZE, use_query_dense=True)
         self.norm = nn.LayerNorm(normalized_shape=config.EMBEDDINGS_SIZE) # WILL APPLY NORM OVER THE LAST DIMENTION ONLY
