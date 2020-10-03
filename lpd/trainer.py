@@ -19,8 +19,7 @@ class Trainer():
                        train_steps,
                        val_steps,
                        num_epochs=50,
-                       callbacks = [],
-                       print_round_values_to = None):
+                       callbacks = []):
         self.device = device
         self.model = model
         self.loss_func = loss_func
@@ -33,14 +32,13 @@ class Trainer():
         self.val_steps = val_steps
         self.callbacks = callbacks
         self.num_epochs = num_epochs
-        self._print_round_values_to = print_round_values_to
 
         self._current_epoch = 0
         self._should_stop_train = False
 
-        self.train_stats = TrainerStats(self.metric_name_to_func, self._print_round_values_to)
-        self.val_stats = TrainerStats(self.metric_name_to_func, self._print_round_values_to)
-        self.test_stats = TrainerStats(self.metric_name_to_func, self._print_round_values_to)
+        self.train_stats = TrainerStats(self.metric_name_to_func)
+        self.val_stats = TrainerStats(self.metric_name_to_func)
+        self.test_stats = TrainerStats(self.metric_name_to_func)
 
     def _train_loss_opt_handler(self, loss):
         loss.backward()

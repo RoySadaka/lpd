@@ -1,9 +1,8 @@
 class Stats():
-    def __init__(self, round_values_to=None):
+    def __init__(self):
         self.sum = 0
         self.count = 0
         self.last = 0
-        self.round_values_to = round_values_to
         self.reset()
 
     def reset(self):
@@ -20,6 +19,4 @@ class Stats():
         if self.count == 0:
             return 0
         mean = self.sum/self.count
-        if self.round_values_to:
-            return round(mean, self.round_values_to)
         return mean

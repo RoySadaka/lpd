@@ -85,10 +85,10 @@ def get_trainer(config,
 
     callbacks = [   
                     SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss()),
-                    ModelCheckPoint(checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=True), 
+                    ModelCheckPoint(checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=True, round_values_on_print_to=7), 
                     Tensorboard(summary_writer_dir=summary_writer_dir),
                     EarlyStopping(patience=config.EARLY_STOPPING_PATIENCE, monitor='val_loss'),
-                    EpochEndStats(cb_phase=cbs.CB_ON_EPOCH_END) # BETTER TO PUT IT LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
+                    EpochEndStats(cb_phase=cbs.CB_ON_EPOCH_END, round_values_on_print_to=7) # BETTER TO PUT IT LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
                 ]
 
     trainer = Trainer(model=model, 
@@ -102,6 +102,5 @@ def get_trainer(config,
                       train_steps=train_steps,
                       val_steps=val_steps,
                       num_epochs=num_epochs,
-                      callbacks=callbacks,
-                      print_round_values_to=5)
+                      callbacks=callbacks)
     return trainer

@@ -2,10 +2,10 @@ from lpd.stats import Stats
 
 
 class TrainerStats():
-    def __init__(self, metric_name_to_func, print_round_values_to=None):
+    def __init__(self, metric_name_to_func):
         self.metric_name_to_func = metric_name_to_func
-        self.loss_stats = Stats(print_round_values_to)
-        self.metric_name_to_stats = {metric_name:Stats(print_round_values_to) for metric_name,_ in self.metric_name_to_func.items()}
+        self.loss_stats = Stats()
+        self.metric_name_to_stats = {metric_name:Stats() for metric_name,_ in self.metric_name_to_func.items()}
 
     def reset(self):
         self.loss_stats.reset()

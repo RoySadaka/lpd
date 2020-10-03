@@ -1,6 +1,28 @@
 Change Log
 ==========
 
-0.0.7 (01/10/2020)
+0.0.8 (03/10/2020)
+-----------------
+* added optional round_values_on_print_to to EpochEndStats and ModelCheckPoint callbacks
+* removed round_values_to from TrainerStats & Stats (it didnt made sense anyway)
+* removed print_round_values_to from trainer, its now on the callbacks themselves
+* updated readme
+
+
+0.0.7 (03/10/2020)
+-----------------
+* splited TrainerStats class into TrainerStats & Stats
+* can now easily call trainer.train_stats.get_loss() or trainer.val_stats.get_metrics()
+* TrainerStats now has a reset() function
+* using configs in example 
+* code clean up and cosmetics
+
+
+0.0.6 (02/10/2020)
+-----------------
+scheduler step as callback, support for step() with or without parameters
+
+
+0.0.1 (01/10/2020)
 -----------------
 - First Release

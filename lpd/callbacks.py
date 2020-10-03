@@ -20,10 +20,16 @@ class CallbackContext():
         self.trainer = trainer
 
 class CallbackBase():
-    def __init__(self, cb_phase = None):
+    def __init__(self, cb_phase = None, round_values_on_print_to = None):
         self.cb_phase = cb_phase
         if self.cb_phase is None:
             print('[CallbackBase][Error!] - No callback phase was provided')
+        self.round_values_on_print_to = round_values_on_print_to
+    
+    def round_to(self, value):
+        if self.round_values_on_print_to:
+            return round(value, self.round_values_on_print_to)
+        return value
 
 class SchedulerStep(CallbackBase):
     """This callback will invoke a "step()" on the scheduler 
@@ -53,10 +59,11 @@ class EpochEndStats(CallbackBase):
         can change cb_phase if you need it on a different phase
         Arguments:
             cb_phase - the phase to invoke this callback
+            round_values_on_print_to - optional, it will round the numerical values in the prints
     """
 
-    def __init__(self, cb_phase=CB_ON_EPOCH_END):
-        super(EpochEndStats, self).__init__(cb_phase)
+    def __init__(self, cb_phase=CB_ON_EPOCH_END, round_values_on_print_to = None):
+        super(EpochEndStats, self).__init__(cb_phase, round_values_on_print_to)
         self.prev_train_loss = math.inf
         self.prev_val_loss = math.inf
         self.lowest_train_loss = math.inf
@@ -71,7 +78,7 @@ class EpochEndStats(CallbackBase):
         return optimizer.param_groups[0]['lr']
 
     def _get_loss_with_print_color(self, prev_loss, mean_loss):
-        diff_loss = round(mean_loss - prev_loss, 7)
+        diff_loss = self.round_to(mean_loss - prev_loss)
 
         if diff_loss < 0:
             return self.GREEN_PRINT_COLOR + str(diff_loss) + self.END_PRINT_COLOR
@@ -85,9 +92,16 @@ class EpochEndStats(CallbackBase):
         lowest_loss = min(lowest_loss, prev_loss, curr_mean_loss)
         return diff_color_str, curr_mean_loss, prev_loss, lowest_loss
 
+    def _round_metrics(self, metrics):
+        if self.round_values_on_print_to:
+            return {metric:self.round_to(value) for metric,value in metrics.items()}
+        return metrics
+
     def __call__(self, callback_context):
         c = callback_context #READABILITY DOWN THE ROAD 
-        current_lr = round(self._get_current_lr(c.trainer.optimizer), 7)
+        r = self.round_to #READABILITY DOWN THE ROAD 
+        r_met = self._round_metrics #READABILITY DOWN THE ROAD 
+        current_lr = self._get_current_lr(c.trainer.optimizer)
 
         train_metrics = c.train_stats.get_metrics()
         t_diff_color_str, t_curr_mean_loss, t_prev_loss, t_lowest_loss = self._handle_stats(c.train_stats, self.prev_train_loss, self.lowest_train_loss)
@@ -103,18 +117,18 @@ class EpochEndStats(CallbackBase):
         print('------------------------------------------------------')
         print(f'| Stats                ') 
         print(f'|   |-- Epoch:{c.epoch}')
-        print(f'|   |-- Learning rate:{current_lr}')
+        print(f'|   |-- Learning rate:{r(current_lr)}')
         print(f'|   |-- Train                ') 
         print(f'|   |     |-- loss')
-        print(f'|   |     |     |-- curr:{t_curr_mean_loss}, prev:{t_prev_loss}, change:{t_diff_color_str}, lowest:{self.lowest_train_loss}')
+        print(f'|   |     |     |-- curr:{r(t_curr_mean_loss)}, prev:{r(t_prev_loss)}, change:{t_diff_color_str}, lowest:{r(self.lowest_train_loss)}')
         print(f'|   |     |-- metrics        ')
-        print(f'|   |           |-- {train_metrics}')
+        print(f'|   |           |-- {r_met(train_metrics)}')
         print(f'|   |                        ')
         print(f'|   |-- Validation           ')   
         print(f'|         |-- loss')
-        print(f'|         |     |-- curr:{v_curr_mean_loss}, prev:{v_prev_loss}, change:{v_diff_color_str}, lowest:{self.lowest_val_loss}')
+        print(f'|         |     |-- curr:{r(v_curr_mean_loss)}, prev:{r(v_prev_loss)}, change:{v_diff_color_str}, lowest:{r(self.lowest_val_loss)}')
         print(f'|         |-- metrics        ') 
-        print(f'|               |-- {val_metrics}')
+        print(f'|               |-- {r_met(val_metrics)}')
         print('------------------------------------------------------')
         print('') #EMPTY LINE SEPERATOR
 
@@ -129,10 +143,11 @@ class ModelCheckPoint(CallbackBase):
             save_best_only - if True, will override previouse best model, else, will keep both
             verbose - 0 = no print, 1 = print
             cb_phase - the phase to invoke this callback
+            round_values_on_print_to - optional, it will round the numerical values in the prints
     """
 
-    def __init__(self, checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=False, verbose=1, cb_phase=CB_ON_EPOCH_END):
-        super(ModelCheckPoint, self).__init__(cb_phase)
+    def __init__(self, checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=False, verbose=1, cb_phase=CB_ON_EPOCH_END, round_values_on_print_to = None):
+        super(ModelCheckPoint, self).__init__(cb_phase, round_values_on_print_to)
         self.monitor = monitor  # CAN BE val_loss/train_loss
         self.save_best_only = save_best_only
         self.verbose = verbose  # VERBOSITY MODE, 0 OR 1.
@@ -147,6 +162,8 @@ class ModelCheckPoint(CallbackBase):
 
     def __call__(self, callback_context):
         c = callback_context #READABILITY DOWN THE ROAD 
+        r = self.round_to #READABILITY DOWN THE ROAD 
+
         should_save = False
 
         if self.monitor == 'val_loss':
@@ -155,7 +172,7 @@ class ModelCheckPoint(CallbackBase):
             loss_to_consider = c.train_stats.get_loss()
 
         if loss_to_consider < self.global_min_loss:
-            msg = f'[ModelCheckPoint] - {self.monitor} improved from {self.global_min_loss} to {loss_to_consider}'
+            msg = f'[ModelCheckPoint] - {self.monitor} improved from {r(self.global_min_loss)} to {r(loss_to_consider)}'
             self.global_min_loss = loss_to_consider
             #SAVE
             if self.save_best_only:
