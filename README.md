@@ -61,6 +61,19 @@ A Fast, Flexible Trainer and Extensions for Pytorch
     trainer.evaluate(test_data_loader, test_steps)
 ```
 
+### TrainerStats
+``Trainer`` tracks stats for `train/val/test` and you can access them in your custom callbacks
+or any other place you see fit.
+
+Here are some examples
+```python
+    train_loss = trainer.train_stats.get_loss() #the mean of the last epoch's train losses
+    val_loss = trainer.val_stats.get_loss() #the mean of the last epoch's val losses
+
+    train_metrics = trainer.train_stats.get_metrics() #the mean of each of the metric you defined
+    train_metrics = trainer.val_stats.get_metrics() #the mean of each of the metric you defined
+```
+
 
 ### Callbacks
 Some common callbacks are available under ``lpd.callbacks``. 
