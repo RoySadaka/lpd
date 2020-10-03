@@ -1,4 +1,4 @@
-![Logo](https://raw.githubusercontent.com/RoySadaka/lpd/master/images/logo.png)
+![Logo](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/logo.png)
 
 # lpd
 
@@ -90,7 +90,7 @@ These are the current available phases, more will be added soon
 
 ``EpochEndStats`` callback will print an epoch summary at the end of every epoch
 
-![EpochSummary](https://raw.githubusercontent.com/RoySadaka/lpd/master/images/epoch_summary.png)
+![EpochSummary](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/epoch_summary.png)
 
 You can also create your own callbacks
 
@@ -126,7 +126,10 @@ We will add more layers, metrics and schedulers from time to time.
 * Add support for multiple losses
 * EpochEndStats - save and print best accuracies
 * Save trainer in checkpoint to enable loading a model and continue training from last checkpoint
+* Dataloader support
 * Add more examples of usage
+* Add colab examples
+* Reduce package size by moving images to another repo 
 
 ## Something is missing?! please share with us
 You can open an issue, but also feel free to email us at torch.lpd@gmail.com

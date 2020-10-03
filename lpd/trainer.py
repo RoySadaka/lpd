@@ -82,11 +82,9 @@ class Trainer():
     def _fwd_pass_base(self, phase_description, data_loader, steps, loss_opt_handler, stats):
         stats.reset()
         loop = tqdm(data_loader, total=steps-1)
-        for X_batch,y_batch in loop:
+        for Xs_batch,y_batch in loop:
             steps -= 1
-            inputs = []
-            for x in X_batch:
-                inputs.append(x.to(self.device))
+            inputs = [x.to(self.device) for x in Xs_batch]
             y = y_batch.to(self.device)
             outputs = self.model(*inputs)
             loss = self.loss_func(outputs, y)
