@@ -67,11 +67,11 @@ or any other place you see fit.
 
 Here are some examples
 ```python
-    train_loss = trainer.train_stats.get_loss() #the mean of the last epoch's train losses
-    val_loss = trainer.val_stats.get_loss() #the mean of the last epoch's val losses
+    train_loss = trainer.train_stats.get_loss()         #the mean of the last epoch's train losses
+    val_loss = trainer.val_stats.get_loss()             #the mean of the last epoch's val losses
 
-    train_metrics = trainer.train_stats.get_metrics() #the mean of each of the metric you defined
-    train_metrics = trainer.val_stats.get_metrics() #the mean of each of the metric you defined
+    train_metrics = trainer.train_stats.get_metrics()   #the mean of the last epoch's train metrics
+    train_metrics = trainer.val_stats.get_metrics()     #the mean of the last epoch's val metrics
 ```
 
 

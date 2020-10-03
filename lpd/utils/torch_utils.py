@@ -1,5 +1,8 @@
 import torch as T
 
+def seed_torch(seed):
+    T.manual_seed(seed)
+
 def is_gpu_available(verbose = 1):
     res = T.cuda.is_available()
     if verbose: print(f"GPU Availability: {res}")
