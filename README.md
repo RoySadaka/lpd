@@ -125,6 +125,8 @@ We will add more layers, metrics and schedulers from time to time.
 * Add support for multiple schedulers 
 * Add support for multiple losses
 * EpochEndStats - save and print best accuracies
+* Save trainer in checkpoint to enable loading a model and continue training from last checkpoint
+* Add more examples of usage
 
 ## Something is missing?! please share with us
 You can open an issue, but also feel free to email us at torch.lpd@gmail.com
