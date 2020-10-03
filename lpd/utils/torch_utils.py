@@ -2,7 +2,7 @@ import torch as T
 
 def is_gpu_available(verbose = 1):
     res = T.cuda.is_available()
-    if verbose: print(f"GPU Availablility: {res}")
+    if verbose: print(f"GPU Availability: {res}")
     return res
 
 def how_many_gpus_available():
@@ -26,7 +26,7 @@ def save_checkpoint(checkpoint_filepath, epoch, model, optimizer, scheduler, msg
     if verbose:
       print(f'{msg} - Saving checkpoint to {checkpoint_filepath}')
     checkpoint = {
-                  'model': model.state_dict(), 
+                  'model': model.state_dict(),
                   'optimizer': optimizer.state_dict(),
                   'scheduler':  scheduler.state_dict() if scheduler else None,
                   'epoch':epoch

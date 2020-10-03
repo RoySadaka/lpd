@@ -16,28 +16,28 @@ class Trainer():
             scheduler - the model's scheduler (make sure you add SchedulerStep to your callbacks),
                         pass None if you dont need scheduler
             metric_name_to_func - a dictionary with string as key and metric function as value
-                        e.g.   {"binary_accuracy":lpd.extensions.custom_metrics.binary_accuracy_with_logits}  
+                        e.g.   {"binary_accuracy":lpd.extensions.custom_metrics.binary_accuracy_with_logits}
             train_data_loader - an iterable or generator to get the next train data batch
             val_data_loader - an iterable or generator to get the next val data batch
-            train_steps - total number of steps (batches) before declaring the epoch as finished 
-            val_steps - total number of steps (batches) before declaring the epoch as finished 
+            train_steps - total number of steps (batches) before declaring the epoch as finished
+            val_steps - total number of steps (batches) before declaring the epoch as finished
             num_epochs - number of epochs to train the model
             callbacks - list of lpd.callbacks to apply during the differrent training phases
-        
+
         Methods:
-            summary - will print information abour the trainer and the model
+            summary - will print information about the trainer and the model
             stop_training - will indicate this trainer to stop train (e.g. from a callback) after the current epoch is done
             train - this is the training loop, it will invoke the training and validation phases, as well as callbacks and maintain stats
             evaluate - will run a forward pass on the test data
     """
 
-    def __init__(self, model, 
-                       device, 
-                       loss_func, 
-                       optimizer, 
-                       scheduler, 
-                       metric_name_to_func, 
-                       train_data_loader, 
+    def __init__(self, model,
+                       device,
+                       loss_func,
+                       optimizer,
+                       scheduler,
+                       metric_name_to_func,
+                       train_data_loader,
                        val_data_loader,
                        train_steps,
                        val_steps,
@@ -91,10 +91,10 @@ class Trainer():
             stats.add_loss(loss)
             stats.add_metrics(outputs, y)
             loss_opt_handler(loss)
-            
+
             loop.set_description(phase_description)
             loop.set_postfix(loss=stats.get_loss(), acc=stats.get_metrics())
-            
+
             if steps == 0:
                 break
 
@@ -155,10 +155,10 @@ class Trainer():
             self._fwd_pass_val()
 
             self._invoke_callbacks(tc.CB_ON_EPOCH_END)
-            
+
             if self._should_stop_train:
                 break
-        
+
         self._invoke_callbacks(tc.CB_ON_TRAIN_END)
 
     def evaluate(self, test_data_loader, test_steps):
