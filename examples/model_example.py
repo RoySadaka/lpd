@@ -40,14 +40,14 @@ class TestModel(nn.Module):
         # x3   : some2-Input        (batch, 1)
 
         x1_emb = self.embedding_layer(x1)                                                     # (batch, num_elements, emb_size)
-        member_transformed = self.transformer_encoder(x1_emb)                                 # (batch, num_elements, emb_size)
+        x1_emb_transformed = self.transformer_encoder(x1_emb)                                 # (batch, num_elements, emb_size)
         
         x3_emb = self.embedding_layer(x3)                                                     # (batch, emb_size)
         x3_emb_unsqueesed = x3_emb.unsqueeze(1)                                               # (batch, 1, emb_size)
 
         x1_with_x3_reduced = self.external_query_attention(q=x3_emb_unsqueesed, 
-                                                           k=member_transformed, 
-                                                           v=member_transformed)              # (batch, 1, emb_size)
+                                                           k=x1_emb_transformed, 
+                                                           v=x1_emb_transformed)              # (batch, 1, emb_size)
         
 
         x1_with_x3_residual = self.norm(x1_with_x3_reduced + x3_emb_unsqueesed)     		  # (batch, 1, emb_size)
