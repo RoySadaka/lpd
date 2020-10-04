@@ -1,15 +1,10 @@
 from lpd.utils.torch_utils import save_checkpoint
 from torch.utils.tensorboard import SummaryWriter
 import lpd.utils.file_utils as fu
-import math
+import lpd.enums as en
 
-CB_ON_TRAIN_BEGIN   = 'on_train_begin'
-CB_ON_TRAIN_END     = 'on_train_end'
-CB_ON_EPOCH_BEGIN   = 'on_epoch_begin'
-CB_ON_EPOCH_END     = 'on_epoch_end'
-#TODO - ADD SUPPORT FOR THESE, TAKE INTO CONSIDERATION CALLBACK IN VALIDATION MODE
-# CB_ON_BATCH_BEGIN   = 'on_batch_begin'
-# CB_ON_BATCH_END     = 'on_batch_end'
+from math import inf
+
 
 class CallbackContext():
     #REPRESENTS THE INPUT TO THE CALLBACK, NOTICE, SOME VALUES MIGHT BE NONE, DEPENDING ON THE PHASE OF THE CALLBACK
@@ -17,13 +12,23 @@ class CallbackContext():
         self.epoch = trainer._current_epoch
         self.train_stats = trainer.train_stats
         self.val_stats = trainer.val_stats
+        self.trainer_state = trainer.state
         self.trainer = trainer
 
 class CallbackBase():
-    def __init__(self, cb_phase = None, round_values_on_print_to = None):
+    """
+        Agrs:
+            cb_phase - the phase to invoke this callback e.g 
+            round_values_on_print_to - optional, it will round the numerical values in the prints
+            apply_on_states - state or list of states to invoke this parameter (under the relevant cb_phase), None will invoke it on all states
+    """
+
+    def __init__(self, cb_phase = None, round_values_on_print_to = None, apply_on_states=None):
         self.cb_phase = cb_phase
         if self.cb_phase is None:
             print('[CallbackBase][Error!] - No callback phase was provided')
+
+        self.apply_on_states = apply_on_states
         self.round_values_on_print_to = round_values_on_print_to
 
     def round_to(self, value):
@@ -31,23 +36,43 @@ class CallbackBase():
             return round(value, self.round_values_on_print_to)
         return value
 
+    def should_apply_on_state(self, callback_context):
+        if self.apply_on_states is None:
+            return True
+
+        if isinstance(self.apply_on_states, list):
+            for state in self.apply_on_states:
+                if isinstance(state, en.State):
+                    if callback_context.trainer_state == state:
+                        return True
+            return False
+
+        if isinstance(self.apply_on_states, en.State):
+            return callback_context.trainer_state == self.apply_on_states
+
 class SchedulerStep(CallbackBase):
-    """This callback will invoke a "step()" on the scheduler
-        Since some schedulers takes parameters in step(param1, param2...)
-        And other schedulers step() are parameterless, provide:
-        scheduler_parameters_func
-        a function that except trainer and returns whatever information needed,
+    """This callback will invoke a "step()" on the scheduler.
 
-        e.g. for scheduler that takes val_loss as parameter, initialize like this:
-            SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss())
-
-        if your scheduler step does not expect parameters, leave scheduler_parameters_func = None
+        Agrs:
+            scheduler_parameters_func - Since some schedulers takes parameters in step(param1, param2...)
+                And other schedulers step() are parameterless, provide:
+                a function (or lambda) that except trainer and returns whatever information needed,
+                e.g. for scheduler that takes val_loss as parameter, initialize like this:
+                    SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss())
+                if your scheduler step does not expect parameters, leave scheduler_parameters_func = None
+            cb_phase - see in CallbackBase
+            apply_on_states - see in CallbackBase
     """
-    def __init__(self, scheduler_parameters_func=None, cb_phase=CB_ON_EPOCH_END):
-        super(SchedulerStep, self).__init__(cb_phase)
+    def __init__(self, scheduler_parameters_func=None, 
+                       cb_phase=en.CallbackPhase.ON_EPOCH_END, 
+                       apply_on_states=None):
+        super(SchedulerStep, self).__init__(cb_phase=cb_phase, apply_on_states=apply_on_states)
         self.scheduler_parameters_func = scheduler_parameters_func
 
     def __call__(self, callback_context):
+        if not self.should_apply_on_state(callback_context):
+            return
+
         if callback_context.trainer.scheduler is None:
             print('[SchedulerStep] - no scheduler defined in trainer')
             return
@@ -58,19 +83,19 @@ class SchedulerStep(CallbackBase):
 
 class EpochEndStats(CallbackBase):
     """
-        Informative summary at the trainer state, most likely at the end of the epoch, but you
-        can change cb_phase if you need it on a different phase
+        Informative summary at the trainer state, most likely at the end of the epoch, 
+        but you can change cb_phase if you need it on a different phase
         Args:
-            cb_phase - the phase to invoke this callback
-            round_values_on_print_to - optional, it will round the numerical values in the prints
+            cb_phase - see in CallbackBase
+            round_values_on_print_to - see in CallbackBase
     """
 
-    def __init__(self, cb_phase=CB_ON_EPOCH_END, round_values_on_print_to = None):
+    def __init__(self, cb_phase=en.CallbackPhase.ON_EPOCH_END, round_values_on_print_to = None):
         super(EpochEndStats, self).__init__(cb_phase, round_values_on_print_to)
-        self.prev_train_loss = math.inf
-        self.prev_val_loss = math.inf
-        self.lowest_train_loss = math.inf
-        self.lowest_val_loss = math.inf
+        self.prev_train_loss = inf
+        self.prev_val_loss = inf
+        self.lowest_train_loss = inf
+        self.lowest_val_loss = inf
         self.YELLOW_PRINT_COLOR = "\033[93m"
         self.GREEN_PRINT_COLOR = "\033[92m"
         self.RED_PRINT_COLOR = "\033[91m"
@@ -147,16 +172,22 @@ class ModelCheckPoint(CallbackBase):
             monitor - can be 'val_loss', 'train_loss'
             save_best_only - if True, will override previous best model, else, will keep both
             verbose - 0 = no print, 1 = print
-            cb_phase - the phase to invoke this callback
-            round_values_on_print_to - optional, it will round the numerical values in the prints
+            cb_phase - see in CallbackBase
+            round_values_on_print_to - see in CallbackBase
     """
 
-    def __init__(self, checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=False, verbose=1, cb_phase=CB_ON_EPOCH_END, round_values_on_print_to = None):
+    def __init__(self, checkpoint_dir, 
+                       checkpoint_file_name, 
+                       monitor='val_loss', 
+                       save_best_only=False, 
+                       verbose=1, 
+                       cb_phase=en.CallbackPhase.ON_EPOCH_END, 
+                       round_values_on_print_to = None):
         super(ModelCheckPoint, self).__init__(cb_phase, round_values_on_print_to)
         self.monitor = monitor  # CAN BE val_loss/train_loss
         self.save_best_only = save_best_only
         self.verbose = verbose  # VERBOSITY MODE, 0 OR 1.
-        self.global_min_loss = math.inf
+        self.global_min_loss = inf
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_file_name = checkpoint_file_name
         self._ensure_folder_created()
@@ -188,11 +219,15 @@ class ModelCheckPoint(CallbackBase):
                 print(f'[ModelCheckPoint] - {self.monitor} did not improved.')
 
 class Tensorboard(CallbackBase):
-    """Writes entries directly to event files in the summary_writer_dir to be
-    consumed by TensorBoard.
+    """ 
+        Writes entries directly to event files in the summary_writer_dir to be
+        consumed by TensorBoard.
+        Args:
+            summary_writer_dir - the folder path to save tensorboard output
+            cb_phase - see in CallbackBase
     """
 
-    def __init__(self, summary_writer_dir, cb_phase=CB_ON_EPOCH_END):
+    def __init__(self, summary_writer_dir, cb_phase=en.CallbackPhase.ON_EPOCH_END):
         super(Tensorboard, self).__init__(cb_phase)
         self.TRAIN_NAME = 'Train'
         self.VAL_NAME = 'Val'
@@ -214,16 +249,16 @@ class EarlyStopping(CallbackBase):
         Args:
             patience - how much epochs to wait until decide to stop
             monitor - can be 'val_loss', 'train_loss'
-            cb_phase - the phase to invoke this callback
+            cb_phase - see in CallbackBase
             verbose - 0 = no print, 1 = print all, 2 = print save only
     """
 
-    def __init__(self, patience, monitor='val_loss', cb_phase=CB_ON_EPOCH_END, verbose=1):
+    def __init__(self, patience, monitor='val_loss', cb_phase=en.CallbackPhase.ON_EPOCH_END, verbose=1):
         super(EarlyStopping, self).__init__(cb_phase)
         self.patience = patience # HOW MANY EPOCHS TO WAIT
         self.patience_countdown = patience
         self.monitor = monitor
-        self.global_min_loss = math.inf
+        self.global_min_loss = inf
         self.verbose = verbose
 
     def __call__(self, callback_context):

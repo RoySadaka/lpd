@@ -1,62 +1,36 @@
-# THIS EXAMPLE WAS TAKEN FROM:
-# https://pytorch.org/tutorials/beginner/pytorch_with_examples.html
-# AND CONVERTED TO USE lpd
-
-import torch as T
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 
 from lpd.trainer import Trainer
 from lpd.callbacks import EpochEndStats, SchedulerStep
-from lpd.extensions.custom_schedulers import DoNothingToLR
-from lpd.extensions.custom_layers import Dense
 import lpd.enums as en 
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 
-def get_parameters():
-    # N is batch size; D_in is input dimension;
-    # H is hidden dimension; D_out is output dimension.
-    N, D_in, H, D_out = 64, 1000, 100, 10
-    num_epochs = 50
-    data_loader = data_generator(N, D_in, D_out)
-    data_loader_steps = 100
-    return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps
+# WE WILL USE THE "BASIC TRAIN" EXAMPLE, AND OVERRIDE THE SCHEDULER AND CALLBACKS 
+from examples.basic.train import get_basic_model, get_loss, get_parameters
 
-def data_generator(N, D_in, D_out):
-    # Create random Tensors to hold inputs and outputs
-    x = T.randn(N, D_in)
-    y = T.randn(N, D_out)
-    while True:
-        yield [x], y #YIELD THE SAME X,y every time
-
-def get_basic_model(D_in, H, D_out):
-    return nn.Sequential(
-                            Dense(D_in, H, use_bias=True, activation=F.relu),
-                            Dense(H, D_out, use_bias=True, activation=None)
-                        )
-
-def get_loss():
-    return nn.MSELoss(reduction='sum')
 
 def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
 
     device = tu.get_gpu_device_if_available()
 
-    # Use the nn package to define our model and loss function.
     model = get_basic_model(D_in, H, D_out).to(device)
 
     loss_func = get_loss()
    
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
-    scheduler = DoNothingToLR(optimizer=optimizer) #CAN ALSO USE scheduler=None, BUT DoNothingToLR IS MORE EXPLICIT
+    # LETS ADD A StepLR SCHEDULER 
+    scheduler = optim.lr_scheduler.StepLR(optimizer=optimizer, gamma=0.999, step_size=1)
     
     metric_name_to_func = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
+    # LETS ADD SchedulerStep WITH cb_phase=en.CallbackPhase.ON_BATCH_END
+    # AND apply_on_states=en.State.TRAIN
+    # IT MEANS THAT THE SchedulerStep WILL BE INVOKED AT THE END OF EVERY BATCH, BUT, WILL ONLY BE APPLIED WHEN 
+    # IN TRAIN MODE, AND WILL BE IGNORED IN VAL/TEST MODES
     callbacks = [   
-                    SchedulerStep(),
+                    SchedulerStep(cb_phase=en.CallbackPhase.ON_BATCH_END, apply_on_states=en.State.TRAIN), #CAN ALSO BE apply_on_states=[en.State.TRAIN]
                     EpochEndStats(cb_phase=en.CallbackPhase.ON_EPOCH_END, round_values_on_print_to=7)
                 ]
 
@@ -72,7 +46,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
                       val_steps=data_loader_steps,
                       num_epochs=num_epochs,
                       callbacks=callbacks,
-                      name='Basic-Example')
+                      name='Scheduler-Step-On-Batch-Example')
     return trainer
 
 def run():
@@ -84,6 +58,7 @@ def run():
     
     trainer.summary()
 
+    #WE NOW EXPECT SchedulerStep TO INVOKE StepLR AT THE END OF EVERY BATCH
     trainer.train()
 
     trainer.evaluate(data_loader, data_loader_steps)
