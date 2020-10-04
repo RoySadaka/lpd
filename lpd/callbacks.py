@@ -18,9 +18,9 @@ class CallbackContext():
 class CallbackBase():
     """
         Agrs:
-            cb_phase - the phase to invoke this callback e.g 
+            cb_phase - (lpd.enums.CallbackPhase) the phase to invoke this callback e.g 
             round_values_on_print_to - optional, it will round the numerical values in the prints
-            apply_on_states - state or list of states to invoke this parameter (under the relevant cb_phase), None will invoke it on all states
+            apply_on_states - (lpd.enums.State) state or list of states to invoke this parameter (under the relevant cb_phase), None will invoke it on all states
     """
 
     def __init__(self, cb_phase = None, round_values_on_print_to = None, apply_on_states=None):

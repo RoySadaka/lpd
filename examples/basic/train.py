@@ -37,8 +37,8 @@ def get_basic_model(D_in, H, D_out):
                             Dense(H, D_out, use_bias=True, activation=None)
                         )
 
-def get_loss():
-    return nn.MSELoss(reduction='sum')
+def get_loss(device):
+    return nn.MSELoss(reduction='sum').to(device)
 
 def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
 
@@ -47,7 +47,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     # Use the nn package to define our model and loss function.
     model = get_basic_model(D_in, H, D_out).to(device)
 
-    loss_func = get_loss()
+    loss_func = get_loss(device)
    
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 

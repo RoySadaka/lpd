@@ -16,7 +16,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
 
     model = get_basic_model(D_in, H, D_out).to(device)
 
-    loss_func = get_loss()
+    loss_func = get_loss(device)
    
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 

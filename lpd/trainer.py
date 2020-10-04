@@ -71,7 +71,6 @@ class Trainer():
         self.test_stats = TrainerStats(self.metric_name_to_func)
         self.test_last_loss_object = None
 
-
     def _train_loss_opt_handler(self, loss):
         self.train_last_loss_object = loss
         loss.backward()
@@ -84,17 +83,27 @@ class Trainer():
     def _test_loss_opt_handler(self, loss):
         self.test_last_loss_object = loss
 
+    def _handle_labels(self, labels):
+        return labels.to(self.device)
+
+    def _handle_inputs(self, inputs):
+        if isinstance(inputs, list):
+            # MULTIPLE INPUTS CONSTRUCTED IN A LIST
+            return [x.to(self.device) for x in inputs]
+        #SINGLE INPUT
+        return [inputs.to(self.device)]
+
     def _fwd_pass_base(self, phase_description, data_loader, steps, loss_opt_handler, stats):
         stats.reset()
         loop = tqdm(data_loader, total=steps-1)
-        for Xs_batch,y_batch in loop:
+        for inputs,labels in loop:
 
             self._invoke_callbacks(en.CallbackPhase.ON_BATCH_BEGIN)
-            
             steps -= 1
-            inputs = [x.to(self.device) for x in Xs_batch]
-            y = y_batch.to(self.device)
-            outputs = self.model(*inputs)
+
+            x = self._handle_inputs(inputs)
+            y = self._handle_labels(labels)
+            outputs = self.model(*x)
             loss = self.loss_func(outputs, y)
             stats.add_loss(loss)
             stats.add_metrics(outputs, y)
