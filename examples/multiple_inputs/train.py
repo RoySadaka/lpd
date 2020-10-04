@@ -1,7 +1,11 @@
 import numpy as np
 import torch as T
+import os 
+from .config import Config
+from .model import get_trainer
+import lpd.utils.torch_utils as tu
+import lpd.utils.general_utils as gu
 
-from .model_example import get_trainer
 
 
 def prepare_chunk_to_model_input(config, chunk):
@@ -10,7 +14,6 @@ def prepare_chunk_to_model_input(config, chunk):
     x3 = [c[config.IDX_OF_X3] for c in chunk]
     y = [c[config.IDX_OF_LABEL] for c in chunk]
     return [T.LongTensor(x1), T.LongTensor(x2), T.LongTensor(x3)], T.Tensor(y)
-
 
 def get_data_stats(data_generator, verbose=1):
     sanity_count = int(1e6)
@@ -34,19 +37,28 @@ def get_data_stats(data_generator, verbose=1):
             'steps': steps,
             'did_generator_finished': (steps < sanity_count)}
 
-
 def data_generator(config, num_embeddings, num_cycles=1e9):
+    # data_generator WILL CREATE FAKE DATA
+    # EACH SAMPLE CONTAINS 3 INPUTS: X1,X2,X3, WHERE 
+    # X1 IS A SEQUENCE OF EMBEDDING INDICES (LIKE A SENTENCE)
+    # X2 IS SINGLE EMBEDDING INDEX          (LIKE A SINGLE WORD)
+    # X3 IS SINGLE EMBEDDING INDEX          (LIKE A SINGLE WORD)
+    # y IS 0/1 - SO ITS LIKE A BINARY CLASSIFICATION CHALLENGE
+
     seq_length_to_samples = {}
-    for x1_seq_len in range(4, 20):  # X1, SEQ LEN
+    for x1_seq_len in range(4, 20):  # X1, SEQ LEN WILL RANGE FROM 4-20, SO NOT ALL SEQUENCES ARE OF THE SAME LENGHT
+
+        # ALL THE SEQUENCES OF LEN x1_seq_len WILL SHARE THE SAME ENTRY IN THE seq_length_to_samples DICTIONARY
         seq_length_to_samples[x1_seq_len] = []
         for s in range(1, 100):  # 100 SAMPLES PER EACH LEN
             choice = np.random.choice(num_embeddings, x1_seq_len + 2)
-            x1 = choice[:-2]
-            x2 = choice[-2]
-            x3 = choice[-1]
-            y = s % 2
-            seq_length_to_samples[x1_seq_len].append((x1, x2, x3, y))
+            x1 = choice[:-2]    # TAKE ALL EMBEDDING INDICES BUT THE LAST 2
+            x2 = choice[-2]     # TAKE THE SECOND TO LAST EMBEDDING INDEX
+            x3 = choice[-1]     # TAKE THE LAST EMBEDDING INDEX
+            y = s % 2           # TOGGLE 0/1/0/1/0/1...
+            seq_length_to_samples[x1_seq_len].append((x1, x2, x3, y)) # APPEND FULL SINGLE SAMPLE
 
+    # NOW THAT WE HAVE DATA, WE CAN YIELD IT WITH A SIMPLE GENERATOR
     while num_cycles > 0:
         num_cycles -= 1
         for seq_length, samples in seq_length_to_samples.items():
@@ -56,14 +68,14 @@ def data_generator(config, num_embeddings, num_cycles=1e9):
 # -----------------[RUN]----------------- #
 
 
-def run(config, base_path):
+def run():
+    base_path = os.path.dirname(__file__) + '/'
+    config = Config()
     tensorboard_data_dir = base_path + config.TENSORBOARD_DIR
     model_weights_dir = base_path + config.MODEL_WEIGHTS_DIR
 
     num_embeddings = 10000  # ITS FAKE DATA, SO...
-    seed = 123
-    T.manual_seed(seed)
-    np.random.seed(seed)
+    gu.seed_all()
 
     data_stats = get_data_stats(data_generator(config, num_embeddings, num_cycles=1))
     print(data_stats)

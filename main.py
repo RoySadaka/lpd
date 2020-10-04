@@ -1,6 +1,5 @@
-from examples import train_example
-from examples.config import Config
-import os 
+import examples.multiple_inputs.train as multiple_inputs_example
+import examples.basic.train as basic_example
 
-base_path = os.path.dirname(train_example.__file__) + '/'
-train_example.run(Config(), base_path) 
+basic_example.run()
+# multiple_inputs_example.run() 

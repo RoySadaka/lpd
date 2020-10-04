@@ -23,6 +23,7 @@ class Trainer():
             val_steps - total number of steps (batches) before declaring the epoch as finished
             num_epochs - number of epochs to train the model
             callbacks - list of lpd.callbacks to apply during the differrent training phases
+            name - just an identifier, in case you create multiple trainers
 
         Methods:
             summary - will print information about the trainer and the model
@@ -42,19 +43,21 @@ class Trainer():
                        train_steps,
                        val_steps,
                        num_epochs=50,
-                       callbacks = []):
+                       callbacks = [],
+                       name = 'lpd'):
         self.device = device
         self.model = model
         self.loss_func = loss_func
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.metric_name_to_func = metric_name_to_func
+        self.metric_name_to_func = metric_name_to_func if metric_name_to_func else {}
         self.train_data_loader = train_data_loader
         self.val_data_loader = val_data_loader
         self.train_steps = train_steps
         self.val_steps = val_steps
         self.num_epochs = num_epochs
         self.callbacks = callbacks
+        self.name = name
 
         self._current_epoch = 0
         self._should_stop_train = False
@@ -126,7 +129,8 @@ class Trainer():
 
 
     def summary(self):
-        print('[Model Summary] - ')
+        print(f'Trainer - {self.name}')
+        print('Model Summary - ')
         print(self.model)
 
         print("parameters name and device:")
