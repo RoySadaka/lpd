@@ -55,11 +55,12 @@ def get_trainer(D_in, H, D_out, data_loader, data_loader_steps, num_epochs):
                       train_steps=data_loader_steps,
                       val_steps=data_loader_steps,
                       num_epochs=num_epochs,
-                      callbacks=callbacks)
+                      callbacks=callbacks,
+                      name='Basic-Example')
     return trainer
 
 def run():
-    gu.seed_all()
+    gu.seed_all(42)  # BECAUSE ITS THE ANSWER TO LIFE AND THE UNIVERSE
 
     # N is batch size; D_in is input dimension;
     # H is hidden dimension; D_out is output dimension.

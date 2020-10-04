@@ -102,5 +102,6 @@ def get_trainer(config,
                       train_steps=train_steps,
                       val_steps=val_steps,
                       num_epochs=num_epochs,
-                      callbacks=callbacks)
+                      callbacks=callbacks,
+                      name='Multi-Input-Example')
     return trainer

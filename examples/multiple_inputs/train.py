@@ -75,7 +75,7 @@ def run():
     model_weights_dir = base_path + config.MODEL_WEIGHTS_DIR
 
     num_embeddings = 10000  # ITS FAKE DATA, SO...
-    gu.seed_all()
+    gu.seed_all(42)  # BECAUSE ITS THE ANSWER TO LIFE AND THE UNIVERSE
 
     data_stats = get_data_stats(data_generator(config, num_embeddings, num_cycles=1))
     print(data_stats)
