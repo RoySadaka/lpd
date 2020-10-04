@@ -6,7 +6,7 @@ import lpd.enums as en
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 
-# WE WILL USE THE "BASIC TRAIN" EXAMPLE, AND OVERRIDE THE SCHEDULER AND CALLBACKS 
+# WE WILL USE THE "BASIC TRAIN" EXAMPLE, AND JUST CHANGE THE SCHEDULER AND CALLBACKS 
 from examples.basic.train import get_basic_model, get_loss, get_parameters
 
 
