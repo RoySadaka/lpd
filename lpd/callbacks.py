@@ -96,6 +96,8 @@ class EpochEndStats(CallbackBase):
         return diff_color_str, curr_mean_loss, prev_loss, lowest_loss
 
     def _round_metrics(self, metrics):
+        if len(metrics) == 0:
+            return 'no metrics found'
         if self.round_values_on_print_to:
             return {metric:self.round_to(value) for metric,value in metrics.items()}
         return metrics
