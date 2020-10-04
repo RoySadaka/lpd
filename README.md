@@ -20,9 +20,12 @@ A Fast, Flexible Trainer and Extensions for Pytorch
 ```python
     from lpd.trainer import Trainer
     import lpd.utils.torch_utils as tu
+    import lpd.utils.general_utils as gu
     import lpd.callbacks as cbs 
     from lpd.callbacks import EpochEndStats, ModelCheckPoint, Tensorboard, EarlyStopping
     from lpd.extensions.custom_metrics import binary_accuracy_with_logits
+
+    gu.seed_all(seed=42)
 
     device = tu.get_gpu_device_if_available() # with fallback to CPU if GPU not avilable
     model = TestModel(config, num_embeddings).to(device) #this is your model class, and its being sent to the relevant device
@@ -113,6 +116,15 @@ You can also create your own callbacks
             opt = callback_context.trainer.optimizer
             scheduler = callback_context.trainer.scheduler
 ```
+
+### Utils
+``lpd.utils`` provides few utils files (torch_utils, file_utils and general_utils)
+For example, a good practice is to use 
+```python
+    import lpd.utils.general_utils as gu
+    gu.seed_all(seed=42)  # because its the answer to life and the universe
+```
+As early as possible in your code, to make sure that results are reproducible
 
 ### Extensions
 ``lpd.extensions`` provides some custom pytorch layers, these are just some layers we like using when we create our models, to gain better flexibility.

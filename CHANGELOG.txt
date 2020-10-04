@@ -1,6 +1,22 @@
 Change Log
 ==========
 
+0.0.9 (04/10/2020)
+-----------------
+* Added support for setting trainer's scheduler to None
+* Added name property to trainer
+* Added trainer's description
+* Added last train/val/test loss objects
+* Reduce package size by moving images to another repo 
+* Added another example "Basic"
+* If no metrics provided, EpochEndStats will print "no metrics found"
+* Fixed trainer crash if no metric_name_to_func was provided
+* Added seed_all to general_utils
+* Added seed_torch to torch_utils
+* Added readme about utils
+                         
+
+
 0.0.8 (03/10/2020)
 -----------------
 * added optional round_values_on_print_to to EpochEndStats and ModelCheckPoint callbacks
