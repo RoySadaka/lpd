@@ -1,6 +1,6 @@
-import enum
+from enum import Enum
 
-class CallbackPhase(enum.Enum): 
+class CallbackPhase(Enum): 
     ON_TRAIN_BEGIN   = 0
     ON_TRAIN_END     = 1
     ON_EPOCH_BEGIN   = 2
@@ -8,7 +8,7 @@ class CallbackPhase(enum.Enum):
     ON_BATCH_BEGIN   = 4
     ON_BATCH_END     = 5
 
-class State(enum.Enum):
+class State(Enum):
     """
         The state of the trainer
         TRAIN - when the epoch is in the train mode

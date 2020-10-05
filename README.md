@@ -73,8 +73,8 @@ Here are some examples
     train_loss = trainer.train_stats.get_loss()         #the mean of the last epoch's train losses
     val_loss = trainer.val_stats.get_loss()             #the mean of the last epoch's val losses
 
-    train_metrics = trainer.train_stats.get_metrics()   #the mean of the last epoch's train metrics
-    train_metrics = trainer.val_stats.get_metrics()     #the mean of the last epoch's val metrics
+    train_metrics = trainer.train_stats.get_metrics()   #dictionary metric_name->mean of the last epoch's train metrics
+    val_metrics = trainer.val_stats.get_metrics()       #dictionary metric_name->mean of the last epoch's val metrics
 ```
 
 
@@ -87,7 +87,7 @@ and that ``apply_on_states`` (``State`` in ``lpd.enums``) will determine the exe
 
 These are the current available phases and states, more might be added in future releases
 ```python
-    class CallbackPhase(enum.Enum): 
+    class CallbackPhase(Enum): 
         ON_TRAIN_BEGIN   = 0
         ON_TRAIN_END     = 1
         ON_EPOCH_BEGIN   = 2
@@ -95,7 +95,7 @@ These are the current available phases and states, more might be added in future
         ON_BATCH_BEGIN   = 4
         ON_BATCH_END     = 5
 
-    class State(enum.Enum):
+    class State(Enum):
         EXTERNAL     = 0
         TRAIN        = 1
         VAL          = 2 
