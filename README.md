@@ -21,8 +21,8 @@ A Fast, Flexible Trainer and Extensions for Pytorch
     from lpd.trainer import Trainer
     import lpd.utils.torch_utils as tu
     import lpd.utils.general_utils as gu
-    import lpd.callbacks as cbs 
-    from lpd.callbacks import EpochEndStats, ModelCheckPoint, Tensorboard, EarlyStopping
+    import lpd.enums as en 
+    from lpd.callbacks import EpochEndStats, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
     from lpd.extensions.custom_metrics import binary_accuracy_with_logits
 
     gu.seed_all(seed=42)
@@ -40,7 +40,7 @@ A Fast, Flexible Trainer and Extensions for Pytorch
                 ModelCheckPoint(checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=True, round_values_on_print_to=7), 
                 Tensorboard(summary_writer_dir=summary_writer_dir),
                 EarlyStopping(patience=10, monitor='val_loss'),
-                EpochEndStats(cb_phase=cbs.CB_ON_EPOCH_END, round_values_on_print_to=7) # better to put it last on the list (makes better sense in the log prints)
+                EpochEndStats(cb_phase=en.CallbackPhase.ON_EPOCH_END, round_values_on_print_to=7) # better to put it last on the list (makes better sense in the log prints)
             ]
 
     trainer = Trainer(model, 
@@ -81,28 +81,50 @@ Here are some examples
 ### Callbacks
 Some common callbacks are available under ``lpd.callbacks``. 
 
-Notice that ``cb_phase`` will determine the execution phase.
+Notice that ``cb_phase`` (``CallbackPhase`` in ``lpd.enums``) will determine the execution phase,
 
-These are the current available phases, more will be added soon
+and that ``apply_on_states`` (``State`` in ``lpd.enums``) will determine the execution state
+
+These are the current available phases and states, more might be added in future releases
 ```python
-    CB_ON_TRAIN_BEGIN
-    CB_ON_TRAIN_END  
-    CB_ON_EPOCH_BEGIN
-    CB_ON_EPOCH_END  
+    class CallbackPhase(enum.Enum): 
+        ON_TRAIN_BEGIN   = 0
+        ON_TRAIN_END     = 1
+        ON_EPOCH_BEGIN   = 2
+        ON_EPOCH_END     = 3
+        ON_BATCH_BEGIN   = 4
+        ON_BATCH_END     = 5
+
+    class State(enum.Enum):
+        EXTERNAL     = 0
+        TRAIN        = 1
+        VAL          = 2 
+        TEST         = 3
+```
+With phases and states you'll have full control over the timing of your callbacks,
+
+so for example, say you need SchedulerStep callback to control your scheduler,
+
+but only at the end of every batch, and only when in train state (as oppose to validation and test)
+then define your SchedulerStep callback like so:
+```python
+    from lpd.callbacks import SchedulerStep
+    import lpd.enums as en
+    SchedulerStep(cb_phase=en.CallbackPhase.ON_BATCH_END, apply_on_states=en.State.TRAIN)
 ```
 
-``EpochEndStats`` callback will print an epoch summary at the end of every epoch
+Below is an output example for ``EpochEndStats`` callback that will print an epoch summary at the end of every epoch
 
 ![EpochSummary](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/epoch_summary.png)
 
-You can also create your own callbacks
+You can also create your own custom callbacks
 
 ```python
-    import lpd.callbacks as cbs
+    import lpd.enums as en
     from lpd.callbacks import CallbackBase
 
     class MyAwesomeCallback(CallbackBase):
-        def __init__(self, cb_phase=cbs.CB_ON_TRAIN_BEGIN):
+        def __init__(self, cb_phase=en.CallbackPhase.ON_TRAIN_BEGIN):
             super(MyAwesomeCallback, self).__init__(cb_phase)
 
         def __call__(self, callback_context): # <=== implement this method!
