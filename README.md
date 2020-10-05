@@ -112,7 +112,10 @@ then define your SchedulerStep callback like so:
     import lpd.enums as en
     SchedulerStep(cb_phase=en.CallbackPhase.ON_BATCH_END, apply_on_states=en.State.TRAIN)
 ```
-
+In case you need it on validation state asa well, pass a list for ``apply_on_states`` like so:
+```python
+    SchedulerStep(cb_phase=en.CallbackPhase.ON_BATCH_END, apply_on_states=[en.State.TRAIN, en.State.VAL])
+```
 Below is an output example for ``EpochEndStats`` callback that will print an epoch summary at the end of every epoch
 
 ![EpochSummary](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/epoch_summary.png)
@@ -160,10 +163,7 @@ We will add more layers, metrics and schedulers from time to time.
 * Add support for multiple losses
 * EpochEndStats - save and print best accuracies
 * Save trainer in checkpoint to enable loading a model and continue training from last checkpoint
-* Dataloader support
-* Add more examples of usage
 * Add colab examples
-* Reduce package size by moving images to another repo 
 
 ## Something is missing?! please share with us
 You can open an issue, but also feel free to email us at torch.lpd@gmail.com
