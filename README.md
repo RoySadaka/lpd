@@ -94,12 +94,50 @@ These are the current available phases and states, more might be added in future
         ON_EPOCH_END     = 3
         ON_BATCH_BEGIN   = 4
         ON_BATCH_END     = 5
+        ON_TEST_BEGIN    = 6
+        ON_TEST_END      = 7
 
     class State(Enum):
         EXTERNAL     = 0
         TRAIN        = 1
         VAL          = 2 
         TEST         = 3
+```
+
+Train/Validation phases and states will be behave as follow
+```python
+        State.EXTERNAL
+        CallbackPhase.ON_TRAIN_BEGIN
+        # train loop:
+            CallbackPhase.ON_EPOCH_BEGIN
+
+            State.TRAIN
+            # batches loop:
+                CallbackPhase.ON_BATCH_BEGIN
+                # batch
+                CallbackPhase.ON_BATCH_END
+            State.VAL
+            # batches loop:
+                CallbackPhase.ON_BATCH_BEGIN
+                # batch
+                CallbackPhase.ON_BATCH_END
+            State.EXTERNAL
+
+            CallbackPhase.ON_EPOCH_END
+        CallbackPhase.ON_TRAIN_END
+```
+
+Evaluation phases and states will be behave as follow
+```python
+        State.EXTERNAL
+        CallbackPhase.ON_TEST_BEGIN
+        State.TEST
+        # batches loop:
+            CallbackPhase.ON_BATCH_BEGIN
+            # batch
+            CallbackPhase.ON_BATCH_END
+        State.EXTERNAL
+        CallbackPhase.ON_TEST_END
 ```
 With phases and states you'll have full control over the timing of your callbacks,
 
@@ -127,8 +165,8 @@ You can also create your own custom callbacks
     from lpd.callbacks import CallbackBase
 
     class MyAwesomeCallback(CallbackBase):
-        def __init__(self, cb_phase=en.CallbackPhase.ON_EPOCH_END, apply_on_states=en.State.TRAIN):
-            super(MyAwesomeCallback, self).__init__(cb_phase, apply_on_states)
+        def __init__(self, cb_phase=en.CallbackPhase.ON_EPOCH_END):
+            super(MyAwesomeCallback, self).__init__(cb_phase)
 
         def __call__(self, callback_context): # <=== implement this method!
             # your implementation here

@@ -7,6 +7,8 @@ class CallbackPhase(Enum):
     ON_EPOCH_END     = 3
     ON_BATCH_BEGIN   = 4
     ON_BATCH_END     = 5
+    ON_TEST_BEGIN    = 6
+    ON_TEST_END      = 7
 
 class State(Enum):
     """

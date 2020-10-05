@@ -189,8 +189,12 @@ class Trainer():
         self._invoke_callbacks(en.CallbackPhase.ON_TRAIN_END)
 
     def evaluate(self, test_data_loader, test_steps):
+        self.state = en.State.EXTERNAL
+        self._invoke_callbacks(en.CallbackPhase.ON_TEST_BEGIN)
         self.state = en.State.TEST
         self._fwd_pass_test(test_data_loader, test_steps)
         self.state = en.State.EXTERNAL
+        self._invoke_callbacks(en.CallbackPhase.ON_TEST_END)
+
 
 
