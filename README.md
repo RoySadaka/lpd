@@ -112,7 +112,7 @@ then define your SchedulerStep callback like so:
     import lpd.enums as en
     SchedulerStep(cb_phase=en.CallbackPhase.ON_BATCH_END, apply_on_states=en.State.TRAIN)
 ```
-In case you need it on validation state asa well, pass a list for ``apply_on_states`` like so:
+In case you need it on validation state as well, pass a list for ``apply_on_states`` like so:
 ```python
     SchedulerStep(cb_phase=en.CallbackPhase.ON_BATCH_END, apply_on_states=[en.State.TRAIN, en.State.VAL])
 ```
@@ -127,8 +127,8 @@ You can also create your own custom callbacks
     from lpd.callbacks import CallbackBase
 
     class MyAwesomeCallback(CallbackBase):
-        def __init__(self, cb_phase=en.CallbackPhase.ON_TRAIN_BEGIN):
-            super(MyAwesomeCallback, self).__init__(cb_phase)
+        def __init__(self, cb_phase=en.CallbackPhase.ON_EPOCH_END, apply_on_states=en.State.TRAIN):
+            super(MyAwesomeCallback, self).__init__(cb_phase, apply_on_states)
 
         def __call__(self, callback_context): # <=== implement this method!
             # your implementation here
