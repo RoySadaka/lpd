@@ -7,7 +7,6 @@ import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 
 
-
 def prepare_chunk_to_model_input(config, chunk):
     x1 = [c[config.IDX_OF_X1] for c in chunk]
     x2 = [c[config.IDX_OF_X2] for c in chunk]

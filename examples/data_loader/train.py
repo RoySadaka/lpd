@@ -12,8 +12,8 @@ from torch.utils.data import Dataset, DataLoader
 from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import Dense
 from lpd.extensions.custom_metrics import binary_accuracy_with_logits
-from lpd.callbacks import EpochEndStats, EarlyStopping, SchedulerStep
-import lpd.enums as en
+from lpd.callbacks import StatsPrint, EarlyStopping, SchedulerStep, CallbackMonitor
+from lpd.enums import CallbackPhase, TrainerState, MonitorType, MonitorMode, StatsType
 import lpd.utils.general_utils as gu
 import lpd.utils.torch_utils as tu
 
@@ -108,16 +108,16 @@ def get_trainer(params):
 
     loss_func = nn.BCEWithLogitsLoss().to(device)
    
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.1)
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.99)
 
     metric_name_to_func = {"acc":binary_accuracy_with_logits}
 
     callbacks = [   
-                    SchedulerStep(cb_phase=en.CallbackPhase.ON_BATCH_END, apply_on_states=en.State.TRAIN),
-                    EarlyStopping(patience=10, monitor='val_loss'),
-                    EpochEndStats(cb_phase=en.CallbackPhase.ON_EPOCH_END, round_values_on_print_to=7)
+                    SchedulerStep(cb_phase=CallbackPhase.ON_BATCH_END, apply_on_states=TrainerState.TRAIN),
+                    EarlyStopping(patience=3, monitor_type=MonitorType.LOSS, stats_type=StatsType.VAL, monitor_mode=MonitorMode.MIN),
+                    StatsPrint(round_values_on_print_to=7)
                 ]
 
     trainer = Trainer(model=model, 

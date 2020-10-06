@@ -10,7 +10,7 @@ class CallbackPhase(Enum):
     ON_TEST_BEGIN    = 6
     ON_TEST_END      = 7
 
-class State(Enum):
+class TrainerState(Enum):
     """
         The state of the trainer
         TRAIN - when the epoch is in the train mode
@@ -18,7 +18,26 @@ class State(Enum):
         TEST - when calling evaluate(...)
         EXTERNAL - all other states, for example, after valiadaion is done and before the next epoch train has begun
     """
-    EXTERNAL     = 0
-    TRAIN        = 1
-    VAL          = 2 
-    TEST         = 3
+    EXTERNAL = 0
+    TRAIN    = 1
+    VAL      = 2 
+    TEST     = 3
+
+class StatsType(Enum):
+    TRAIN    = 0
+    VAL      = 1 
+    TEST     = 2
+    def __str__(self):
+        return self.name
+
+class MonitorType(Enum):
+    LOSS    = 0
+    METRIC  = 1
+    def __str__(self):
+        return self.name
+
+class MonitorMode(Enum):
+    MIN  = 0
+    MAX  = 1
+    def __str__(self):
+        return self.name
