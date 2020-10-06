@@ -12,7 +12,7 @@ from torch.utils.data import Dataset, DataLoader
 from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import Dense
 from lpd.extensions.custom_metrics import binary_accuracy_with_logits
-from lpd.callbacks import StatsPrint, EarlyStopping, SchedulerStep, CallbackMonitor
+from lpd.callbacks import StatsPrint, EarlyStopping, SchedulerStep
 from lpd.enums import CallbackPhase, TrainerState, MonitorType, MonitorMode, StatsType
 import lpd.utils.general_utils as gu
 import lpd.utils.torch_utils as tu
