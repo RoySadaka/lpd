@@ -57,7 +57,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
 
     callbacks = [   
                     SchedulerStep(),
-                    StatsPrint(round_values_on_print_to=7)
+                    StatsPrint()
                 ]
 
     trainer = Trainer(model=model, 

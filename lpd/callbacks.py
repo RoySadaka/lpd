@@ -12,7 +12,9 @@ class CallbackContext():
         self.epoch = trainer._current_epoch
         self.train_stats = trainer.train_stats
         self.val_stats = trainer.val_stats
+        self.test_stats = trainer.test_stats
         self.trainer_state = trainer.state
+        self.trainer_phase = trainer.phase
         self.trainer = trainer
 
 class CallbackMonitorResult():
@@ -34,6 +36,9 @@ class CallbackMonitorResult():
         self.change_from_best = change_from_best
         self.patience_left = patience_left
         self.description = description
+
+    def has_improved(self):
+        return self.did_improve
 
     def has_patience(self):
         return self.patience_left > 0
@@ -170,7 +175,7 @@ class SchedulerStep(CallbackBase):
             cb_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
     """
-    def __init__(self, cb_phase: CallbackPhase=CallbackPhase.ON_EPOCH_END, 
+    def __init__(self, cb_phase: CallbackPhase=CallbackPhase.EPOCH_END, 
                        apply_on_states: Union[TrainerState, List[TrainerState]]=TrainerState.EXTERNAL,
                        scheduler_parameters_func=None):
         super(SchedulerStep, self).__init__(cb_phase=cb_phase, apply_on_states=apply_on_states)
@@ -198,7 +203,7 @@ class StatsPrint(CallbackBase):
             round_values_on_print_to - see in CallbackBase
     """
 
-    def __init__(self, cb_phase: CallbackPhase=CallbackPhase.ON_EPOCH_END, 
+    def __init__(self, cb_phase: CallbackPhase=CallbackPhase.EPOCH_END, 
                        apply_on_states: Union[TrainerState, List[TrainerState]]=TrainerState.EXTERNAL, 
                        round_values_on_print_to=None,
                        metric_names=None):
@@ -237,12 +242,12 @@ class StatsPrint(CallbackBase):
         return '\n'.join(prints)
 
     def _get_did_improved_colored(self, monitor_result):
-        if monitor_result.did_improve:
+        if monitor_result.has_improved():
             return self.GREEN_PRINT_COLOR + 'IMPROVED' + self.END_PRINT_COLOR
         return ''
 
 
-    def __call__(self, callback_context):
+    def __call__(self, callback_context: CallbackContext):
         c = callback_context #READABILITY 
         r = self.round_to #READABILITY
         gdim = self._get_did_improved_colored #READABILITY 
@@ -296,7 +301,7 @@ class ModelCheckPoint(CallbackBase):
             round_values_on_print_to - see in CallbackBase
     """
 
-    def __init__(self,  cb_phase: CallbackPhase=CallbackPhase.ON_EPOCH_END, 
+    def __init__(self,  cb_phase: CallbackPhase=CallbackPhase.EPOCH_END, 
                         apply_on_states: Union[TrainerState, List[TrainerState]]=TrainerState.EXTERNAL,
                         checkpoint_dir: str=None, 
                         checkpoint_file_name: str='checkpoint', 
@@ -326,7 +331,7 @@ class ModelCheckPoint(CallbackBase):
         r = self.round_to #READABILITY DOWN THE ROAD
         
         monitor_result = self.monitor.track(callback_context)
-        if monitor_result.did_improve:
+        if monitor_result.has_improved():
             msg = f'[ModelCheckPoint] - {monitor_result.description} improved from {r(monitor_result.prev_best)} to {r(monitor_result.new_best)}'
             if self.save_best_only:
                 full_path = f'{self.checkpoint_dir}{self.checkpoint_file_name}_best_only'
@@ -348,7 +353,7 @@ class Tensorboard(CallbackBase):
                                  if passed None, will write to the current dir
     """
 
-    def __init__(self, cb_phase: CallbackPhase=CallbackPhase.ON_EPOCH_END, 
+    def __init__(self, cb_phase: CallbackPhase=CallbackPhase.EPOCH_END, 
                         apply_on_states: Union[TrainerState, List[TrainerState]]=TrainerState.EXTERNAL,
                         summary_writer_dir: str=None):
         super(Tensorboard, self).__init__(cb_phase, apply_on_states)
@@ -384,7 +389,7 @@ class EarlyStopping(CallbackBase):
     """
 
     def __init__(self, 
-                    cb_phase: CallbackPhase=CallbackPhase.ON_EPOCH_END, 
+                    cb_phase: CallbackPhase=CallbackPhase.EPOCH_END, 
                     apply_on_states: Union[TrainerState, List[TrainerState]]=TrainerState.EXTERNAL,
                     patience: int=0, 
                     monitor_type: MonitorType=MonitorType.LOSS, 
@@ -401,7 +406,7 @@ class EarlyStopping(CallbackBase):
 
         monitor_result = self.monitor.track(c)
 
-        if self.verbose == 1:
+        if monitor_result.has_patience() and self.verbose:
             print(f'[EarlyStopping] - patience:{monitor_result.patience_left} epochs')
         
         if not monitor_result.has_patience():

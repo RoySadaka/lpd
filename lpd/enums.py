@@ -1,14 +1,15 @@
 from enum import Enum, auto
 
-class CallbackPhase(Enum): 
-    ON_TRAIN_BEGIN   = auto()
-    ON_TRAIN_END     = auto()
-    ON_EPOCH_BEGIN   = auto()
-    ON_EPOCH_END     = auto()
-    ON_BATCH_BEGIN   = auto()
-    ON_BATCH_END     = auto()
-    ON_TEST_BEGIN    = auto()
-    ON_TEST_END      = auto()
+class CallbackPhase(Enum):
+    IDLE          = auto()
+    TRAIN_BEGIN   = auto()
+    TRAIN_END     = auto()
+    EPOCH_BEGIN   = auto()
+    EPOCH_END     = auto()
+    BATCH_BEGIN   = auto()
+    BATCH_END     = auto()
+    TEST_BEGIN    = auto()
+    TEST_END      = auto()
 
 class TrainerState(Enum):
     """

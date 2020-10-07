@@ -16,7 +16,7 @@ with io_open(fndoc, mode='r', encoding='utf-8') as fd:
 
 setup(
     name='lpd',
-    version='0.1.0',
+    version='0.1.1',
     description='A Fast, Flexible Trainer and Extensions for Pytorch',
     long_description_content_type='text/markdown',
     long_description=README_md,

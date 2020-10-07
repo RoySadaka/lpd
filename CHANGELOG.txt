@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+0.1.1 (07/10/2020)
+-----------------
+* Added TEST_BEGIN and TEST_END callbacks phases
+* Added CallbackMonitor
+* Added enums (lpd.enums) TrainerState, MonitorType, MonitorMode, StatsType
+
+
 0.1.0 (05/10/2020)
 -----------------
 * Introduced CallbackPhase and State to control timing of callback invocation

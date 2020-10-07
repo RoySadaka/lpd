@@ -115,7 +115,7 @@ def get_trainer(params):
     metric_name_to_func = {"acc":binary_accuracy_with_logits}
 
     callbacks = [   
-                    SchedulerStep(cb_phase=CallbackPhase.ON_BATCH_END, apply_on_states=TrainerState.TRAIN),
+                    SchedulerStep(cb_phase=CallbackPhase.BATCH_END, apply_on_states=TrainerState.TRAIN),
                     EarlyStopping(patience=3, monitor_type=MonitorType.LOSS, stats_type=StatsType.VAL, monitor_mode=MonitorMode.MIN),
                     StatsPrint(round_values_on_print_to=7)
                 ]

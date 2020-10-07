@@ -93,7 +93,7 @@ def get_trainer(config,
                                     round_values_on_print_to=7), 
                     Tensorboard(summary_writer_dir=summary_writer_dir),
                     EarlyStopping(patience=config.EARLY_STOPPING_PATIENCE),
-                    StatsPrint(cb_phase=CallbackPhase.ON_EPOCH_END, round_values_on_print_to=7, metric_names=metric_name_to_func.keys()) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
+                    StatsPrint(cb_phase=CallbackPhase.EPOCH_END, round_values_on_print_to=7, metric_names=metric_name_to_func.keys()) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
                 ]
 
     trainer = Trainer(model=model, 
