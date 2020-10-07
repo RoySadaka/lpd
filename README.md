@@ -33,14 +33,14 @@ A Fast, Flexible Trainer and Extensions for Pytorch
     optimizer = optim.SGD(params=model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True)
     loss_func = nn.BCEWithLogitsLoss().to(device) #this is your loss class, already sent to the relevant device
-    metric_name_to_func = {"acc":binary_accuracy_with_logits} # add as much metrics as you like
+    metric_name_to_func = {'acc':binary_accuracy_with_logits} # add as much metrics as you like
 
     # you can use some of the defined callbacks, or you can create your own
     callbacks = [
                 SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss()), # notice lambda for scheduler that takes loss in step()
                 ModelCheckPoint(checkpoint_dir, checkpoint_file_name, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN, save_best_only=True), 
                 Tensorboard(summary_writer_dir=summary_writer_dir),
-                EarlyStopping(patience=10, MonitorType.METRIC, StatsType.VAL, MonitorMode.MAX, ),
+                EarlyStopping(patience=10, MonitorType.METRIC, StatsType.VAL, MonitorMode.MAX, metric_name='acc'),
                 StatsPrint(metric_names=metric_name_to_func.keys())
             ]
 
