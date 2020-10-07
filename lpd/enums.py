@@ -1,16 +1,16 @@
-from enum import Enum
+from enum import Enum, auto
 
 class CallbackPhase(Enum): 
-    ON_TRAIN_BEGIN   = 0
-    ON_TRAIN_END     = 1
-    ON_EPOCH_BEGIN   = 2
-    ON_EPOCH_END     = 3
-    ON_BATCH_BEGIN   = 4
-    ON_BATCH_END     = 5
-    ON_TEST_BEGIN    = 6
-    ON_TEST_END      = 7
+    ON_TRAIN_BEGIN   = auto()
+    ON_TRAIN_END     = auto()
+    ON_EPOCH_BEGIN   = auto()
+    ON_EPOCH_END     = auto()
+    ON_BATCH_BEGIN   = auto()
+    ON_BATCH_END     = auto()
+    ON_TEST_BEGIN    = auto()
+    ON_TEST_END      = auto()
 
-class State(Enum):
+class TrainerState(Enum):
     """
         The state of the trainer
         TRAIN - when the epoch is in the train mode
@@ -18,7 +18,26 @@ class State(Enum):
         TEST - when calling evaluate(...)
         EXTERNAL - all other states, for example, after valiadaion is done and before the next epoch train has begun
     """
-    EXTERNAL     = 0
-    TRAIN        = 1
-    VAL          = 2 
-    TEST         = 3
+    EXTERNAL = auto()
+    TRAIN    = auto()
+    VAL      = auto() 
+    TEST     = auto()
+
+class StatsType(Enum):
+    TRAIN    = auto()
+    VAL      = auto() 
+    TEST     = auto()
+    def __str__(self):
+        return self.name
+
+class MonitorType(Enum):
+    LOSS    = auto()
+    METRIC  = auto()
+    def __str__(self):
+        return self.name
+
+class MonitorMode(Enum):
+    MIN  = auto()
+    MAX  = auto()
+    def __str__(self):
+        return self.name

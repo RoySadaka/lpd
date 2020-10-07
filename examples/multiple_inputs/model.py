@@ -5,8 +5,8 @@ import torch.optim as optim
 
 import lpd.utils.torch_utils as tu
 from lpd.extensions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
-import lpd.enums as en 
-from lpd.callbacks import EpochEndStats, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
+from lpd.enums import CallbackPhase, TrainerState, MonitorType, MonitorMode, StatsType
+from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
 from lpd.extensions.custom_metrics import binary_accuracy_with_logits
 from lpd.trainer import Trainer
 from lpd.extensions.custom_schedulers import DoNothingToLR
@@ -84,10 +84,16 @@ def get_trainer(config,
 
     callbacks = [   
                     SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss()),
-                    ModelCheckPoint(checkpoint_dir, checkpoint_file_name, monitor='val_loss', save_best_only=True, round_values_on_print_to=7), 
+                    ModelCheckPoint(checkpoint_dir=checkpoint_dir, 
+                                    checkpoint_file_name=checkpoint_file_name, 
+                                    monitor_type=MonitorType.LOSS, 
+                                    stats_type=StatsType.VAL, 
+                                    monitor_mode=MonitorMode.MIN,
+                                    save_best_only=True, 
+                                    round_values_on_print_to=7), 
                     Tensorboard(summary_writer_dir=summary_writer_dir),
-                    EarlyStopping(patience=config.EARLY_STOPPING_PATIENCE, monitor='val_loss'),
-                    EpochEndStats(cb_phase=en.CallbackPhase.ON_EPOCH_END, round_values_on_print_to=7) # BETTER TO PUT IT LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
+                    EarlyStopping(patience=config.EARLY_STOPPING_PATIENCE),
+                    StatsPrint(cb_phase=CallbackPhase.ON_EPOCH_END, round_values_on_print_to=7, metric_names=metric_name_to_func.keys()) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
                 ]
 
     trainer = Trainer(model=model, 

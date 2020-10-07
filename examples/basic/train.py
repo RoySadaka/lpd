@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from lpd.trainer import Trainer
-from lpd.callbacks import EpochEndStats, SchedulerStep
+from lpd.callbacks import StatsPrint, SchedulerStep
 from lpd.extensions.custom_schedulers import DoNothingToLR
 from lpd.extensions.custom_layers import Dense
 import lpd.enums as en 
@@ -57,7 +57,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
 
     callbacks = [   
                     SchedulerStep(),
-                    EpochEndStats(cb_phase=en.CallbackPhase.ON_EPOCH_END, round_values_on_print_to=7)
+                    StatsPrint(round_values_on_print_to=7)
                 ]
 
     trainer = Trainer(model=model, 
