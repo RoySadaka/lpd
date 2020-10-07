@@ -16,8 +16,8 @@ with io_open(fndoc, mode='r', encoding='utf-8') as fd:
 
 setup(
     name='lpd',
-    version='0.1.1',
-    description='A Fast, Flexible Trainer and Extensions for Pytorch',
+    version='0.1.3',
+    description='A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch',
     long_description_content_type='text/markdown',
     long_description=README_md,
     license='MIT Licences',
@@ -48,5 +48,5 @@ setup(
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Utilities'
     ],
-    keywords='pytorch trainer extensions machine deep learning'
+    keywords='pytorch trainer callbacks extensions track monitor machine deep learning'
 )

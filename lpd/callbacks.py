@@ -128,7 +128,7 @@ class CallbackMonitor():
 class CallbackBase():
     """
         Agrs:
-            cb_phase - (lpd.enums.CallbackPhase) the phase to invoke this callback e.g 
+            cb_phase - (lpd.enums.CallbackPhase) the phase to invoke this callback
             round_values_on_print_to - optional, it will round the numerical values in the prints
             apply_on_states - (lpd.enums.TrainerState) state or list of states to invoke this parameter (under the relevant cb_phase), None will invoke it on all states
     """
@@ -148,6 +148,11 @@ class CallbackBase():
             return round(value, self.round_values_on_print_to)
         return value
 
+    def should_apply_on_phase(self, callback_context: CallbackContext):
+        if isinstance(self.cb_phase, CallbackPhase):
+            return callback_context.trainer_phase == self.cb_phase
+        raise ValueError('[CallbackBase] - got bad value for cb_phase')
+
     def should_apply_on_state(self, callback_context: CallbackContext):
         if self.apply_on_states is None:
             return True
@@ -161,6 +166,8 @@ class CallbackBase():
 
         if isinstance(self.apply_on_states, TrainerState):
             return callback_context.trainer_state == self.apply_on_states
+
+        raise ValueError('[CallbackBase] - got bad value for apply_on_states')
 
 class SchedulerStep(CallbackBase):
     """This callback will invoke a "step()" on the scheduler.
@@ -182,9 +189,6 @@ class SchedulerStep(CallbackBase):
         self.scheduler_parameters_func = scheduler_parameters_func
 
     def __call__(self, callback_context):
-        if not self.should_apply_on_state(callback_context):
-            return
-
         if callback_context.trainer.scheduler is None:
             print('[SchedulerStep] - no scheduler defined in trainer')
             return

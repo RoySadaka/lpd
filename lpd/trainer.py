@@ -142,7 +142,8 @@ class Trainer():
         self.phase = phase
         context = cbs.CallbackContext(self)
         for cb in self.callbacks:
-            if cb.cb_phase == phase:
+            if cb.should_apply_on_phase(context) and \
+               cb.should_apply_on_state(context):
                 cb(context)
 
 

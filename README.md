@@ -2,7 +2,7 @@
 
 # lpd
 
-A Fast, Flexible Trainer and Extensions for Pytorch
+A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 
 ``lpd`` derives from the Hebrew word *lapid* (לפיד) which means "torch".
 
