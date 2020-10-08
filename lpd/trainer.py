@@ -1,8 +1,7 @@
 import torch as T
 from tqdm import tqdm
-
-from lpd.enums import TrainerState, CallbackPhase
 import lpd.callbacks as cbs
+from lpd.enums import State, Phase
 from lpd.trainer_stats import TrainerStats
 
 class Trainer():
@@ -61,10 +60,12 @@ class Trainer():
         self.name = name
 
         self._current_epoch = 0
+        # self._current_iteration = 0
+        # self._current_iteration_in_epoch = 0
         self._should_stop_train = False
 
-        self.state = TrainerState.EXTERNAL
-        self.phase = CallbackPhase.IDLE
+        self.state = State.EXTERNAL
+        self.phase = Phase.IDLE
         self.train_stats = TrainerStats(self.metric_name_to_func)
         self.train_last_loss_object = None
         self.val_stats = TrainerStats(self.metric_name_to_func)
@@ -99,7 +100,7 @@ class Trainer():
         loop = tqdm(data_loader, total=steps-1)
         for inputs,labels in loop:
 
-            self._invoke_callbacks(CallbackPhase.BATCH_BEGIN)
+            self._invoke_callbacks(Phase.BATCH_BEGIN)
             steps -= 1
 
             x = self._handle_inputs(inputs)
@@ -110,7 +111,7 @@ class Trainer():
             stats.add_metrics(outputs, y)
             loss_opt_handler(loss)
 
-            self._invoke_callbacks(CallbackPhase.BATCH_END)
+            self._invoke_callbacks(Phase.BATCH_END)
 
             loop.set_description(phase_description)
             loop.set_postfix(loss=stats.get_loss(), acc=stats.get_metrics())
@@ -170,34 +171,34 @@ class Trainer():
         self._should_stop_train = True
 
     def train(self):
-        self._invoke_callbacks(CallbackPhase.TRAIN_BEGIN)
+        self._invoke_callbacks(Phase.TRAIN_BEGIN)
         self._current_epoch = 0
         for epoch in range(1, self.num_epochs + 1):
             self._current_epoch = epoch
 
-            self._invoke_callbacks(CallbackPhase.EPOCH_BEGIN)
+            self._invoke_callbacks(Phase.EPOCH_BEGIN)
 
-            self.state = TrainerState.TRAIN
+            self.state = State.TRAIN
             self._fwd_pass_train()
-            self.state = TrainerState.VAL
+            self.state = State.VAL
             self._fwd_pass_val()
-            self.state = TrainerState.EXTERNAL
+            self.state = State.EXTERNAL
 
-            self._invoke_callbacks(CallbackPhase.EPOCH_END)
+            self._invoke_callbacks(Phase.EPOCH_END)
 
             if self._should_stop_train:
                 break
 
-        self._invoke_callbacks(CallbackPhase.TRAIN_END)
-        self.phase = CallbackPhase.IDLE
+        self._invoke_callbacks(Phase.TRAIN_END)
+        self.phase = Phase.IDLE
 
     def evaluate(self, test_data_loader, test_steps):
-        self._invoke_callbacks(CallbackPhase.TEST_BEGIN)
-        self.state = TrainerState.TEST
+        self._invoke_callbacks(Phase.TEST_BEGIN)
+        self.state = State.TEST
         self._fwd_pass_test(test_data_loader, test_steps)
-        self.state = TrainerState.EXTERNAL
-        self._invoke_callbacks(CallbackPhase.TEST_END)
-        self.phase = CallbackPhase.IDLE
+        self.state = State.EXTERNAL
+        self._invoke_callbacks(Phase.TEST_END)
+        self.phase = Phase.IDLE
 
 
 

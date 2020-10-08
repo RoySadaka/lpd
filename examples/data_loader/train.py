@@ -13,7 +13,7 @@ from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import Dense
 from lpd.extensions.custom_metrics import binary_accuracy_with_logits
 from lpd.callbacks import StatsPrint, EarlyStopping, SchedulerStep
-from lpd.enums import CallbackPhase, TrainerState, MonitorType, MonitorMode, StatsType
+from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 import lpd.utils.general_utils as gu
 import lpd.utils.torch_utils as tu
 
@@ -115,7 +115,7 @@ def get_trainer(params):
     metric_name_to_func = {"acc":binary_accuracy_with_logits}
 
     callbacks = [   
-                    SchedulerStep(cb_phase=CallbackPhase.BATCH_END, apply_on_states=TrainerState.TRAIN),
+                    SchedulerStep(cb_phase=Phase.BATCH_END, apply_on_states=State.TRAIN),
                     EarlyStopping(patience=3, monitor_type=MonitorType.LOSS, stats_type=StatsType.VAL, monitor_mode=MonitorMode.MIN),
                     StatsPrint(round_values_on_print_to=7)
                 ]

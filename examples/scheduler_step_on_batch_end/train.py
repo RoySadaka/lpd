@@ -2,7 +2,7 @@ import torch.optim as optim
 
 from lpd.trainer import Trainer
 from lpd.callbacks import StatsPrint, SchedulerStep
-from lpd.enums import CallbackPhase, TrainerState 
+from lpd.enums import Phase, State 
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 
@@ -25,13 +25,13 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     
     metric_name_to_func = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
-    # LETS ADD SchedulerStep WITH cb_phase=CallbackPhase.BATCH_END
-    # AND apply_on_states=TrainerState.TRAIN
+    # LETS ADD SchedulerStep WITH cb_phase=Phase.BATCH_END
+    # AND apply_on_states=State.TRAIN
     # IT MEANS THAT THE SchedulerStep WILL BE INVOKED AT THE END OF EVERY BATCH, BUT, WILL ONLY BE APPLIED WHEN 
     # IN TRAIN MODE, AND WILL BE IGNORED IN VAL/TEST MODES
     callbacks = [   
-                    SchedulerStep(cb_phase=CallbackPhase.BATCH_END, apply_on_states=TrainerState.TRAIN), #CAN ALSO BE apply_on_states=[TrainerState.TRAIN]
-                    StatsPrint(cb_phase=CallbackPhase.EPOCH_END)
+                    SchedulerStep(cb_phase=Phase.BATCH_END, apply_on_states=State.TRAIN), #CAN ALSO BE apply_on_states=[State.TRAIN]
+                    StatsPrint(cb_phase=Phase.EPOCH_END)
                 ]
 
     trainer = Trainer(model=model, 
