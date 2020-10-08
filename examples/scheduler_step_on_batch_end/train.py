@@ -25,13 +25,13 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     
     metric_name_to_func = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
-    # LETS ADD SchedulerStep WITH cb_phase=Phase.BATCH_END
+    # LETS ADD SchedulerStep WITH apply_on_phase=Phase.BATCH_END
     # AND apply_on_states=State.TRAIN
     # IT MEANS THAT THE SchedulerStep WILL BE INVOKED AT THE END OF EVERY BATCH, BUT, WILL ONLY BE APPLIED WHEN 
     # IN TRAIN MODE, AND WILL BE IGNORED IN VAL/TEST MODES
     callbacks = [   
-                    SchedulerStep(cb_phase=Phase.BATCH_END, apply_on_states=State.TRAIN), #CAN ALSO BE apply_on_states=[State.TRAIN]
-                    StatsPrint(cb_phase=Phase.EPOCH_END)
+                    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN), #CAN ALSO BE apply_on_states=[State.TRAIN]
+                    StatsPrint(apply_on_phase=Phase.EPOCH_END)
                 ]
 
     trainer = Trainer(model=model, 

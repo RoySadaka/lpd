@@ -14,13 +14,13 @@ class SchedulerStep(CallbackBase):
                 e.g. for scheduler that takes val_loss as parameter, initialize like this:
                     SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss())
                 if your scheduler step does not expect parameters, leave scheduler_parameters_func = None
-            cb_phase - see in CallbackBase
+            apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
     """
-    def __init__(self, cb_phase: Phase=Phase.EPOCH_END, 
+    def __init__(self, apply_on_phase: Phase=Phase.EPOCH_END, 
                        apply_on_states: Union[State, List[State]]=State.EXTERNAL,
                        scheduler_parameters_func=None):
-        super(SchedulerStep, self).__init__(cb_phase=cb_phase, apply_on_states=apply_on_states)
+        super(SchedulerStep, self).__init__(apply_on_phase=apply_on_phase, apply_on_states=apply_on_states)
         self.scheduler_parameters_func = scheduler_parameters_func
 
     def __call__(self, callback_context):

@@ -6,7 +6,10 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 
 ``lpd`` derives from the Hebrew word *lapid* (לפיד) which means "torch".
 
-## For latest PyPI stable release [![Downloads](https://pepy.tech/badge/lpd)](https://pepy.tech/project/lpd)
+
+
+## For latest PyPI stable release 
+[![PyPI version](https://badge.fury.io/py/lpd.svg)](https://badge.fury.io/py/lpd) [![Downloads](https://pepy.tech/badge/lpd)](https://pepy.tech/project/lpd)
 
 ```sh
     pip install lpd
@@ -14,7 +17,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 
 ## Usage
 
-``lpd`` intended to properly structure your pytorch model training. The main usages are given below.
+``lpd`` intended to properly structure your PyTorch model training. The main usages are given below.
 
 ### Training your model
 
@@ -22,7 +25,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     from lpd.trainer import Trainer
     import lpd.utils.torch_utils as tu
     import lpd.utils.general_utils as gu
-    from lpd.enums impoCallbackPhase, TrainerState, MonitorType, MonitorMode, StatsType
+    from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
     from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
     from lpd.extensions.custom_metrics import binary_accuracy_with_logits
 
@@ -41,7 +44,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
                 ModelCheckPoint(checkpoint_dir, checkpoint_file_name, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN, save_best_only=True), 
                 Tensorboard(summary_writer_dir=summary_writer_dir),
                 EarlyStopping(patience=10, MonitorType.METRIC, StatsType.VAL, MonitorMode.MAX, metric_name='acc'),
-                StatsPrint(metric_names=metric_name_to_func.keys())
+                StatsPrint(apply_on_phase=Phase.EPOCH_END, metric_names=metric_name_to_func.keys())
             ]
 
     trainer = Trainer(model, 
@@ -55,7 +58,8 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
                       train_steps,
                       val_steps,
                       num_epochs,
-                      callbacks)
+                      callbacks,
+                      name='Readme-Example')
     
     trainer.train()
 ```
@@ -66,89 +70,92 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ```
 
 ### TrainerStats
-``Trainer`` tracks stats for `train/val/test` and you can access them in your custom callbacks
-or any other place you see fit.
+``Trainer`` tracks stats for `train/validate/test` and you can access them in your custom callbacks
+or any other place that has access to your trainer.
 
 Here are some examples
 ```python
     train_loss = trainer.train_stats.get_loss()         # the mean of the last epoch's train losses
-    val_loss = trainer.val_stats.get_loss()             # the mean of the last epoch's val losses
+    val_loss = trainer.val_stats.get_loss()             # the mean of the last epoch's validation losses
+    test_loss = trainer.test_stats.get_loss()           # the mean of the test losses (available only after calling evaluate)
 
-    train_metrics = trainer.train_stats.get_metrics()   # dictionary metric_name->mean of the last epoch's train metrics
-    val_metrics = trainer.val_stats.get_metrics()       # dictionary metric_name->mean of the last epoch's val metrics
+    train_metrics = trainer.train_stats.get_metrics()   # dict(metric_name, mean(values)) of the current epoch in train state
+    val_metrics = trainer.val_stats.get_metrics()       # dict(metric_name, mean(values)) of the current epoch in validation state
+    test_metrics = trainer.test_stats.get_metrics()     # dict(metric_name, mean(values)) of the test (available only after calling evaluate)
 ```
 
 
 ### Callbacks
 Some common callbacks are available under ``lpd.callbacks``. 
 
-Notice that ``cb_phase`` (``lpd.enums.CallbackPhase``) will determine the execution phase,
+Notice that ``apply_on_phase`` (``lpd.enums.Phase``) will determine the execution phase,
 
-and that ``apply_on_states`` (``lpd.enums.TrainerState``) will determine the execution state
+and that ``apply_on_states`` (``lpd.enums.State`` or ``list(lpd.enums.State)``) will determine the execution states
 
 These are the current available phases and states, more might be added in future releases
 ```python
-        TrainerState.EXTERNAL
-        CallbackPhase.TRAIN_BEGIN
+        State.EXTERNAL
+        Phase.TRAIN_BEGIN
         # train loop:
-            CallbackPhase.EPOCH_BEGIN
+            Phase.EPOCH_BEGIN
 
-            TrainerState.TRAIN
+            State.TRAIN
             # batches loop:
-                CallbackPhase.BATCH_BEGIN
+                Phase.BATCH_BEGIN
                 # batch
-                CallbackPhase.BATCH_END
-            TrainerState.VAL
+                Phase.BATCH_END
+            State.VAL
             # batches loop:
-                CallbackPhase.BATCH_BEGIN
+                Phase.BATCH_BEGIN
                 # batch
-                CallbackPhase.BATCH_END
-            TrainerState.EXTERNAL
+                Phase.BATCH_END
+            State.EXTERNAL
 
-            CallbackPhase.EPOCH_END
-        CallbackPhase.TRAIN_END
+            Phase.EPOCH_END
+        Phase.TRAIN_END
 ```
 
-Evaluation phases and states will be behave as follow
+Evaluation phases and states will behave as follow
 ```python
-        TrainerState.EXTERNAL
-        CallbackPhase.TEST_BEGIN
-        TrainerState.TEST
+        State.EXTERNAL
+        Phase.TEST_BEGIN
+        State.TEST
         # batches loop:
-            CallbackPhase.BATCH_BEGIN
+            Phase.BATCH_BEGIN
             # batch
-            CallbackPhase.BATCH_END
-        TrainerState.EXTERNAL
-        CallbackPhase.TEST_END
+            Phase.BATCH_END
+        State.EXTERNAL
+        Phase.TEST_END
 ```
-With phases and states you'll have full control over the timing of your callbacks,
+With phases and states, you'll have full control over the timing of your callbacks,
 
 so for example, say you need SchedulerStep callback to control your scheduler,
 
-but only at the end of every batch, and only when in train state (as oppose to validation and test)
+but only at the end of every batch, and only when in train state (as opposed to validation and test)
 then define your SchedulerStep callback like so:
 ```python
     from lpd.callbacks import SchedulerStep
-    from lpd.enums import CallbackPhase, TrainerState
-    SchedulerStep(cb_phase=CallbackPhase.BATCH_END, apply_on_states=TrainerState.TRAIN)
+    from lpd.enums import Phase, State
+    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN)
 ```
 In case you need it on validation state as well, pass a list for ``apply_on_states`` like so:
 ```python
-    SchedulerStep(cb_phase=CallbackPhase.BATCH_END, apply_on_states=[TrainerState.TRAIN, TrainerState.VAL])
+    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=[State.TRAIN, State.VAL])
 ```
 Below is an output example for ``StatsPrint`` callback that will print an epoch summary at the end of every epoch
 
 ![EpochSummary](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/epoch_summary.png)
 
-You can also create your own custom callbacks
+You can also create custom callbacks
 
 ```python
-    import lpd.enums as en
+    from lpd.enums import Phase, State
     from lpd.callbacks import CallbackBase
 
     class MyAwesomeCallback(CallbackBase):
-        def __init__(self, cb_phase=CallbackPhase.BATCH_END, apply_on_states=[TrainerState.TRAIN, TrainerState.VAL]):
-            super(MyAwesomeCallback, self).__init__(cb_phase, apply_on_states)
+        def __init__(self, apply_on_phase=Phase.BATCH_END, apply_on_states=[State.TRAIN, State.VAL]):
+            # make sure to call init parent class
+            super(MyAwesomeCallback, self).__init__(apply_on_phase, apply_on_states)
 
         def __call__(self, callback_context): # <=== implement this method!
             # your implementation here
@@ -161,21 +168,21 @@ You can also create your own custom callbacks
             opt = callback_context.trainer.optimizer
             scheduler = callback_context.trainer.scheduler
 
-            # you can also mark the trainer as STOP by calling the stop_training() method
             if val_loss < 0.0001:
-                callback_context.trainer.stop_training()
+                # you can also mark the trainer to STOP training by calling stop()
+                callback_context.trainer.stop()
 ```
 
 Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our validation loss is getting better
 ```python
     from lpd.callbacks import CallbackBase, CallbackMonitor # <== CallbackMonitor added
-    from lpd.enums import CallbackPhase, TrainerState, MonitorType, StatsType, MonitorMode # <== added few needed enums to configure CallbackMonitor
+    from lpd.enums import Phase, State, MonitorType, StatsType, MonitorMode # <== added few needed enums to configure CallbackMonitor
 
     class MyAwesomeCallback(CallbackBase):
-        def __init__(self, cb_phase=CallbackPhase.BATCH_END, apply_on_states=[TrainerState.TRAIN, TrainerState.VAL]):
-            super(MyAwesomeCallback, self).__init__(cb_phase, apply_on_states)
+        def __init__(self, apply_on_phase=Phase.BATCH_END, apply_on_states=[State.TRAIN, State.VAL]):
+            super(MyAwesomeCallback, self).__init__(apply_on_phase, apply_on_states)
             
-            # adding CallbackMonitor to track VAL LOSS with regards to MIN (lower is better)
+            # adding CallbackMonitor to track VAL LOSS with regards to MIN (lower is better) and patience or 20 epochs
             self.val_loss_monitor = CallbackMonitor(patience=20, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN)
 
         def __call__(self, callback_context: CallbackContext): # <=== implement this method!
@@ -183,26 +190,27 @@ Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our valid
             train_metrics = callback_context.train_stats.get_metrics()
             val_metrics = callback_context.val_stats.get_metrics()
 
-            # invoke track() method with callback_context
+            # invoke track() method on your monitor and pass callback_context as parameter
+            # since you configured your val_loss_monitor, it will get the relevant parameters from callback_context
             monitor_result = self.val_loss_monitor.track(callback_context)
 
             # monitor_result (lpd.callbacks.CallbackMonitorResult) contains lots of informative properties
-            # for example, lets check the status of the patience countdown
+            # for example lets check the status of the patience countdown
 
             if monitor_result.has_patience():
-                print(f'[MyAwesomeCallback] - patience count: {monitor_result.patience_left}')
+                print(f'[MyAwesomeCallback] - patience left: {monitor_result.patience_left}')
 
-            # Or, lets stop the trainer (by calling the trainer.stop_training() ) 
+            # Or, let's stop the trainer, by calling the trainer.stop()
             # if our monitored value did not improve
 
             if not monitor_result.has_improved():
                 print(f'[MyAwesomeCallback] - {monitor_result.description} has stopped improving')
-                callback_context.trainer.stop_training()
+                callback_context.trainer.stop()
 ```
 
 
 ### Utils
-``lpd.utils`` provides few utils files (torch_utils, file_utils and general_utils)
+``lpd.utils`` provides few files (torch_utils, file_utils and general_utils)
 For example, a good practice is to use 
 ```python
     import lpd.utils.general_utils as gu
@@ -211,17 +219,16 @@ For example, a good practice is to use
 As early as possible in your code, to make sure that results are reproducible
 
 ### Extensions
-``lpd.extensions`` provides some custom pytorch layers, these are just some layers we like using when we create our models, to gain better flexibility.
+``lpd.extensions`` provides some custom PyTorch layers, metrics, and schedulers, these are just some stuff we like using when we create our models, to gain better flexibility.
 
-So you can use them at your own will, there youll also find custom metrics and schedulers.
-We will add more layers, metrics and schedulers from time to time.
-
+So you can use them at your own will.
+We will add more extensions from time to time.
 
 ## TODOS (more added frequently)
 * Add callback descriptions to summary
 * Add support for multiple schedulers 
 * Add support for multiple losses
-* Save trainer in checkpoint to enable loading a model and continue training from last checkpoint
+* Save trainer in save_checkpoint() to enable loading a model and continue training from the last checkpoint
 * Add colab examples
 
 ## Something is missing?! please share with us

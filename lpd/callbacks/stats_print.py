@@ -7,18 +7,18 @@ from typing import Union, List, Optional, Dict
 class StatsPrint(CallbackBase):
     """
         Informative summary of the trainer state, most likely at the end of the epoch, 
-        but you can change cb_phase and apply_on_states if you need it on a different phases
+        but you can change apply_on_phase and apply_on_states if you need it on a different phases
         Args:
-            cb_phase - see in CallbackBase
+            apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
             round_values_on_print_to - see in CallbackBase
     """
 
-    def __init__(self, cb_phase: Phase=Phase.EPOCH_END, 
+    def __init__(self, apply_on_phase: Phase=Phase.EPOCH_END, 
                        apply_on_states: Union[State, List[State]]=State.EXTERNAL, 
                        round_values_on_print_to=None,
                        metric_names=None):
-        super(StatsPrint, self).__init__(cb_phase, apply_on_states, round_values_on_print_to)
+        super(StatsPrint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
         self.metric_names = metric_names or set()
         self.train_loss_monitor = CallbackMonitor(None, MonitorType.LOSS, StatsType.TRAIN, MonitorMode.MIN)
         self.val_loss_monitor = CallbackMonitor(None, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN)
@@ -79,6 +79,7 @@ class StatsPrint(CallbackBase):
         print(f'|   [StatsPrint]')
         print(f'|   |-- Name: {c.trainer.name}')
         print(f'|   |-- Epoch: {c.epoch}')
+        print(f'|   |-- Total Batch Count: {c.iteration}')
         print(f'|   |-- Learning rate: {r(current_lr)}')
         print(f'|   |-- Train')
         print(f'|   |     |-- loss {gdim(t_loss_monitor_result)}')

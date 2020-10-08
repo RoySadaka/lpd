@@ -11,13 +11,12 @@ def binary_accuracy_with_logits(y_pred, y_true):
     y_pred_sigmoid = T.sigmoid(y_pred)
     return binary_accuracy(y_pred_sigmoid, y_true)
 
-#NOT TESTED YET
-# def categorical_accuracy(y_pred, y_true):
-#     assert y_true.size() == y_pred.size()
-#     indices = T.max(y_pred, 1)[1]
-#     correct = T.eq(indices, y_true).view(-1)
-#     return T.sum(correct).item() / correct.shape[0]
+def categorical_accuracy(y_pred, y_true):
+    assert y_true.size() == y_pred.size()
+    indices = T.max(y_pred, 1)[1]
+    correct = T.eq(indices, y_true).view(-1)
+    return T.sum(correct).item() / correct.shape[0]
 
-# def categorical_accuracy_with_logits(y_pred, y_true):
-#     y_pred_softmax = T.softmax(y_pred)
-#     return categorical_accuracy(y_pred_softmax, y_true)
+def categorical_accuracy_with_logits(y_pred, y_true):
+    y_pred_softmax = T.softmax(y_pred)
+    return categorical_accuracy(y_pred_softmax, y_true)

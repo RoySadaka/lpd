@@ -12,16 +12,16 @@ class Tensorboard(CallbackBase):
         Writes entries directly to event files in the summary_writer_dir to be
         consumed by TensorBoard.
         Args:
-            cb_phase - see in CallbackBase
+            apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
             summary_writer_dir - the folder path to save tensorboard output
                                  if passed None, will write to the current dir
     """
 
-    def __init__(self, cb_phase: Phase=Phase.EPOCH_END, 
+    def __init__(self, apply_on_phase: Phase=Phase.EPOCH_END, 
                         apply_on_states: Union[State, List[State]]=State.EXTERNAL,
                         summary_writer_dir: str=None):
-        super(Tensorboard, self).__init__(cb_phase, apply_on_states)
+        super(Tensorboard, self).__init__(apply_on_phase, apply_on_states)
         self.TRAIN_NAME = 'Train'
         self.VAL_NAME = 'Val'
         self.summary_writer_dir = summary_writer_dir

@@ -3,13 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-import lpd.utils.torch_utils as tu
+from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
 from lpd.extensions.custom_metrics import binary_accuracy_with_logits
-from lpd.trainer import Trainer
 from lpd.extensions.custom_schedulers import DoNothingToLR
+import lpd.utils.torch_utils as tu
+
 
 class TestModel(nn.Module):
     def __init__(self, config, num_embeddings):
@@ -92,8 +93,8 @@ def get_trainer(config,
                                     save_best_only=True, 
                                     round_values_on_print_to=7), 
                     Tensorboard(summary_writer_dir=summary_writer_dir),
-                    EarlyStopping(patience=config.EARLY_STOPPING_PATIENCE),
-                    StatsPrint(cb_phase=Phase.EPOCH_END, round_values_on_print_to=7, metric_names=metric_name_to_func.keys()) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
+                    EarlyStopping(apply_on_phase=Phase.EPOCH_END, apply_on_states=State.EXTERNAL, patience=config.EARLY_STOPPING_PATIENCE),
+                    StatsPrint(apply_on_phase=Phase.EPOCH_END, round_values_on_print_to=7, metric_names=metric_name_to_func.keys()) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
                 ]
 
     trainer = Trainer(model=model, 

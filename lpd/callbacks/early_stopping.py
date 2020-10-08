@@ -8,7 +8,7 @@ class EarlyStopping(CallbackBase):
     """
         Stop training when a monitored loss has stopped improving.
         Args:
-            cb_phase - see in CallbackBase
+            apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
             patience - int or None (will be set to inf) track how many epochs/iterations without improvements in monitoring
             monitor_type - e.g. lpd.enums.MonitorType.LOSS, what to monitor (see CallbackMonitor)
@@ -19,7 +19,7 @@ class EarlyStopping(CallbackBase):
     """
 
     def __init__(self, 
-                    cb_phase: Phase=Phase.EPOCH_END, 
+                    apply_on_phase: Phase=Phase.EPOCH_END, 
                     apply_on_states: Union[State, List[State]]=State.EXTERNAL,
                     patience: int=0, 
                     monitor_type: MonitorType=MonitorType.LOSS, 
@@ -27,7 +27,7 @@ class EarlyStopping(CallbackBase):
                     monitor_mode: MonitorMode=MonitorMode.MIN, 
                     metric_name: Optional[str]=None,
                     verbose=1):
-        super(EarlyStopping, self).__init__(cb_phase, apply_on_states)
+        super(EarlyStopping, self).__init__(apply_on_phase, apply_on_states)
         self.monitor = CallbackMonitor(patience, monitor_type, stats_type, monitor_mode, metric_name)
         self.verbose = verbose
 
@@ -40,7 +40,7 @@ class EarlyStopping(CallbackBase):
             print(f'[EarlyStopping] - patience:{monitor_result.patience_left} epochs')
         
         if not monitor_result.has_patience():
-            c.trainer.stop_training()
+            c.trainer.stop()
             if self.verbose > 0:
                 print(f'[EarlyStopping] - stopping on epoch {c.epoch}')
 

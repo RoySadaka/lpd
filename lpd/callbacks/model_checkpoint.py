@@ -11,7 +11,7 @@ class ModelCheckPoint(CallbackBase):
         Saving a checkpoint when a monitored loss has improved.
         Checkpoint will save the model, optimizer, scheduler and epoch number
         Args:
-            cb_phase - see in CallbackBase
+            apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
             checkpoint_dir - the folder to dave the model, if None was passed, will use current folder
             checkpoint_file_name - the name of the file that will be saved
@@ -24,7 +24,7 @@ class ModelCheckPoint(CallbackBase):
             round_values_on_print_to - see in CallbackBase
     """
 
-    def __init__(self,  cb_phase: Phase=Phase.EPOCH_END, 
+    def __init__(self,  apply_on_phase: Phase=Phase.EPOCH_END, 
                         apply_on_states: Union[State, List[State]]=State.EXTERNAL,
                         checkpoint_dir: str=None, 
                         checkpoint_file_name: str='checkpoint', 
@@ -35,7 +35,7 @@ class ModelCheckPoint(CallbackBase):
                         save_best_only: bool=False, 
                         verbose: int=1,
                         round_values_on_print_to: int=None):
-        super(ModelCheckPoint, self).__init__(cb_phase, apply_on_states, round_values_on_print_to)
+        super(ModelCheckPoint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
         self.checkpoint_dir = checkpoint_dir
         if self.checkpoint_dir is None:
             raise ValueError("[ModelCheckPoint] - checkpoint_dir was not provided")

@@ -1,6 +1,6 @@
 import torch as T
 from tqdm import tqdm
-import lpd.callbacks as cbs
+from lpd.callbacks import CallbackContext
 from lpd.enums import State, Phase
 from lpd.trainer_stats import TrainerStats
 
@@ -27,7 +27,7 @@ class Trainer():
 
         Methods:
             summary - will print information about the trainer and the model
-            stop_training - will indicate this trainer to stop train (e.g. from a callback) after the current epoch is done
+            stop - will indicate this trainer to stop, e.g. from a callback
             train - this is the training loop, it will invoke the training and validation phases, as well as callbacks and maintain stats
             evaluate - will run a forward pass on the test data
     """
@@ -59,10 +59,10 @@ class Trainer():
         self.callbacks = callbacks
         self.name = name
 
-        self._current_epoch = 0
-        # self._current_iteration = 0
-        # self._current_iteration_in_epoch = 0
-        self._should_stop_train = False
+        self.epoch = 0
+        self.iteration = 0
+        self.iteration_in_epoch = 0
+        self._stopped = False
 
         self.state = State.EXTERNAL
         self.phase = Phase.IDLE
@@ -73,79 +73,97 @@ class Trainer():
         self.test_stats = TrainerStats(self.metric_name_to_func)
         self.test_last_loss_object = None
 
-    def _train_loss_opt_handler(self, loss):
+    def _train_handler(self, loss):
+        self.iteration += 1
+        self.iteration_in_epoch += 1
         self.train_last_loss_object = loss
         loss.backward()
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-    def _val_loss_opt_handler(self, loss):
+    def _val_handler(self, loss):
         self.val_last_loss_object = loss
 
-    def _test_loss_opt_handler(self, loss):
+    def _test_handler(self, loss):
         self.test_last_loss_object = loss
 
-    def _handle_labels(self, labels):
+    def _labels_handler(self, labels):
         return labels.to(self.device)
 
-    def _handle_inputs(self, inputs):
+    def _inputs_handler(self, inputs):
         if isinstance(inputs, list):
             # MULTIPLE INPUTS CONSTRUCTED IN A LIST
             return [x.to(self.device) for x in inputs]
         #SINGLE INPUT
         return [inputs.to(self.device)]
 
-    def _fwd_pass_base(self, phase_description, data_loader, steps, loss_opt_handler, stats):
+    def _get_tqdm_description(self):
+        if self.state == State.TEST:
+            return f'[{self.state}]'
+        elif self.state == State.VAL:
+            return f'[Val   epoch {self.epoch}/{self.num_epochs}]'
+        else: #TRAIN
+            return f'[Train epoch {self.epoch}/{self.num_epochs}]'
+
+    def _fwd_pass_base(self, data_loader, steps, handler, stats):
         stats.reset()
         loop = tqdm(data_loader, total=steps-1)
+        self.iteration_in_epoch = 0 #RELEVANT FOR ALL STATES
         for inputs,labels in loop:
-
-            self._invoke_callbacks(Phase.BATCH_BEGIN)
             steps -= 1
 
-            x = self._handle_inputs(inputs)
-            y = self._handle_labels(labels)
+            self.phase = Phase.BATCH_BEGIN
+            self._invoke_callbacks()
+
+            x = self._inputs_handler(inputs)
+            y = self._labels_handler(labels)
             outputs = self.model(*x)
             loss = self.loss_func(outputs, y)
             stats.add_loss(loss)
             stats.add_metrics(outputs, y)
-            loss_opt_handler(loss)
+            handler(loss)
 
-            self._invoke_callbacks(Phase.BATCH_END)
+            self.phase = Phase.BATCH_END
+            self._invoke_callbacks()
 
-            loop.set_description(phase_description)
-            loop.set_postfix(loss=stats.get_loss(), acc=stats.get_metrics())
+            loop.set_description(self._get_tqdm_description())
+            loop.set_postfix(loss=stats.get_loss(), metrics=stats.get_metrics())
+
+            if self._stopped:
+                break
 
             if steps == 0:
                 break
 
     def _fwd_pass_test(self, test_data_loader, test_steps):
+        if self._stopped:
+            return
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
-            phase_description = f'[Test]'
-            self._fwd_pass_base(phase_description, test_data_loader, test_steps, self._test_loss_opt_handler, self.test_stats)
+            self._fwd_pass_base(test_data_loader, test_steps, self._test_handler, self.test_stats)
 
     def _fwd_pass_val(self):
-        if self.val_data_loader is None or self.val_steps == 0:
+        if self._stopped or self.val_data_loader is None or self.val_steps == 0:
             return
 
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
-            phase_description = f'[Val   epoch {self._current_epoch}/{self.num_epochs}]'
-            self._fwd_pass_base(phase_description, self.val_data_loader, self.val_steps, self._val_loss_opt_handler, self.val_stats)
+            self._fwd_pass_base(self.val_data_loader, self.val_steps, self._val_handler, self.val_stats)
 
     def _fwd_pass_train(self):
+        if self._stopped:
+            return
         self.model.train() #MARK STATUS AS TRAIN
-        phase_description = f'[Train epoch {self._current_epoch}/{self.num_epochs}]'
-        self._fwd_pass_base(phase_description, self.train_data_loader, self.train_steps, self._train_loss_opt_handler, self.train_stats)
+        self._fwd_pass_base(self.train_data_loader, self.train_steps, self._train_handler, self.train_stats)
 
-    def _invoke_callbacks(self, phase):
-        self.phase = phase
-        context = cbs.CallbackContext(self)
-        for cb in self.callbacks:
-            if cb.should_apply_on_phase(context) and \
-               cb.should_apply_on_state(context):
-                cb(context)
+    def _invoke_callbacks(self):
+        if self._stopped:
+            return
+        context = CallbackContext(self)
+        for callback in self.callbacks:
+            if callback.should_apply_on_phase(context) and \
+               callback.should_apply_on_state(context):
+                callback(context)
 
 
     def summary(self):
@@ -166,17 +184,22 @@ class Trainer():
         print('pytorch_total_params', pytorch_total_params)
         print('pytorch_total_params_requires_grad', pytorch_total_params_requires_grad)
 
-    def stop_training(self):
-        #MARKS THIS TRAINER AS DONE, MOST LIKELY DUE TO A CALLBACK (E.G. EARLY-STOPPING)
-        self._should_stop_train = True
+    def stop(self):
+        self._stopped = True
 
     def train(self):
-        self._invoke_callbacks(Phase.TRAIN_BEGIN)
-        self._current_epoch = 0
-        for epoch in range(1, self.num_epochs + 1):
-            self._current_epoch = epoch
+        self._stopped = False
+        self.state = State.EXTERNAL
+        self.phase = Phase.TRAIN_BEGIN
+        self._invoke_callbacks()
 
-            self._invoke_callbacks(Phase.EPOCH_BEGIN)
+        self.epoch = 0
+        self.iteration = 0
+        for epoch in range(1, self.num_epochs + 1):
+            self.epoch = epoch
+
+            self.phase = Phase.EPOCH_BEGIN
+            self._invoke_callbacks()
 
             self.state = State.TRAIN
             self._fwd_pass_train()
@@ -184,20 +207,25 @@ class Trainer():
             self._fwd_pass_val()
             self.state = State.EXTERNAL
 
-            self._invoke_callbacks(Phase.EPOCH_END)
+            self.phase = Phase.EPOCH_END
+            self._invoke_callbacks()
 
-            if self._should_stop_train:
+            if self._stopped:
                 break
 
-        self._invoke_callbacks(Phase.TRAIN_END)
+        self.phase = Phase.TRAIN_END
+        self._invoke_callbacks()
         self.phase = Phase.IDLE
 
     def evaluate(self, test_data_loader, test_steps):
-        self._invoke_callbacks(Phase.TEST_BEGIN)
+        self._stopped = False
+        self.phase = Phase.TEST_BEGIN
+        self._invoke_callbacks()
         self.state = State.TEST
         self._fwd_pass_test(test_data_loader, test_steps)
         self.state = State.EXTERNAL
-        self._invoke_callbacks(Phase.TEST_END)
+        self.phase = Phase.TEST_END
+        self._invoke_callbacks()
         self.phase = Phase.IDLE
 
 

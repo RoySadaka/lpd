@@ -1,6 +1,17 @@
 Change Log
 ==========
 
+0.1.4 (08/10/2020)
+-----------------
+This release contains breaking changes:
+* Renamed cb_phase to apply_on_phase 
+* Renamed CallbackPhase to Phase, TrainerState to State
+* Renamed Trainer.stop_training() to Trainer.stop(), so it also apply to testing
+* Trainer now keeps track of iteration count and iteration_in_epoch count
+* CallbackContext was expanded with iteration count and iteration_in_epoch count
+* Calling Trainer.stop() from a callback will now stop even on a batch level (and not only epoch level)
+
+
 0.1.3 (07/10/2020)
 -----------------
 * Bug fix in apply_on_states invocation of callbacks 
@@ -15,12 +26,12 @@ Change Log
 -----------------
 * Added TEST_BEGIN and TEST_END callbacks phases
 * Added CallbackMonitor
-* Added enums (lpd.enums) TrainerState, MonitorType, MonitorMode, StatsType
+* Added enums (lpd.enums) State, MonitorType, MonitorMode, StatsType
 
 
 0.1.0 (05/10/2020)
 -----------------
-* Introduced CallbackPhase and State to control timing of callback invocation
+* Introduced Phase and State to control timing of callback invocation
 * Added example of SchedulerStep every batch in train state
 * Trainer support for native pytorch dataloader
 * Added data loader example
