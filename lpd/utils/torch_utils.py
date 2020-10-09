@@ -44,3 +44,6 @@ def load_checkpoint(checkpoint_filepath, model, optimizer, scheduler, verbose=1)
     optimizer.load_state_dict(checkpoint['optimizer'])
     scheduler.load_state_dict(checkpoint['scheduler'])
     return checkpoint['epoch']
+
+def get_lrs_from_optimizer(optimizer):
+    return [group['lr'] for group in optimizer.param_groups]

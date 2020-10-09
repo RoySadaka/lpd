@@ -2,6 +2,7 @@ from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 from lpd.callbacks.callback_base import CallbackBase
 from lpd.callbacks.callback_context import CallbackContext
 from lpd.callbacks.callback_monitor import CallbackMonitor, CallbackMonitorResult
+from lpd.utils.torch_utils import get_lrs_from_optimizer
 from typing import Union, List, Optional, Dict
 
 class StatsPrint(CallbackBase):
@@ -32,10 +33,6 @@ class StatsPrint(CallbackBase):
         self.GREEN_PRINT_COLOR = "\033[92m"
         self.END_PRINT_COLOR = "\033[0m"
 
-    def _get_current_lr(self, optimizer):
-        #CURRENTLY WILL RETURN ONLY FOR param_groups[0]
-        return optimizer.param_groups[0]['lr']
-
     def _get_print_from_monitor_result(self, monitor_result: CallbackMonitorResult) -> str:
         r = self.round_to #READABILITY
         mtr = monitor_result #READABILITY
@@ -57,7 +54,6 @@ class StatsPrint(CallbackBase):
             return self.GREEN_PRINT_COLOR + 'IMPROVED' + self.END_PRINT_COLOR
         return ''
 
-
     def __call__(self, callback_context: CallbackContext):
         c = callback_context #READABILITY 
         r = self.round_to #READABILITY
@@ -73,14 +69,14 @@ class StatsPrint(CallbackBase):
             train_metric_name_to_monitor_result[metric_name] = self.train_metric_name_to_monitor[metric_name].track(c)
             val_metric_name_to_monitor_result[metric_name]   = self.val_metric_name_to_monitor[metric_name].track(c)
 
-        current_lr = self._get_current_lr(c.trainer.optimizer)
+        current_lrs = get_lrs_from_optimizer(c.trainer.optimizer)
 
         print('------------------------------------------------------')
         print(f'|   [StatsPrint]')
         print(f'|   |-- Name: {c.trainer.name}')
         print(f'|   |-- Epoch: {c.epoch}')
         print(f'|   |-- Total Batch Count: {c.iteration}')
-        print(f'|   |-- Learning rate: {r(current_lr)}')
+        print(f'|   |-- Learning rates: {r(current_lrs)}')
         print(f'|   |-- Train')
         print(f'|   |     |-- loss {gdim(t_loss_monitor_result)}')
         print(f'|   |     |     |-- {self._get_print_from_monitor_result(t_loss_monitor_result)}')

@@ -40,6 +40,23 @@ class Dense(nn.Module):
         return x
 
 class Attention(nn.Module):
+    """
+        The architecture is based on the paper “Attention Is All You Need”
+        Usage (1)
+        It can be used as Attention in transformer if q,k,v share the same dimensions.
+        
+        Usage (2)
+        It can also be used as a method to aggregate a group of vectors into 1 vector if q dimensions are (batch, 1, key_dim)
+        that way, instead of using Sum, or Average, you can have a learnable query vector (or a few of them) that will learn the aggregation function.
+        See example in lpd.examples.multiple_inputs.model, where we define external_query_attention like so:
+        external_query_attention = Attention(key_dim=config.EMBEDDINGS_SIZE, use_query_dense=True)  
+
+        Args:
+        key_dim - as defined in the paper, the number of expected features in the encoder inputs
+        use_query_dense - weather to pass q input into another Dense layer, mostly used in Usage (2), to
+                          run q into a transformation that will transform it into the vector space of k and v
+        name - optional, any string to describe this layer
+    """
     def __init__(self, key_dim, use_query_dense=False, name=None):
         super(Attention, self).__init__()
         #PARAMS
@@ -69,7 +86,7 @@ class Attention(nn.Module):
         if self.use_query_dense:
             q = self.query_dense(q)                                            # (batch, num_elements, key_dim)
 
-        q_k = self.mat_mul2d_t(q, k)                                             # (batch, ?, num_elements)
+        q_k = self.mat_mul2d_t(q, k)                                           # (batch, ?, num_elements)
         scores = q_k / self.sqrt_key_dim                                       # (batch, ?, num_elements)
 
         if mask is not None:
@@ -77,7 +94,7 @@ class Attention(nn.Module):
             scores += mask_ready                                               # (batch, ?, num_elements) (+= is doing broadcasting)
 
         attention_weights = F.softmax(scores, dim=-1)                          # (batch, ?, num_elements)
-        attention_output = self.mat_mul2d(attention_weights, v)                  # (batch, ?, key_dim)
+        attention_output = self.mat_mul2d(attention_weights, v)                # (batch, ?, key_dim)
 
         return attention_output                                                # (batch, ?, key_dim)
 
@@ -121,14 +138,14 @@ class MultiHeadAttention(nn.Module):
         #LAYERS
         self.attention_heads = nn.ModuleList([AttentionHead(self.in_dim, self.key_dim, name = f'{self.name}__H{i}') for i in range(self.num_heads)])
         self.output_dense = Dense(in_dim=self.num_heads*self.key_dim ,out_dim=self.out_dim, use_bias=True, activation=None, name = f'{self.name}__Out-Dense')
-        self.dropout_inplace = nn.Dropout(p=self.drop_out_proba, inplace=True)
+        self.dropout = nn.Dropout(p=self.drop_out_proba)
         self.norm = nn.LayerNorm(normalized_shape=self.out_dim) # WILL APPLY NORM OVER THE LAST DIMENTION ONLY
 
     def forward(self, inputs, mask=None):                                                     # inputs.shape: (batch, num_elements, emb_size == out_dim)
-        attention_outputs = [head(inputs, mask = mask) for head in self.attention_heads]   # [ (batch, num_elements, key_dim) ]
+        attention_outputs = [head(inputs, mask = mask) for head in self.attention_heads]      # [ (batch, num_elements, key_dim) ]
         concatenated = T.cat(attention_outputs, dim=-1)                                       # (batch, num_elements, key_dim * num_heads)
         output = self.output_dense(concatenated)                                              # (batch, num_elements, out_dim)
-        self.dropout_inplace(output)                                                          # (batch, num_elements, out_dim)
+        output = self.dropout(output)                                                         # (batch, num_elements, out_dim)
         return self.norm(inputs + output)                             # RESIDUAL & NORM       # (batch, num_elements, out_dim)
 
 class TransformerEncoderFeedForward(nn.Module):
@@ -148,14 +165,14 @@ class TransformerEncoderFeedForward(nn.Module):
         #LAYERS
         self.hidden_dense = Dense(in_dim=self.in_dim, out_dim=self.out_dim * self.expansion_rate, use_bias=True, activation=F.relu, name = f'{self.name}__Hidden-Dense')
         self.output_dense = Dense(in_dim=self.out_dim * self.expansion_rate, out_dim=self.out_dim, use_bias=True, activation=None, name = f'{self.name}__Out-Dense')
-        self.dropout_inplace = nn.Dropout(p=self.drop_out_proba, inplace=True)
+        self.dropout = nn.Dropout(p=self.drop_out_proba)
 
         self.norm = nn.LayerNorm(normalized_shape=self.out_dim)   # WILL APPLY NORM OVER THE LAST DIMENSION ONLY
 
     def forward(self, inputs):                                              # (batch, num_elements, out_dim)
         hidden_values = self.hidden_dense(inputs)                           # (batch, num_elements, out_dim * expansion_rate)
         output = self.output_dense(hidden_values)                           # (batch, num_elements, out_dim)
-        self.dropout_inplace(output)                                        # (batch, num_elements, out_dim)
+        output = self.dropout(output)                                       # (batch, num_elements, out_dim)
         return self.norm(inputs + output)    #RESIDUAL & NORM               # (batch, num_elements, out_dim)
 
 class TransformerEncoder(nn.Module):

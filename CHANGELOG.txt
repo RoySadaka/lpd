@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+0.1.5 (09/10/2020)
+-----------------
+* Added verbosity to SchedulerStep
+* StatsPrint callback will now print learning rates for all param groups
+* Added get_lrs_from_optimizer to torch_utils 
+* Project PyPI setup fixes 
+
+
 0.1.4 (08/10/2020)
 -----------------
 This release contains breaking changes:

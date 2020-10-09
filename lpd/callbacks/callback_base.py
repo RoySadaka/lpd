@@ -20,9 +20,12 @@ class CallbackBase():
         self.apply_on_states = apply_on_states
         self.round_values_on_print_to = round_values_on_print_to
 
-    def round_to(self, value: int):
+    def round_to(self, value: Union[int,list]):
         if self.round_values_on_print_to:
-            return round(value, self.round_values_on_print_to)
+            if isinstance(value, list):
+                return [round(v, self.round_values_on_print_to) for v in value]
+            if isinstance(value, int):
+                return round(value, self.round_values_on_print_to)
         return value
 
     def should_apply_on_phase(self, callback_context: CallbackContext):

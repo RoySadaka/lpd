@@ -16,7 +16,7 @@ with io_open(fndoc, mode='r', encoding='utf-8') as fd:
 
 setup(
     name='lpd',
-    version='0.1.4',
+    version='0.1.5',
     description='A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch',
     long_description_content_type='text/markdown',
     long_description=README_md,
@@ -30,23 +30,17 @@ setup(
     python_requires='>=3.6',
     classifiers=[
         # (https://pypi.org/pypi?%3Aaction=list_classifiers)
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Education',
         'License :: OSI Approved :: MIT License',
-        'Operating System :: MacOS',
-        'Operating System :: MacOS :: MacOS X',
-        'Operating System :: Microsoft',
-        'Operating System :: Microsoft :: MS-DOS',
-        'Operating System :: Microsoft :: Windows',
-        'Operating System :: POSIX',
-        'Operating System :: POSIX :: BSD',
-        'Operating System :: POSIX :: BSD :: FreeBSD',
-        'Operating System :: POSIX :: Linux',
-        'Operating System :: Unix',
+        'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Utilities'
     ],
-    keywords='pytorch trainer callbacks earlystopping tensorboard modelcheckpoint extensions track monitor machine deep learning neural networks'
+    keywords=['pytorch,trainer,callback,callbacks,earlystopping,tensorboard,modelcheckpoint,layers,dense,metrics,extensions,track,monitor,machine,deep,learning,neural,networks,AI']
 )
