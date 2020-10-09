@@ -42,5 +42,5 @@ setup(
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Utilities'
     ],
-    keywords=['pytorch,trainer,callback,callbacks,earlystopping,tensorboard,modelcheckpoint,layers,dense,metrics,extensions,track,monitor,machine,deep,learning,neural,networks,AI']
+    keywords=['pytorch,trainer,callback,callbacks,earlystopping,tensorboard,modelcheckpoint,layers,dense,metrics,extensions,track,monitor,machine,deep learning,neural,networks,AI']
 )
