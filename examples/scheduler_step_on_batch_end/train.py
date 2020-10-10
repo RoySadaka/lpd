@@ -1,22 +1,30 @@
 import torch.optim as optim
+import torch.nn as nn
 
 from lpd.trainer import Trainer
 from lpd.callbacks import StatsPrint, SchedulerStep
 from lpd.enums import Phase, State 
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
+import examples.utils as eu
 
-# WE WILL USE THE "BASIC TRAIN" EXAMPLE, AND JUST CHANGE THE SCHEDULER AND CALLBACKS 
-from examples.basic.train import get_basic_model, get_loss, get_parameters
 
+def get_parameters():
+    # N is batch size; D_in is input dimension;
+    # H is hidden dimension; D_out is output dimension.
+    N, D_in, H, D_out = 64, 1000, 100, 10
+    num_epochs = 50
+    data_loader = eu.examples_data_generator(N, D_in, D_out)
+    data_loader_steps = 100
+    return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps
 
 def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
 
     device = tu.get_gpu_device_if_available()
 
-    model = get_basic_model(D_in, H, D_out).to(device)
+    model = eu.get_basic_model(D_in, H, D_out).to(device)
 
-    loss_func = get_loss(device)
+    loss_func = nn.MSELoss(reduction='sum').to(device)
    
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
@@ -29,8 +37,10 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     # AND apply_on_states=State.TRAIN
     # IT MEANS THAT THE SchedulerStep WILL BE INVOKED AT THE END OF EVERY BATCH, BUT, WILL ONLY BE APPLIED WHEN 
     # IN TRAIN MODE, AND WILL BE IGNORED IN VAL/TEST MODES
+    # NOTICE!!! WE USE verbose=1 TO SEE THE PRINTS FOR THIS EXAMPLE, BUT YOU MIGHT PREFER TO USE verbose=0 or verbose=2
+    # BECAUSE ON BATCH LEVEL IT WILL PRINT A LOT 
     callbacks = [   
-                    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN), #CAN ALSO BE apply_on_states=[State.TRAIN]
+                    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN, verbose=1), #CAN ALSO BE apply_on_states=[State.TRAIN]
                     StatsPrint(apply_on_phase=Phase.EPOCH_END)
                 ]
 

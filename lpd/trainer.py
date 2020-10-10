@@ -3,6 +3,7 @@ from tqdm import tqdm
 from lpd.callbacks import CallbackContext
 from lpd.enums import State, Phase
 from lpd.trainer_stats import TrainerStats
+import lpd.utils.file_utils as fu
 
 class Trainer():
     """
@@ -165,6 +166,75 @@ class Trainer():
                callback.should_apply_on_state(context):
                 callback(context)
 
+    def save_trainer(self, dir_path, file_name, msg='', verbose=1):
+        full_path = dir_path + file_name
+        if verbose:
+            if msg:
+                print(f'[Trainer {self.name}] - {msg}')
+            else:
+                print(f'[Trainer {self.name}] - Saving to {full_path}')
+
+        if not fu.is_folder_exists(dir_path):
+            fu.create_folder(dir_path)
+
+        trainer_checkpoint = {
+                            'model': self.model.state_dict(),
+                            'loss_func': self.loss_func.state_dict(),
+                            'optimizer': self.optimizer.state_dict(),
+                            'scheduler':  self.scheduler.state_dict() if self.scheduler else None,
+                            'metric_name_to_func': self.metric_name_to_func,
+                            'callbacks': self.callbacks,
+                            'name': self.name,
+                            'epoch': self.epoch,
+                            'num_epochs': self.num_epochs,
+                            'iteration': self.iteration,
+                            'train_stats': self.train_stats,
+                            'val_stats': self.val_stats,
+                            'test_stats': self.test_stats
+                            }
+        T.save(trainer_checkpoint, full_path)
+
+    @staticmethod
+    def load_trainer(dir_path,
+                     file_name,
+                     model, 
+                     device,
+                     loss_func, 
+                     optimizer, 
+                     scheduler, 
+                     train_data_loader,
+                     val_data_loader,
+                     train_steps,
+                     val_steps):
+        full_path = dir_path + file_name
+        checkpoint = T.load(full_path)
+        print(f'[Trainer] - Loading from {full_path}')
+        model.load_state_dict(checkpoint['model'])
+        loss_func.load_state_dict(checkpoint['loss_func'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        scheduler.load_state_dict(checkpoint['scheduler'])
+
+        trainer = Trainer(model=model, 
+                       device=device, 
+                       loss_func=loss_func, 
+                       optimizer=optimizer,
+                       scheduler=scheduler,
+                       metric_name_to_func=checkpoint['metric_name_to_func'], 
+                       train_data_loader=train_data_loader, 
+                       val_data_loader=val_data_loader,
+                       train_steps=train_steps,
+                       val_steps=val_steps,
+                       num_epochs=checkpoint['num_epochs'],
+                       callbacks=checkpoint['callbacks'],
+                       name=checkpoint['name'])
+        
+        trainer.epoch = checkpoint['epoch']
+        trainer.iteration = checkpoint['iteration']
+        trainer.train_stats = checkpoint['train_stats']
+        trainer.val_stats = checkpoint['val_stats']
+        trainer.test_stats = checkpoint['test_stats']
+        
+        return trainer
 
     def summary(self):
         print(f'Trainer - {self.name}')
@@ -193,10 +263,8 @@ class Trainer():
         self.phase = Phase.TRAIN_BEGIN
         self._invoke_callbacks()
 
-        self.epoch = 0
-        self.iteration = 0
-        for epoch in range(1, self.num_epochs + 1):
-            self.epoch = epoch
+        for _ in range(1, self.num_epochs + 1):
+            self.epoch += 1
 
             self.phase = Phase.EPOCH_BEGIN
             self._invoke_callbacks()

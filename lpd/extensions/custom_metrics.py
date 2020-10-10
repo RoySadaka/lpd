@@ -1,7 +1,7 @@
 import torch as T
 
 def binary_accuracy(y_pred, y_true):
-    assert y_true.ndim == 1 and y_true.size() == y_pred.size()
+    assert y_true.size() == y_pred.size()
     pred = y_pred >= 0.5
     truth = y_true >= 0.5
     acc = pred.eq(truth).sum().float() / y_true.numel()

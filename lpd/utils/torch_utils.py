@@ -2,6 +2,8 @@ import torch as T
 
 def seed_torch(seed):
     T.manual_seed(seed)
+    T.cuda.manual_seed(seed)
+    T.backends.cudnn.deterministic = True
 
 def is_gpu_available(verbose = 1):
     res = T.cuda.is_available()
@@ -25,16 +27,17 @@ def what_torch_version_is_currently_running():
     print(f'running torch {v}')
     return v
 
-def save_checkpoint(checkpoint_filepath, epoch, model, optimizer, scheduler, msg='', verbose=1):
+def save_checkpoint(dir_path, file_name, trainer, msg='', verbose=1):
+    full_path = dir_path +file_name
     if verbose:
-        print(f'{msg} - Saving checkpoint to {checkpoint_filepath}')
+        print(f'{msg} - Saving checkpoint to {full_path}')
     checkpoint = {
-                  'model': model.state_dict(),
-                  'optimizer': optimizer.state_dict(),
-                  'scheduler':  scheduler.state_dict() if scheduler else None,
-                  'epoch':epoch
+                  'model': trainer.model.state_dict(),
+                  'optimizer': trainer.optimizer.state_dict(),
+                  'scheduler': trainer.scheduler.state_dict() if trainer.scheduler else None,
+                  'epoch':trainer.epoch
                   }
-    T.save(checkpoint, checkpoint_filepath)
+    T.save(checkpoint, full_path)
 
 def load_checkpoint(checkpoint_filepath, model, optimizer, scheduler, verbose=1):
     if verbose:

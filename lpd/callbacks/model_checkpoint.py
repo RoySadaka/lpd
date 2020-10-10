@@ -34,7 +34,8 @@ class ModelCheckPoint(CallbackBase):
                         metric_name: str=None,
                         save_best_only: bool=False, 
                         verbose: int=1,
-                        round_values_on_print_to: int=None):
+                        round_values_on_print_to: int=None,
+                        save_full_trainer = False):
         super(ModelCheckPoint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
         self.checkpoint_dir = checkpoint_dir
         if self.checkpoint_dir is None:
@@ -43,6 +44,7 @@ class ModelCheckPoint(CallbackBase):
         self.monitor = CallbackMonitor(None, monitor_type, stats_type, monitor_mode, metric_name)
         self.save_best_only = save_best_only
         self.verbose = verbose  # VERBOSITY MODE, 0 OR 1.
+        self.save_full_trainer = save_full_trainer
         self._ensure_folder_created()
 
     def _ensure_folder_created(self):
@@ -52,15 +54,19 @@ class ModelCheckPoint(CallbackBase):
     def __call__(self, callback_context: CallbackContext):
         c = callback_context #READABILITY DOWN THE ROAD
         r = self.round_to #READABILITY DOWN THE ROAD
-        
+
         monitor_result = self.monitor.track(callback_context)
         if monitor_result.has_improved():
             msg = f'[ModelCheckPoint] - {monitor_result.description} improved from {r(monitor_result.prev_best)} to {r(monitor_result.new_best)}'
             if self.save_best_only:
-                full_path = f'{self.checkpoint_dir}{self.checkpoint_file_name}_best_only'
+                file_name = f'{self.checkpoint_file_name}_best_only'
             else:
-                full_path = f'{self.checkpoint_dir}{self.checkpoint_file_name}_epoch_{c.epoch}'
-            save_checkpoint(full_path, c.epoch, c.trainer.model, c.trainer.optimizer, c.trainer.scheduler, msg=msg, verbose=self.verbose)
+                file_name = f'{self.checkpoint_file_name}_epoch_{c.epoch}'
+            
+            if self.save_full_trainer:
+                c.trainer.save_trainer(self.checkpoint_dir, file_name, msg=msg, verbose=self.verbose)
+            else:
+                save_checkpoint(self.checkpoint_dir, file_name, c.trainer, msg=msg, verbose=self.verbose)
         else:
             if self.verbose:
                 print(f'[ModelCheckPoint] - {monitor_result.description} did not improved from {monitor_result.prev_best}.')

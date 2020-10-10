@@ -20,7 +20,7 @@ class StatsPrint(CallbackBase):
                        round_values_on_print_to=None,
                        metric_names=None):
         super(StatsPrint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
-        self.metric_names = metric_names or set()
+        self.metric_names = set(metric_names) if metric_names else set()
         self.train_loss_monitor = CallbackMonitor(None, MonitorType.LOSS, StatsType.TRAIN, MonitorMode.MIN)
         self.val_loss_monitor = CallbackMonitor(None, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN)
 

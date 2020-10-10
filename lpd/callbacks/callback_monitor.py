@@ -22,7 +22,7 @@ class CallbackMonitor():
         self.metric_name = metric_name
         self.minimum = inf
         self.maximum = -inf
-        self.previous = self.maximum if monitor_mode == MonitorMode.MIN else self.minimum
+        self.previous = self._get_best()
         self.description = self._get_description()
 
     def _get_description(self):
