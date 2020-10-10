@@ -208,6 +208,32 @@ Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our valid
                 callback_context.trainer.stop()
 ```
 
+## Save and Load full Trainer
+Sometimes you just want to save everything so you can continue training where you left off.
+
+To do so, you may use ``ModelCheckPoint`` for saving full trainer by setting parameter
+```python
+    save_full_trainer=True
+``` 
+Or, you can invoke it directly from your trainer
+```python
+    your_trainer.save_trainer(dir_path, file_name)
+``` 
+
+Loading a trainer is as simple as:
+```python
+    loaded_trainer = Trainer.load_trainer(dir_path,
+                                          trainer_file_name,
+                                          model, # state_dict will be loaded
+                                          device,
+                                          loss_func, # state_dict will be loaded
+                                          optimizer, # state_dict will be loaded
+                                          scheduler, # state_dict will be loaded
+                                          train_data_loader, # provide new/previous data_loader
+                                          val_data_loader,   # provide new/previous data_loader
+                                          train_steps,
+                                          val_steps)
+``` 
 
 ### Utils
 ``lpd.utils`` provides few files (torch_utils, file_utils and general_utils)
@@ -229,7 +255,6 @@ We will add more extensions from time to time.
 * Add callback descriptions to summary
 * Add support for multiple schedulers 
 * Add support for multiple losses
-* Save trainer in save_checkpoint() to enable loading a model and continue training from the last checkpoint
 * Add colab examples
 
 ## Something is missing?! please share with us

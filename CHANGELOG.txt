@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+0.1.6 (10/10/2020)
+-----------------
+* Trainer - added save_trainer and load_trainer methods
+* ModelCheckPoint - added the option to save the full trainer as checkpoint
+* Minor bug fix in callback_monitor
+* StatsPrint changing dict.keys() to set() to enable saving trainer
+* Binary accuracy removed restrictions of ndim==1
+* Added more seeds to seed_all and to seed_torch
+
+
 0.1.5 (09/10/2020)
 -----------------
 * Added verbosity to SchedulerStep
