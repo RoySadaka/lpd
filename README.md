@@ -9,8 +9,8 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 
 
 ## For latest PyPI stable release 
-![PyPI version](https://badge.fury.io/py/lpd.svg)
-![Downloads](https://pepy.tech/badge/lpd)
+[![PyPI version](https://badge.fury.io/py/lpd.svg)](https://badge.fury.io/py/lpd) 
+[![Downloads](https://pepy.tech/badge/lpd)](https://pepy.tech/project/lpd)
 ![Liecense](https://img.shields.io/github/license/roysadaka/lpd)
 <!-- ![Follow](https://img.shields.io/twitter/follow/roysadaka?label=RoySadaka&style=social) -->
 
