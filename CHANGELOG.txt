@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+0.1.7 (11/10/2020)
+-----------------
+* Fixed bug in TrainerStats for dynamic batch size
+* Added support for metric name as string in StatsPrint callback
+* Fixed some descriptions
+* Updated README
+
+
 0.1.6 (10/10/2020)
 -----------------
 * Trainer - added save_trainer and load_trainer methods
