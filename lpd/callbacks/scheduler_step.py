@@ -3,7 +3,7 @@ from lpd.callbacks.callback_base import CallbackBase
 from lpd.callbacks.callback_context import CallbackContext
 from lpd.callbacks.callback_monitor import CallbackMonitorResult
 from lpd.utils.torch_utils import get_lrs_from_optimizer
-from typing import Union, List, Optional, Dict
+from typing import Union, List, Optional, Dict, Callable
 
 class SchedulerStep(CallbackBase):
     """This callback will invoke a "step()" on the scheduler.
@@ -21,8 +21,8 @@ class SchedulerStep(CallbackBase):
     """
     def __init__(self, apply_on_phase: Phase=Phase.EPOCH_END, 
                        apply_on_states: Union[State, List[State]]=State.EXTERNAL,
-                       scheduler_parameters_func=None,
-                       verbose=0):
+                       scheduler_parameters_func: Callable=None,
+                       verbose: int=0):
         super(SchedulerStep, self).__init__(apply_on_phase=apply_on_phase, apply_on_states=apply_on_states)
         self.scheduler_parameters_func = scheduler_parameters_func
         self.verbose = verbose

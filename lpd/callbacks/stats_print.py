@@ -3,7 +3,7 @@ from lpd.callbacks.callback_base import CallbackBase
 from lpd.callbacks.callback_context import CallbackContext
 from lpd.callbacks.callback_monitor import CallbackMonitor, CallbackMonitorResult
 from lpd.utils.torch_utils import get_lrs_from_optimizer
-from typing import Union, List, Optional, Dict
+from typing import Union, List, Optional, Dict, Iterable
 
 class StatsPrint(CallbackBase):
     """
@@ -17,10 +17,10 @@ class StatsPrint(CallbackBase):
 
     def __init__(self, apply_on_phase: Phase=Phase.EPOCH_END, 
                        apply_on_states: Union[State, List[State]]=State.EXTERNAL, 
-                       round_values_on_print_to=None,
-                       metric_names=None):
+                       round_values_on_print_to: Optional[int]=None,
+                       metric_names: Optional[Union[str,Iterable]]=None):
         super(StatsPrint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
-        self.metric_names = set(metric_names) if metric_names else set()
+        self.metric_names = self._extract_metric_names(metric_names)
         self.train_loss_monitor = CallbackMonitor(None, MonitorType.LOSS, StatsType.TRAIN, MonitorMode.MIN)
         self.val_loss_monitor = CallbackMonitor(None, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN)
 
@@ -32,6 +32,14 @@ class StatsPrint(CallbackBase):
 
         self.GREEN_PRINT_COLOR = "\033[92m"
         self.END_PRINT_COLOR = "\033[0m"
+
+    def _extract_metric_names(self, metric_names):
+        result = set()
+        if isinstance(metric_names, str):
+            result.add(metric_names)
+        elif isinstance(metric_names, Iterable):
+            result = set(metric_names)
+        return result
 
     def _get_print_from_monitor_result(self, monitor_result: CallbackMonitorResult) -> str:
         r = self.round_to #READABILITY

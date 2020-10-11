@@ -118,10 +118,11 @@ class Trainer():
 
             x = self._inputs_handler(inputs)
             y = self._labels_handler(labels)
+            batch_size = len(y)
             outputs = self.model(*x)
             loss = self.loss_func(outputs, y)
-            stats.add_loss(loss)
-            stats.add_metrics(outputs, y)
+            stats.add_loss(loss, batch_size)
+            stats.add_metrics(outputs, y, batch_size)
             handler(loss)
 
             self.phase = Phase.BATCH_END

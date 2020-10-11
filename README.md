@@ -9,7 +9,11 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 
 
 ## For latest PyPI stable release 
-[![PyPI version](https://badge.fury.io/py/lpd.svg)](https://badge.fury.io/py/lpd) [![Downloads](https://pepy.tech/badge/lpd)](https://pepy.tech/project/lpd)
+![PyPI version](https://badge.fury.io/py/lpd.svg)
+![Downloads](https://pepy.tech/badge/lpd)
+![Liecense](https://img.shields.io/github/license/roysadaka/lpd)
+<!-- ![Follow](https://img.shields.io/twitter/follow/roysadaka?label=RoySadaka&style=social) -->
+
 
 ```sh
     pip install lpd
@@ -23,15 +27,15 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 
 ```python
     from lpd.trainer import Trainer
-    import lpd.utils.torch_utils as tu
-    import lpd.utils.general_utils as gu
     from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
     from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
     from lpd.extensions.custom_metrics import binary_accuracy_with_logits
+    from lpd.utils.torch_utils import get_gpu_device_if_available
+    from lpd.utils.general_utils import seed_all
 
-    gu.seed_all(seed=42)
+    seed_all(seed=42)
 
-    device = tu.get_gpu_device_if_available() # with fallback to CPU if GPU not avilable
+    device = get_gpu_device_if_available() # with fallback to CPU if GPU not avilable
     model = TestModel(config, num_embeddings).to(device) #this is your model class, and its being sent to the relevant device
     optimizer = optim.SGD(params=model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True)
@@ -69,7 +73,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     trainer.evaluate(test_data_loader, test_steps)
 ```
 
-### TrainerStats
+## TrainerStats
 ``Trainer`` tracks stats for `train/validate/test` and you can access them in your custom callbacks
 or any other place that has access to your trainer.
 
@@ -85,8 +89,8 @@ Here are some examples
 ```
 
 
-### Callbacks
-Some common callbacks are available under ``lpd.callbacks``. 
+## Callbacks
+Some common callbacks are available under ``lpd.callbacks``.
 
 Notice that ``apply_on_phase`` (``lpd.enums.Phase``) will determine the execution phase,
 
@@ -127,9 +131,12 @@ Evaluation phases and states will behave as follow
         State.EXTERNAL
         Phase.TEST_END
 ```
-With phases and states, you'll have full control over the timing of your callbacks,
+With phases and states, you have full control over the timing of your callbacks,
 
-so for example, say you need SchedulerStep callback to control your scheduler,
+### SchedulerStep Callback
+
+Will invoke ``step()`` on your scheduler
+For example, SchedulerStep callback to control your scheduler,
 
 but only at the end of every batch, and only when in train state (as opposed to validation and test)
 then define your SchedulerStep callback like so:
@@ -142,6 +149,51 @@ In case you need it on validation state as well, pass a list for ``apply_on_stat
 ```python
     SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=[State.TRAIN, State.VAL])
 ```
+
+### ModelCheckPoint Callback
+Saving a checkpoint when a monitored loss/metric has improved.
+The checkpoint will save the model, optimizer, scheduler, and epoch number.
+You can also configure it to save Full Trainer.
+
+For example, ModelCheckPoint that will save a new *full trainer checkpoint* every time the metric_name ``my_metric`` on the validation phase
+is getting higher than the highest value until that point
+
+```python
+    ModelCheckPoint(checkpoint_dir, 
+                    checkpoint_file_name, 
+                    monitor_type=MonitorType.METRIC, 
+                    stats_type=StatsType.VAL, 
+                    monitor_mode=MonitorMode.MAX, 
+                    save_best_only=False, 
+                    metric_name='my_metric',
+                    save_full_trainer=True)
+```
+
+### EarlyStopping Callback
+Stop the trainer when a monitored loss/metric has stopped improving.
+For example, EarlyStopping that will check at the end of every epoch and stop the trainer if the validation loss didn't decrease for 10 
+epochs
+```python
+    EarlyStopping(apply_on_phase=Phase.EPOCH_END, 
+                  apply_on_states=State.EXTERNAL,
+                  patience=10, 
+                  monitor_type=MonitorType.LOSS, 
+                  stats_type=StatsType.VAL, 
+                  monitor_mode=MonitorMode.MIN),
+```
+
+
+### Tensorboard Callback
+Will export the loss and the metrics at a given phase and state, in a format that can be viewed on Tensorboard 
+```python
+    Tensorboard(apply_on_phase=Phase.EPOCH_END, 
+                apply_on_states=State.EXTERNAL, 
+                summary_writer_dir=dir_path)
+```
+
+
+
+### StatsPrint Callback
 Below is an output example for ``StatsPrint`` callback that will print an epoch summary at the end of every epoch
 
 ![EpochSummary](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/epoch_summary.png)

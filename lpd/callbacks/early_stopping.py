@@ -6,7 +6,7 @@ from typing import Union, List, Optional, Dict
 
 class EarlyStopping(CallbackBase):
     """
-        Stop training when a monitored loss has stopped improving.
+        Stop training when a monitored loss/metric has stopped improving.
         Args:
             apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
@@ -26,7 +26,7 @@ class EarlyStopping(CallbackBase):
                     stats_type: StatsType=StatsType.VAL, 
                     monitor_mode: MonitorMode=MonitorMode.MIN, 
                     metric_name: Optional[str]=None,
-                    verbose=1):
+                    verbose: int=1):
         super(EarlyStopping, self).__init__(apply_on_phase, apply_on_states)
         self.monitor = CallbackMonitor(patience, monitor_type, stats_type, monitor_mode, metric_name)
         self.verbose = verbose

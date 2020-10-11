@@ -22,7 +22,7 @@ def get_parameters():
     # H is hidden dimension; D_out is output dimension.
     N, D_in, H, D_out = 64, 100, 100, 1
     num_epochs = 5
-    data_loader = eu.examples_data_generator(N, D_in, D_out)
+    data_loader = eu.examples_data_generator(N, D_in, D_out, binary_out=True)
     data_loader_steps = 100
     return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps
 

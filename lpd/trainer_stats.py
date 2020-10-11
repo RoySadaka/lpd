@@ -10,9 +10,9 @@ class Stats():
         self.count = 0
         self.last = 0
 
-    def add_value(self, value):
-        self.sum += value
-        self.count += 1
+    def add_value(self, value, count):
+        self.sum += value * count
+        self.count += count
         self.last = value
 
     def get_mean(self):
@@ -32,14 +32,14 @@ class TrainerStats():
         for metric_name, stats in self.metric_name_to_stats.items():
             stats.reset()
 
-    def add_loss(self, loss):
-        self.loss_stats.add_value(loss.item())
+    def add_loss(self, loss, batch_size):
+        self.loss_stats.add_value(loss.item(), batch_size)
 
-    def add_metrics(self, y_pred, y_true):
+    def add_metrics(self, y_pred, y_true, batch_size):
         for metric_name, stats in self.metric_name_to_stats.items():
             metric_func = self.metric_name_to_func[metric_name]
             metric_value = metric_func(y_pred, y_true)
-            stats.add_value(metric_value.item())
+            stats.add_value(metric_value.item(), batch_size)
 
     def get_loss(self):
         return self.loss_stats.get_mean()

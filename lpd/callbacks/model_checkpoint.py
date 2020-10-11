@@ -8,8 +8,10 @@ from typing import Union, List, Optional, Dict
 
 class ModelCheckPoint(CallbackBase):
     """
-        Saving a checkpoint when a monitored loss has improved.
-        Checkpoint will save the model, optimizer, scheduler and epoch number
+        Saving a checkpoint when a monitored loss/metric has improved.
+        Checkpoint will save the model, optimizer, scheduler and epoch number.
+        You can also configure it to save Full Trainer.
+
         Args:
             apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
@@ -22,6 +24,7 @@ class ModelCheckPoint(CallbackBase):
             save_best_only - if True, will override previous best model, else, will keep both
             verbose - 0=no print, 1=print
             round_values_on_print_to - see in CallbackBase
+            save_full_trainer - if True, will save all trainer parameters to be able to continue where you left off
     """
 
     def __init__(self,  apply_on_phase: Phase=Phase.EPOCH_END, 
@@ -35,7 +38,7 @@ class ModelCheckPoint(CallbackBase):
                         save_best_only: bool=False, 
                         verbose: int=1,
                         round_values_on_print_to: int=None,
-                        save_full_trainer = False):
+                        save_full_trainer: bool=False):
         super(ModelCheckPoint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
         self.checkpoint_dir = checkpoint_dir
         if self.checkpoint_dir is None:
