@@ -1,14 +1,11 @@
-# THIS EXAMPLE WAS TAKEN FROM:
-# https://pytorch.org/tutorials/beginner/pytorch_with_examples.html
-# AND CONVERTED TO USE lpd
-
 import torch as T
 import torch.nn as nn
 import torch.optim as optim
 
 from lpd.trainer import Trainer
 from lpd.callbacks import StatsPrint, SchedulerStep
-from lpd.extensions.custom_schedulers import DoNothingToLR
+from lpd.extensions.custom_schedulers import KerasDecay
+from lpd.enums import Phase, State 
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 import examples.utils as eu
@@ -17,11 +14,10 @@ def get_parameters():
     # N is batch size; D_in is input dimension;
     # H is hidden dimension; D_out is output dimension.
     N, D_in, H, D_out = 64, 1000, 100, 10
-    num_epochs = 50
+    num_epochs = 5
     data_loader = eu.examples_data_generator(N, D_in, D_out)
     data_loader_steps = 100
     return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps
-
 
 def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
 
@@ -31,14 +27,28 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
 
     loss_func = nn.MSELoss(reduction='sum').to(device)
    
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=0.1)
 
-    scheduler = DoNothingToLR() #CAN ALSO USE scheduler=None, BUT DoNothingToLR IS MORE EXPLICIT
+    # HERE WE USE KerasDecay, IT WILL DECAY THE LEARNING-RATE USING
+    # THE FORMULA USED IN KERAS:
+    # LR = INIT_LR * (1./(1. + decay * step))
+    # NOTICE THAT step CAN BE BATCH/EPOCH
+    # WE WILL RUN IT ON EPOCH LEVEL IN THIS EXAMPLE, SO WE EXPECT WITH DECAY = 0.01:
+    
+    # EPOCH 0 LR: 0.1 <--- THIS IS THE STARTING POINT
+    # EPOCH 1 LR: 0.1 * (1./(1. + 0.01 * 1)) = 0.09900990099
+    # EPOCH 2 LR: 0.1 * (1./(1. + 0.01 * 2)) = 0.09803921568
+    # EPOCH 3 LR: 0.1 * (1./(1. + 0.01 * 3)) = 0.09708737864
+    # EPOCH 4 LR: 0.1 * (1./(1. + 0.01 * 4)) = 0.09615384615
+    # EPOCH 5 LR: 0.1 * (1./(1. + 0.01 * 5)) = 0.09523809523
+    scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) 
     
     metric_name_to_func = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
     callbacks = [   
-                    SchedulerStep(),
+                    SchedulerStep(apply_on_phase=Phase.EPOCH_END,
+                                  apply_on_states=State.EXTERNAL,
+                                  verbose=1),                        #LET'S PRINT TO SEE THE ACTUAL CHANGES
                     StatsPrint()
                 ]
 
@@ -54,7 +64,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
                       val_steps=data_loader_steps,
                       num_epochs=num_epochs,
                       callbacks=callbacks,
-                      name='Basic-Example')
+                      name='Keras-Decay-Example')
     return trainer
 
 def run():
@@ -64,8 +74,4 @@ def run():
 
     trainer = get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps)
     
-    trainer.summary()
-
     trainer.train()
-
-    trainer.evaluate(data_loader, data_loader_steps)

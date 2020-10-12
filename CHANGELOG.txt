@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+0.1.8 (12/10/2020)
+-----------------
+* Added KerasDecay scheduler
+* Added KerasDecay usage example
+* Better printing in StatsPrint callback when using multiple metrics
+
+
 0.1.7 (11/10/2020)
 -----------------
 * Fixed bug in TrainerStats for dynamic batch size

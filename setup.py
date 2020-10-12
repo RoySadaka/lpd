@@ -16,7 +16,7 @@ with io_open(fndoc, mode='r', encoding='utf-8') as fd:
 
 setup(
     name='lpd',
-    version='0.1.7',
+    version='0.1.8',
     description='A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch',
     long_description_content_type='text/markdown',
     long_description=README_md,
@@ -42,5 +42,5 @@ setup(
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Utilities'
     ],
-    keywords=['pytorch,trainer,callback,callbacks,earlystopping,tensorboard,modelcheckpoint,layers,dense,metrics,extensions,track,monitor,machine,deep learning,neural,networks,AI']
+    keywords=['pytorch,trainer,callback,callbacks,earlystopping,tensorboard,modelcheckpoint,checkpoint,layers,dense,metrics,extensions,track,monitor,machine,deep learning,neural,networks,AI,keras decay']
 )

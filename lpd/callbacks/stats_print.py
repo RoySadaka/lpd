@@ -46,21 +46,23 @@ class StatsPrint(CallbackBase):
         mtr = monitor_result #READABILITY
         return f'curr:{r(mtr.new_value)}, prev:{r(mtr.prev_value)}, best:{r(mtr.new_best)}, change_from_prev:{r(mtr.change_from_previous)}, change_from_best:{r(mtr.change_from_best)}'
 
-    def _get_print_from_metrics(self, metric_name_to_monitor_result: Dict[str, CallbackMonitorResult]) -> str:
+    def _get_print_from_metrics(self, metric_name_to_monitor_result: Dict[str, CallbackMonitorResult], prefix: str='') -> str:
         gdim = self._get_did_improved_colored #READABILITY 
 
         if len(metric_name_to_monitor_result) == 0:
             return 'no metrics found'
         prints = []
+        pre = ''
         for metric_name,monitor_result in metric_name_to_monitor_result.items():
-            prints.append(f'name: {metric_name} {gdim(monitor_result)}, {self._get_print_from_monitor_result(monitor_result)}')
+            prints.append(f'{pre}name: {metric_name}{gdim(monitor_result)}, {self._get_print_from_monitor_result(monitor_result)}')
+            pre = prefix # APPEND PREFIX FROM THE SECOND METRIC AND ON
 
         return '\n'.join(prints)
 
     def _get_did_improved_colored(self, monitor_result):
         if monitor_result.has_improved():
-            return self.GREEN_PRINT_COLOR + 'IMPROVED' + self.END_PRINT_COLOR
-        return ''
+            return self.GREEN_PRINT_COLOR + ' IMPROVED' + self.END_PRINT_COLOR
+        return ' '
 
     def __call__(self, callback_context: CallbackContext):
         c = callback_context #READABILITY 
@@ -83,18 +85,18 @@ class StatsPrint(CallbackBase):
         print(f'|   [StatsPrint]')
         print(f'|   |-- Name: {c.trainer.name}')
         print(f'|   |-- Epoch: {c.epoch}')
-        print(f'|   |-- Total Batch Count: {c.iteration}')
+        print(f'|   |-- Total batch count: {c.iteration}')
         print(f'|   |-- Learning rates: {r(current_lrs)}')
         print(f'|   |-- Train')
-        print(f'|   |     |-- loss {gdim(t_loss_monitor_result)}')
+        print(f'|   |     |-- loss{gdim(t_loss_monitor_result)}')
         print(f'|   |     |     |-- {self._get_print_from_monitor_result(t_loss_monitor_result)}')
         print(f'|   |     |-- metrics')
-        print(f'|   |           |-- {gmfp(train_metric_name_to_monitor_result)}')
+        print(f'|   |           |-- {gmfp(train_metric_name_to_monitor_result, prefix="|   |           |-- ")}')
         print(f'|   |')
         print(f'|   |-- Validation')
-        print(f'|         |-- loss {gdim(v_loss_monitor_result)}')
+        print(f'|         |-- loss{gdim(v_loss_monitor_result)}')
         print(f'|         |     |-- {self._get_print_from_monitor_result(v_loss_monitor_result)}')
         print(f'|         |-- metrics')
-        print(f'|               |-- {gmfp(val_metric_name_to_monitor_result)}')
+        print(f'|               |-- {gmfp(val_metric_name_to_monitor_result, prefix="|               |-- ")}')
         print('------------------------------------------------------')
         print('') #EMPTY LINE SEPARATOR

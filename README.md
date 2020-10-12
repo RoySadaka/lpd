@@ -135,9 +135,9 @@ With phases and states, you have full control over the timing of your callbacks,
 
 ### SchedulerStep Callback
 
-Will invoke ``step()`` on your scheduler
-For example, SchedulerStep callback to control your scheduler,
+Will invoke ``step()`` on your scheduler.
 
+For example, SchedulerStep callback to control your scheduler,
 but only at the end of every batch, and only when in train state (as opposed to validation and test)
 then define your SchedulerStep callback like so:
 ```python
@@ -152,11 +152,11 @@ In case you need it on validation state as well, pass a list for ``apply_on_stat
 
 ### ModelCheckPoint Callback
 Saving a checkpoint when a monitored loss/metric has improved.
-The checkpoint will save the model, optimizer, scheduler, and epoch number.
+The callback will save the model, optimizer, scheduler, and epoch number.
 You can also configure it to save Full Trainer.
 
-For example, ModelCheckPoint that will save a new *full trainer checkpoint* every time the metric_name ``my_metric`` on the validation phase
-is getting higher than the highest value until that point
+For example, ModelCheckPoint that will save a new *full trainer checkpoint* every time the validation metric_name ``my_metric``
+is improving (getting higher than highest so far).
 
 ```python
     ModelCheckPoint(checkpoint_dir, 
@@ -170,16 +170,16 @@ is getting higher than the highest value until that point
 ```
 
 ### EarlyStopping Callback
-Stop the trainer when a monitored loss/metric has stopped improving.
-For example, EarlyStopping that will check at the end of every epoch and stop the trainer if the validation loss didn't decrease for 10 
-epochs
+Stops the trainer when a monitored loss/metric has stopped improving.
+For example, EarlyStopping that will monitor at the end of every epoch if the validation loss didn't improve (decrease) for 10 
+epochs, and stop the trainer in that case
 ```python
     EarlyStopping(apply_on_phase=Phase.EPOCH_END, 
                   apply_on_states=State.EXTERNAL,
                   patience=10, 
                   monitor_type=MonitorType.LOSS, 
                   stats_type=StatsType.VAL, 
-                  monitor_mode=MonitorMode.MIN),
+                  monitor_mode=MonitorMode.MIN)
 ```
 
 
@@ -274,15 +274,15 @@ Or, you can invoke it directly from your trainer
 
 Loading a trainer is as simple as:
 ```python
-    loaded_trainer = Trainer.load_trainer(dir_path,
-                                          trainer_file_name,
-                                          model, # state_dict will be loaded
+    loaded_trainer = Trainer.load_trainer(dir_path,             # the folder where the saved trainer file exists 
+                                          trainer_file_name,    # the saved trainer file name 
+                                          model,                # state_dict will be loaded
                                           device,
-                                          loss_func, # state_dict will be loaded
-                                          optimizer, # state_dict will be loaded
-                                          scheduler, # state_dict will be loaded
-                                          train_data_loader, # provide new/previous data_loader
-                                          val_data_loader,   # provide new/previous data_loader
+                                          loss_func,            # state_dict will be loaded
+                                          optimizer,            # state_dict will be loaded
+                                          scheduler,            # state_dict will be loaded
+                                          train_data_loader,    # provide new/previous data_loader
+                                          val_data_loader,      # provide new/previous data_loader
                                           train_steps,
                                           val_steps)
 ``` 

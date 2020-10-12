@@ -37,7 +37,8 @@ def get_trainer_base(D_in, H, D_out):
 
     scheduler = DoNothingToLR() #CAN ALSO USE scheduler=None, BUT DoNothingToLR IS MORE EXPLICIT
     
-    metric_name_to_func = {"acc":binary_accuracy_with_logits}
+    # LETS ADD 2 METRICS (EVEN IF THEY ARE THE SAME) TO SEE StatsPrint WITH MULTIPLE METRICS
+    metric_name_to_func = {"acc1":binary_accuracy_with_logits, "acc2":binary_accuracy_with_logits}
 
     return device, model, loss_func, optimizer, scheduler, metric_name_to_func
 
