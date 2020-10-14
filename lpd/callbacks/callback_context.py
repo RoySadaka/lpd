@@ -2,6 +2,8 @@ class CallbackContext():
     #REPRESENTS THE INPUT TO THE CALLBACK, NOTICE, SOME VALUES MIGHT BE NONE, DEPENDING ON THE PHASE/STATE OF THE CALLBACK
     def __init__(self, trainer):
         self.epoch = trainer.epoch
+        self.sample_count = trainer.sample_count
+        self.sample_count_in_epoch = trainer.sample_count_in_epoch
         self.iteration = trainer.iteration
         self.iteration_in_epoch = trainer.iteration_in_epoch
 

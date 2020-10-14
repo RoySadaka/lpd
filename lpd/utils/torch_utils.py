@@ -2,7 +2,7 @@ import torch as T
 
 def seed_torch(seed):
     T.manual_seed(seed)
-    T.cuda.manual_seed(seed)
+    T.cuda.manual_seed_all(seed)
     T.backends.cudnn.deterministic = True
 
 def is_gpu_available(verbose = 1):

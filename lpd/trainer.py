@@ -25,6 +25,7 @@ class Trainer():
             num_epochs - number of epochs to train the model
             callbacks - list of lpd.callbacks to apply during the differrent training phases
             name - just an identifier, in case you create multiple trainers
+            optimizer_step_and_zero_grad_criteria - in case of special handling, pass a function that expect the trainer, else pass None
 
         Methods:
             summary - will print information about the trainer and the model
@@ -45,7 +46,8 @@ class Trainer():
                        val_steps,
                        num_epochs=50,
                        callbacks = [],
-                       name = 'lpd'):
+                       name = 'lpd',
+                       optimizer_step_and_zero_grad_criteria=None):
         self.device = device
         self.model = model
         self.loss_func = loss_func
@@ -59,8 +61,11 @@ class Trainer():
         self.num_epochs = num_epochs
         self.callbacks = callbacks
         self.name = name
+        self.optimizer_step_and_zero_grad_criteria = optimizer_step_and_zero_grad_criteria or (lambda trainer: True)
 
         self.epoch = 0
+        self.sample_count = 0
+        self.sample_count_in_epoch = 0
         self.iteration = 0
         self.iteration_in_epoch = 0
         self._stopped = False
@@ -74,18 +79,21 @@ class Trainer():
         self.test_stats = TrainerStats(self.metric_name_to_func)
         self.test_last_loss_object = None
 
-    def _train_handler(self, loss):
+    def _train_handler(self, loss, batch_size):
+        self.sample_count += batch_size
+        self.sample_count_in_epoch += batch_size
         self.iteration += 1
         self.iteration_in_epoch += 1
         self.train_last_loss_object = loss
         loss.backward()
-        self.optimizer.step()
-        self.optimizer.zero_grad()
+        if self.optimizer_step_and_zero_grad_criteria(self):
+            self.optimizer.step()
+            self.optimizer.zero_grad()
 
-    def _val_handler(self, loss):
+    def _val_handler(self, loss, batch_size):
         self.val_last_loss_object = loss
 
-    def _test_handler(self, loss):
+    def _test_handler(self, loss, batch_size):
         self.test_last_loss_object = loss
 
     def _labels_handler(self, labels):
@@ -106,10 +114,11 @@ class Trainer():
         else: #TRAIN
             return f'[Train epoch {self.epoch}/{self.num_epochs}]'
 
-    def _fwd_pass_base(self, data_loader, steps, handler, stats):
+    def _fwd_pass_base(self, data_loader, steps, state_handler, stats):
         stats.reset()
         loop = tqdm(data_loader, total=steps-1)
-        self.iteration_in_epoch = 0 #RELEVANT FOR ALL STATES
+        self.sample_count_in_epoch = 0  # CAN BE INVOKED ON ALL STATES
+        self.iteration_in_epoch = 0     # CAN BE INVOKED ON ALL STATES
         for inputs,labels in loop:
             steps -= 1
 
@@ -123,7 +132,7 @@ class Trainer():
             loss = self.loss_func(outputs, y)
             stats.add_loss(loss, batch_size)
             stats.add_metrics(outputs, y, batch_size)
-            handler(loss)
+            state_handler(loss, batch_size)
 
             self.phase = Phase.BATCH_END
             self._invoke_callbacks()
@@ -140,6 +149,7 @@ class Trainer():
     def _fwd_pass_test(self, test_data_loader, test_steps):
         if self._stopped:
             return
+            
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
             self._fwd_pass_base(test_data_loader, test_steps, self._test_handler, self.test_stats)
@@ -241,15 +251,21 @@ class Trainer():
         print(f'Trainer - {self.name}')
         print('Model Summary - ')
         print(self.model)
+        print('')
 
-        #TODO - PRINTS CALLBACKS INFORMATION
+        print('defined callbacks:')
+        for c in self.callbacks:
+            print(c.get_description())
+        print('')
 
         print("parameters name and device:")
         for p in self.model.named_parameters():
             print(f'name: {p[0]}, device: {p[1].device}')
             # print(p[1].data)
 
+        print('')
         print('optimizer', type(self.optimizer))
+        print('')
         pytorch_total_params = sum(p.numel() for p in self.model.parameters())
         pytorch_total_params_requires_grad = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         print('pytorch_total_params', pytorch_total_params)

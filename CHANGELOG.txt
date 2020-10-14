@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+0.2.0 (14/10/2020)
+-----------------
+* Added Phase and States validations to Callbacks
+* Added callbacks summary to trainer's summary
+* Added to trainer optimizer_step_and_zero_grad_criteria
+* Added sample_count and sample_count_in_epoch to Trainer and CallbackContext
+* StatsPrint will now print sample count
+* Added accumulate grads example
+* Changed cuda.manual_seed to cuda.manual_seed_all
+
 
 0.1.9 (13/10/2020)
 -----------------

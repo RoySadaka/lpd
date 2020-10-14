@@ -85,6 +85,7 @@ class StatsPrint(CallbackBase):
         print(f'|   [StatsPrint]')
         print(f'|   |-- Name: {c.trainer.name}')
         print(f'|   |-- Epoch: {c.epoch}')
+        print(f'|   |-- Total sample count: {c.sample_count}')
         print(f'|   |-- Total batch count: {c.iteration}')
         print(f'|   |-- Learning rates: {r(current_lrs)}')
         print(f'|   |-- Train')

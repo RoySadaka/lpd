@@ -304,7 +304,6 @@ We will add more extensions from time to time.
 
 ## TODOS (more added frequently)
 * Add Logger
-* Add callback descriptions to summary
 * Add support for multiple schedulers 
 * Add support for multiple losses
 * Add colab examples
