@@ -32,7 +32,7 @@ class Tensorboard(CallbackBase):
     def _write_to_summary(self, phase_name: str ,epoch: int, stats: TrainerStats):
         self.tensorboard_writer.add_scalar(f'{phase_name} loss', stats.get_loss(), global_step=epoch)
         for metric_name, value in stats.get_metrics().items():
-            self.tensorboard_writer.add_scalar(metric_name, value, global_step=epoch)
+            self.tensorboard_writer.add_scalar(f'{phase_name} {metric_name}', value, global_step=epoch)
 
     def __call__(self, callback_context: CallbackContext):
         c = callback_context #READABILITY DOWN THE ROAD
