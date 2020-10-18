@@ -10,5 +10,8 @@ class Phase(Enum):
     BATCH_END     = auto()
     TEST_BEGIN    = auto()
     TEST_END      = auto()
+    PREDICT_BEGIN = auto()
+    PREDICT_END   = auto()
+
     def __str__(self):
         return self.name

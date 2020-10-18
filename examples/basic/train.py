@@ -17,7 +17,7 @@ def get_parameters():
     # N is batch size; D_in is input dimension;
     # H is hidden dimension; D_out is output dimension.
     N, D_in, H, D_out = 64, 1000, 100, 10
-    num_epochs = 50
+    num_epochs = 10
     data_loader = eu.examples_data_generator(N, D_in, D_out)
     data_loader_steps = 100
     return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps

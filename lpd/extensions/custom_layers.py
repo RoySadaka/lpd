@@ -1,6 +1,5 @@
 import torch as T
 import torch.nn as nn
-import torch.nn.functional as F
 import math
 
 class MatMul2D(nn.Module):
@@ -53,7 +52,7 @@ class Attention(nn.Module):
 
         Args:
         key_dim - as defined in the paper, the number of expected features in the encoder inputs
-        use_query_dense - weather to pass q input into another Dense layer, mostly used in Usage (2), to
+        use_query_dense - whether to pass q input into another Dense layer, mostly used in Usage (2), to
                           run q into a transformation that will transform it into the vector space of k and v
         name - optional, any string to describe this layer
     """
@@ -65,8 +64,9 @@ class Attention(nn.Module):
         self.use_query_dense    = use_query_dense
         self.name               = name if name else 'attention'
         #LAYERS
-        self.mat_mul2d            = MatMul2D(transpose_b=False, name = f'{self.name}__MatMul2D')
-        self.mat_mul2d_t          = MatMul2D(transpose_b=True, name = f'{self.name}__MatMul2DT')
+        self.mat_mul2d          = MatMul2D(transpose_b=False, name = f'{self.name}__MatMul2D')
+        self.mat_mul2d_t        = MatMul2D(transpose_b=True, name = f'{self.name}__MatMul2DT')
+        self.softmax_last_dim   = nn.Softmax(dim=-1)
         if self.use_query_dense:
             # SOMETIMES WE WANT TO GO THROUGH ANOTHER TRANSFORMATION BEFORE RUNNING THE QUERY,
             # FOR EXAMPLE, WHEN THIS IS USED AS A STANDALONE LAYER
@@ -93,7 +93,7 @@ class Attention(nn.Module):
             mask_ready = T.log(mask)                                           # (batch, 1, num_elements)
             scores += mask_ready                                               # (batch, ?, num_elements) (+= is doing broadcasting)
 
-        attention_weights = F.softmax(scores, dim=-1)                          # (batch, ?, num_elements)
+        attention_weights = self.softmax_last_dim(scores)                      # (batch, ?, num_elements)
         attention_output = self.mat_mul2d(attention_weights, v)                # (batch, ?, key_dim)
 
         return attention_output                                                # (batch, ?, key_dim)
@@ -163,7 +163,7 @@ class TransformerEncoderFeedForward(nn.Module):
         self.name = name if name else 'transformer_encoder__feed_forward'
 
         #LAYERS
-        self.hidden_dense = Dense(in_dim=self.in_dim, out_dim=self.out_dim * self.expansion_rate, use_bias=True, activation=F.relu, name = f'{self.name}__Hidden-Dense')
+        self.hidden_dense = Dense(in_dim=self.in_dim, out_dim=self.out_dim * self.expansion_rate, use_bias=True, activation=nn.ReLU(), name = f'{self.name}__Hidden-Dense')
         self.output_dense = Dense(in_dim=self.out_dim * self.expansion_rate, out_dim=self.out_dim, use_bias=True, activation=None, name = f'{self.name}__Out-Dense')
         self.dropout = nn.Dropout(p=self.drop_out_proba)
 

@@ -82,10 +82,12 @@ class CallbackBase():
                         Phase.TRAIN_END:{None, State.EXTERNAL}, 
                         Phase.EPOCH_BEGIN:{None, State.EXTERNAL}, 
                         Phase.EPOCH_END:{None, State.EXTERNAL}, 
-                        Phase.BATCH_BEGIN:{None, State.TRAIN, State.VAL, State.TEST}, 
-                        Phase.BATCH_END:{None, State.TRAIN, State.VAL, State.TEST}, 
+                        Phase.BATCH_BEGIN:{None, State.TRAIN, State.VAL, State.TEST, State.PREDICT}, 
+                        Phase.BATCH_END:{None, State.TRAIN, State.VAL, State.TEST, State.PREDICT}, 
                         Phase.TEST_BEGIN:{None, State.EXTERNAL}, 
                         Phase.TEST_END:{None, State.EXTERNAL}, 
+                        Phase.PREDICT_BEGIN:{None, State.EXTERNAL}, 
+                        Phase.PREDICT_END:{None, State.EXTERNAL}, 
                         }
 
         if self.apply_on_states is not None:

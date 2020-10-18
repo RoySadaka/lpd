@@ -1,6 +1,6 @@
 import torch as T
 from tqdm import tqdm
-from lpd.callbacks import CallbackContext
+from lpd.callbacks import CallbackContext, CollectOutputs
 from lpd.enums import State, Phase
 from lpd.trainer_stats import TrainerStats
 import lpd.utils.file_utils as fu
@@ -68,7 +68,6 @@ class Trainer():
         self.sample_count_in_epoch = 0
         self.iteration = 0
         self.iteration_in_epoch = 0
-        self._stopped = False
 
         self.state = State.EXTERNAL
         self.phase = Phase.IDLE
@@ -78,6 +77,9 @@ class Trainer():
         self.val_last_loss_object = None
         self.test_stats = TrainerStats(self.metric_name_to_func)
         self.test_last_loss_object = None
+
+        self._stopped = False
+        self._last_outputs = None
 
     def _train_handler(self, loss, batch_size):
         self.sample_count += batch_size
@@ -96,6 +98,9 @@ class Trainer():
     def _test_handler(self, loss, batch_size):
         self.test_last_loss_object = loss
 
+    def _predict_handler(self, loss, batch_size):
+        pass
+
     def _labels_handler(self, labels):
         return labels.to(self.device)
 
@@ -106,20 +111,32 @@ class Trainer():
         #SINGLE INPUT
         return [inputs.to(self.device)]
 
-    def _get_tqdm_description(self):
-        if self.state == State.TEST:
-            return f'[{self.state}]'
+    def _get_tqdm_description(self, loop, stats):
+        if self.state == State.TEST or self.state == State.PREDICT:
+            desc = f'[{self.state}]'
         elif self.state == State.VAL:
-            return f'[Val   epoch {self.epoch}/{self.num_epochs}]'
+            desc = f'[Val   epoch {self.epoch}/{self.num_epochs}]'
         else: #TRAIN
-            return f'[Train epoch {self.epoch}/{self.num_epochs}]'
+            desc = f'[Train epoch {self.epoch}/{self.num_epochs}]'
 
-    def _fwd_pass_base(self, data_loader, steps, state_handler, stats):
+        loop.set_description(desc)
+        if self.state != State.PREDICT:
+            loop.set_postfix(loss=stats.get_loss(), metrics=stats.get_metrics())
+
+    def _prepare_next_batch(self, batch):
+        if self.state == State.PREDICT:
+            inputs,labels = batch, T.zeros(len(batch)) #FAKE LABELS FOR CODE CONSISTENCY, NO ACTUAL USE TO THEM 
+        else:
+            inputs,labels = batch
+        return inputs,labels
+
+    def _fwd_pass_base(self, data_loader, steps, state_handler, stats, loss_f):
         stats.reset()
         loop = tqdm(data_loader, total=steps-1)
-        self.sample_count_in_epoch = 0  # CAN BE INVOKED ON ALL STATES
-        self.iteration_in_epoch = 0     # CAN BE INVOKED ON ALL STATES
-        for inputs,labels in loop:
+        self.sample_count_in_epoch = 0
+        self.iteration_in_epoch = 0
+        for batch in loop:
+            inputs,labels = self._prepare_next_batch(batch)
             steps -= 1
 
             self.phase = Phase.BATCH_BEGIN
@@ -129,7 +146,8 @@ class Trainer():
             y = self._labels_handler(labels)
             batch_size = len(y)
             outputs = self.model(*x)
-            loss = self.loss_func(outputs, y)
+            self._last_outputs = outputs
+            loss = loss_f(outputs, y)
             stats.add_loss(loss, batch_size)
             stats.add_metrics(outputs, y, batch_size)
             state_handler(loss, batch_size)
@@ -137,8 +155,7 @@ class Trainer():
             self.phase = Phase.BATCH_END
             self._invoke_callbacks()
 
-            loop.set_description(self._get_tqdm_description())
-            loop.set_postfix(loss=stats.get_loss(), metrics=stats.get_metrics())
+            self._get_tqdm_description(loop, stats)
 
             if self._stopped:
                 break
@@ -146,13 +163,29 @@ class Trainer():
             if steps == 0:
                 break
 
+    def _fwd_pass_predict(self, predict_data_loader, predict_steps):
+        if self._stopped:
+            return
+            
+        with T.no_grad():
+            self.model.eval()  #MARK STATUS AS EVAL
+            self._fwd_pass_base(predict_data_loader, 
+                                predict_steps, 
+                                self._predict_handler, 
+                                stats=TrainerStats({}), # NO STATS
+                                loss_f=lambda outputs, y: T.Tensor([0])) # DO NOTHING LOSS
+
     def _fwd_pass_test(self, test_data_loader, test_steps):
         if self._stopped:
             return
             
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
-            self._fwd_pass_base(test_data_loader, test_steps, self._test_handler, self.test_stats)
+            self._fwd_pass_base(test_data_loader, 
+                                test_steps, 
+                                self._test_handler, 
+                                self.test_stats, 
+                                loss_f=self.loss_func)
 
     def _fwd_pass_val(self):
         if self._stopped or self.val_data_loader is None or self.val_steps == 0:
@@ -160,13 +193,22 @@ class Trainer():
 
         with T.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
-            self._fwd_pass_base(self.val_data_loader, self.val_steps, self._val_handler, self.val_stats)
+            self._fwd_pass_base(self.val_data_loader, 
+                                self.val_steps, 
+                                self._val_handler, 
+                                self.val_stats, 
+                                loss_f=self.loss_func)
 
     def _fwd_pass_train(self):
         if self._stopped:
             return
+            
         self.model.train() #MARK STATUS AS TRAIN
-        self._fwd_pass_base(self.train_data_loader, self.train_steps, self._train_handler, self.train_stats)
+        self._fwd_pass_base(self.train_data_loader, 
+                            self.train_steps, 
+                            self._train_handler, 
+                            self.train_stats, 
+                            loss_f=self.loss_func)
 
     def _invoke_callbacks(self):
         if self._stopped:
@@ -199,6 +241,7 @@ class Trainer():
                             'epoch': self.epoch,
                             'num_epochs': self.num_epochs,
                             'iteration': self.iteration,
+                            'sample_count': self.sample_count,
                             'train_stats': self.train_stats,
                             'val_stats': self.val_stats,
                             'test_stats': self.test_stats
@@ -239,11 +282,18 @@ class Trainer():
                        callbacks=checkpoint['callbacks'],
                        name=checkpoint['name'])
         
-        trainer.epoch = checkpoint['epoch']
-        trainer.iteration = checkpoint['iteration']
-        trainer.train_stats = checkpoint['train_stats']
-        trainer.val_stats = checkpoint['val_stats']
-        trainer.test_stats = checkpoint['test_stats']
+        if 'epoch' in checkpoint:
+            trainer.epoch = checkpoint['epoch']
+        if 'iteration' in checkpoint:
+            trainer.iteration = checkpoint['iteration']
+        if 'sample_count' in checkpoint:
+            trainer.sample_count = checkpoint['sample_count']
+        if 'train_stats' in checkpoint:
+            trainer.train_stats = checkpoint['train_stats']
+        if 'val_stats' in checkpoint:
+            trainer.val_stats = checkpoint['val_stats']
+        if 'test_stats' in checkpoint:
+            trainer.test_stats = checkpoint['test_stats'] 
         
         return trainer
 
@@ -266,13 +316,18 @@ class Trainer():
         print('')
         print('optimizer', type(self.optimizer))
         print('')
-        pytorch_total_params = sum(p.numel() for p in self.model.parameters())
-        pytorch_total_params_requires_grad = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print('pytorch_total_params', pytorch_total_params)
-        print('pytorch_total_params_requires_grad', pytorch_total_params_requires_grad)
+        total_params = sum(p.numel() for p in self.model.parameters())
+        total_params_requires_grad = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+
+        print(f'Total params: {total_params}')
+        print(f'Trainable params: {total_params_requires_grad}')
+        print(f'Non-trainable params: {total_params_requires_grad-total_params}')
 
     def stop(self):
         self._stopped = True
+
+    def get_last_outputs(self):
+        return self._last_outputs.data.numpy()
 
     def train(self):
         self._stopped = False
@@ -312,6 +367,30 @@ class Trainer():
         self.phase = Phase.TEST_END
         self._invoke_callbacks()
         self.phase = Phase.IDLE
+
+    def predict(self, inputs_data_loader, steps):
+        """
+            return numpy array(s) of current trainer model's predictions.
+        """
+
+        # ADD COLLECT OUTPUTS CALLBACK 
+        collect_outputs = CollectOutputs(apply_on_phase=Phase.BATCH_END, apply_on_states=State.PREDICT)
+        self.callbacks.append(collect_outputs)
+
+        self._stopped = False
+        self.phase = Phase.PREDICT_BEGIN
+        self._invoke_callbacks()
+        self.state = State.PREDICT
+        self._fwd_pass_predict(inputs_data_loader, steps)
+        self.state = State.EXTERNAL
+        self.phase = Phase.PREDICT_END
+        self._invoke_callbacks()
+        self.phase = Phase.IDLE
+
+        # REMOVE COLLECT OUTPUTS CALLBACK 
+        self.callbacks.pop()
+        
+        return collect_outputs.get_outputs_for_state(State.PREDICT)
 
 
 

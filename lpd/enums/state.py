@@ -12,5 +12,6 @@ class State(Enum):
     TRAIN    = auto()
     VAL      = auto() 
     TEST     = auto()
+    PREDICT  = auto()
     def __str__(self):
         return self.name

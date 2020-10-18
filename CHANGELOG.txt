@@ -1,6 +1,18 @@
 Change Log
 ==========
 
+
+0.2.2 (18/10/2020)
+-----------------
+* Added predict method to trainer
+* Added State.PREDICT enum 
+* Added Phase.PREDICT_BEGIN and Phase.PREDICT_END enums
+* Added CollectOutputs callback
+* Added predict example
+* Moving some elements from nn.functional to nn
+* Added sample count to save/load model
+
+
 0.2.1 (15/10/2020)
 -----------------
 * Fix in Tensorboard metrics output

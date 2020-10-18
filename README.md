@@ -29,17 +29,18 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     from lpd.trainer import Trainer
     from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
     from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
+    from lpd.extensions.custom_schedulers import KerasDecay
     from lpd.extensions.custom_metrics import binary_accuracy_with_logits
     from lpd.utils.torch_utils import get_gpu_device_if_available
     from lpd.utils.general_utils import seed_all
 
-    seed_all(seed=42)
+    seed_all(seed=42) # because its the answer to life and the universe
 
     device = get_gpu_device_if_available() # with fallback to CPU if GPU not avilable
-    model = TestModel(config, num_embeddings).to(device) #this is your model class, and its being sent to the relevant device
+    model = TestModel(config, num_embeddings).to(device) # this is your model class, and its being sent to the relevant device
     optimizer = optim.SGD(params=model.parameters())
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True)
-    loss_func = nn.BCEWithLogitsLoss().to(device) #this is your loss class, already sent to the relevant device
+    scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) # decay scheduler using keras formula 
+    loss_func = nn.BCEWithLogitsLoss().to(device) # this is your loss class, already sent to the relevant device
     metric_name_to_func = {'acc':binary_accuracy_with_logits} # add as much metrics as you like
 
     # you can use some of the defined callbacks, or you can create your own
@@ -71,6 +72,11 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ### Evaluating your model
 ```python
     trainer.evaluate(test_data_loader, test_steps)
+```
+
+### Making predictions
+```python
+    predictions = trainer.predict(data_loader, steps)
 ```
 
 ## TrainerStats
@@ -131,24 +137,28 @@ Evaluation phases and states will behave as follow
         State.EXTERNAL
         Phase.TEST_END
 ```
+
+
+Predict phases and states will behave as follow
+```python
+        State.EXTERNAL
+        Phase.PREDICT_BEGIN
+        State.PREDICT
+        # batches loop:
+            Phase.BATCH_BEGIN
+            # batch
+            Phase.BATCH_END
+        State.EXTERNAL
+        Phase.PREDICT_END
+```
+
 With phases and states, you have full control over the timing of your callbacks,
 
-### SchedulerStep Callback
+### StatsPrint Callback
+Below is an output example for ``StatsPrint`` callback that will print an epoch summary at the end of every epoch
 
-Will invoke ``step()`` on your scheduler.
+![EpochSummary](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/epoch_summary.png)
 
-For example, SchedulerStep callback to control your scheduler,
-but only at the end of every batch, and only when in train state (as opposed to validation and test)
-then define your SchedulerStep callback like so:
-```python
-    from lpd.callbacks import SchedulerStep
-    from lpd.enums import Phase, State
-    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN)
-```
-In case you need it on validation state as well, pass a list for ``apply_on_states`` like so:
-```python
-    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=[State.TRAIN, State.VAL])
-```
 
 ### ModelCheckPoint Callback
 Saving a checkpoint when a monitored loss/metric has improved.
@@ -182,6 +192,23 @@ epochs, and stop the trainer in that case
                   monitor_mode=MonitorMode.MIN)
 ```
 
+### SchedulerStep Callback
+
+Will invoke ``step()`` on your scheduler.
+
+For example, SchedulerStep callback to control your scheduler,
+but only at the end of every batch, and only when in train state (as opposed to validation and test)
+then define your SchedulerStep callback like so:
+```python
+    from lpd.callbacks import SchedulerStep
+    from lpd.enums import Phase, State
+    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN)
+```
+In case you need it on validation state as well, pass a list for ``apply_on_states`` like so:
+```python
+    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=[State.TRAIN, State.VAL])
+```
+
 
 ### Tensorboard Callback
 Will export the loss and the metrics at a given phase and state, in a format that can be viewed on Tensorboard 
@@ -192,13 +219,15 @@ Will export the loss and the metrics at a given phase and state, in a format tha
 ```
 
 
+### CollectOutputs Callback
+In case you want to collect the outputs of any given state during training
+```python
+    CollectOutputs(apply_on_phase=Phase.BATCH_END, apply_on_states=State.VAL)
+```
+CollectOutputs is automatically used in ``trainer.predict(...)`` to collect the predictions
 
-### StatsPrint Callback
-Below is an output example for ``StatsPrint`` callback that will print an epoch summary at the end of every epoch
 
-![EpochSummary](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/epoch_summary.png)
-
-You can also create custom callbacks
+### Create your custom callbacks
 
 ```python
     from lpd.enums import Phase, State

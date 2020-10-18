@@ -1,19 +1,18 @@
-import torch.optim as optim
+import torch as T
 import torch.nn as nn
-
+import torch.optim as optim
 from lpd.trainer import Trainer
-from lpd.callbacks import StatsPrint, SchedulerStep
-from lpd.enums import Phase, State 
+from lpd.callbacks import StatsPrint
+from lpd.extensions.custom_schedulers import DoNothingToLR
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 import examples.utils as eu
 
-
 def get_parameters():
     # N is batch size; D_in is input dimension;
     # H is hidden dimension; D_out is output dimension.
-    N, D_in, H, D_out = 64, 1000, 100, 10
-    num_epochs = 10
+    N, D_in, H, D_out = 8, 1000, 100, 10
+    num_epochs = 5
     data_loader = eu.examples_data_generator(N, D_in, D_out)
     data_loader_steps = 100
     return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps
@@ -28,20 +27,12 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
    
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
-    # LETS ADD A StepLR SCHEDULER 
-    scheduler = optim.lr_scheduler.StepLR(optimizer=optimizer, gamma=0.999, step_size=1)
+    scheduler = DoNothingToLR() #CAN ALSO USE scheduler=None, BUT DoNothingToLR IS MORE EXPLICIT
     
     metric_name_to_func = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
-    # LETS ADD SchedulerStep WITH apply_on_phase=Phase.BATCH_END
-    # AND apply_on_states=State.TRAIN
-    # IT MEANS THAT THE SchedulerStep WILL BE INVOKED AT THE END OF EVERY BATCH, BUT, WILL ONLY BE APPLIED WHEN 
-    # IN TRAIN MODE, AND WILL BE IGNORED IN VAL/TEST MODES
-    # NOTICE!!! WE USE verbose=1 TO SEE THE PRINTS FOR THIS EXAMPLE, BUT YOU MIGHT PREFER TO USE verbose=0 or verbose=2
-    # BECAUSE ON BATCH LEVEL IT WILL PRINT A LOT 
     callbacks = [   
-                    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN, verbose=1), #CAN ALSO BE IN FORM OF ARRAY - apply_on_states=[State.TRAIN]
-                    StatsPrint(apply_on_phase=Phase.EPOCH_END)
+                    StatsPrint()
                 ]
 
     trainer = Trainer(model=model, 
@@ -56,7 +47,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
                       val_steps=data_loader_steps,
                       num_epochs=num_epochs,
                       callbacks=callbacks,
-                      name='Scheduler-Step-On-Batch-Example')
+                      name='Train-Evaluate-Predict-Example')
     return trainer
 
 def run():
@@ -68,7 +59,9 @@ def run():
     
     trainer.summary()
 
-    #WE NOW EXPECT SchedulerStep TO INVOKE StepLR AT THE END OF EVERY BATCH
     trainer.train()
 
     trainer.evaluate(data_loader, data_loader_steps)
+
+    data_generator_for_predictions = eu.examples_prediction_data_generator(data_loader, data_loader_steps)
+    predictions = trainer.predict(data_generator_for_predictions, data_loader_steps)

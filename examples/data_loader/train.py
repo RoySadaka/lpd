@@ -6,7 +6,6 @@
 import torch as T
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
 from lpd.trainer import Trainer
@@ -88,7 +87,7 @@ class Model(nn.Module):
                                             embedding_dim=embedding_dim)
         # nn.init.uniform_(self.embedding_layer.weight, a=-0.05, b=0.05) # I PREFER THE INIT THAT TensorFlow DO FOR Embedding
 
-        self.dense = Dense(embedding_dim, H, use_bias=True, activation=F.relu)
+        self.dense = Dense(embedding_dim, H, use_bias=True, activation=nn.ReLU())
         self.dense_out = Dense(H, D_out, use_bias=True, activation=None)
 
     def forward(self, x):               # (batch, D_in)
