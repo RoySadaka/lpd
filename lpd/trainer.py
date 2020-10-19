@@ -17,7 +17,7 @@ class Trainer():
             scheduler - the model's scheduler (make sure you add SchedulerStep to your callbacks),
                         pass None if you dont need scheduler
             metric_name_to_func - a dictionary with string as key and metric function as value
-                        e.g.   {"binary_accuracy":lpd.extensions.custom_metrics.binary_accuracy_with_logits}
+                        e.g.   {"binary_accuracy":lpd.metrics.BinaryAccuracy()}
             train_data_loader - an iterable or generator to get the next train data batch
             val_data_loader - an iterable or generator to get the next val data batch
             train_steps - total number of steps (batches) before declaring the epoch as finished
