@@ -30,7 +30,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
     from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
     from lpd.extensions.custom_schedulers import KerasDecay
-    from lpd.extensions.custom_metrics import binary_accuracy_with_logits
+    from lpd.metrics import BinaryAccuracyWithLogits
     from lpd.utils.torch_utils import get_gpu_device_if_available
     from lpd.utils.general_utils import seed_all
 
@@ -41,7 +41,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     optimizer = optim.SGD(params=model.parameters())
     scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) # decay scheduler using keras formula 
     loss_func = nn.BCEWithLogitsLoss().to(device) # this is your loss class, already sent to the relevant device
-    metric_name_to_func = {'acc':binary_accuracy_with_logits} # add as much metrics as you like
+    metric_name_to_func = {'acc':BinaryAccuracyWithLogits()} # define your metrics in a dictionary
 
     # you can use some of the defined callbacks, or you can create your own
     callbacks = [
@@ -289,6 +289,25 @@ Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our valid
                 callback_context.trainer.stop()
 ```
 
+## Metrics
+``lpd.metrics`` provides metrics to check the accuracy of your model, let's create a custom metric using ``MetricBase`` and also show the use of ``BinaryAccuracyWithLogits`` in this example
+```python
+    from lpd.metrics import BinaryAccuracyWithLogits, MetricBase
+
+    # our custom metric
+    class InaccuracyWithLogits(MetricBase):
+        def __init__(self):
+            self.bawl = BinaryAccuracyWithLogits() # we exploit BinaryAccuracyWithLogits for the computation
+
+        def __call__(self, y_pred: T.Tensor, y_true: T.Tensor): # <=== implement this method!
+            # your implementation here
+            acc = self.bawl(y_pred, y_true)
+            return 1 - acc  # return the inaccuracy
+
+    # now we can define our metrics and pass them to the trainer
+    metric_name_to_func = {'accuracy':BinaryAccuracyWithLogits(), 'inaccuracy':InaccuracyWithLogits()}
+``` 
+
 ## Save and Load full Trainer
 Sometimes you just want to save everything so you can continue training where you left off.
 
@@ -326,7 +345,7 @@ For example, a good practice is to use
 As early as possible in your code, to make sure that results are reproducible
 
 ### Extensions
-``lpd.extensions`` provides some custom PyTorch layers, metrics, and schedulers, these are just some stuff we like using when we create our models, to gain better flexibility.
+``lpd.extensions`` provides some custom PyTorch layers, and schedulers, these are just some stuff we like using when we create our models, to gain better flexibility.
 
 So you can use them at your own will.
 We will add more extensions from time to time.

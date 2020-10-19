@@ -6,7 +6,7 @@ from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
-from lpd.extensions.custom_metrics import binary_accuracy_with_logits
+from lpd.metrics import BinaryAccuracyWithLogits
 from lpd.extensions.custom_schedulers import DoNothingToLR
 import lpd.utils.torch_utils as tu
 
@@ -80,7 +80,7 @@ def get_trainer(config,
     
     loss_func = nn.BCEWithLogitsLoss().to(device)
 
-    metric_name_to_func = {"acc":binary_accuracy_with_logits}
+    metric_name_to_func = {"acc":BinaryAccuracyWithLogits()}
 
     callbacks = [   
                     SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss()),

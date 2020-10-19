@@ -2,6 +2,13 @@ Change Log
 ==========
 
 
+0.2.3 (19/10/2020)
+-----------------
+* Custom metrics are now in a separate module
+* Custom metrics now classes instead of functions
+* Added unittests for metrics
+
+
 0.2.2 (18/10/2020)
 -----------------
 * Added predict method to trainer

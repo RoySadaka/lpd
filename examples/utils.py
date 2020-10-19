@@ -2,11 +2,17 @@ import torch as T
 import torch.nn as nn
 from lpd.extensions.custom_layers import Dense
 
-def examples_data_generator(N, D_in, D_out, binary_out=False):
+def examples_data_generator(N, D_in, D_out, binary_out=False, category_out=False):
+    # N is batch size
+    # D_in is input dimension
+    # D_out is output dimension.
+
     # Create random Tensors to hold inputs and outputs
     x = T.randn(N, D_in)
     if binary_out:
         y = T.randint(low=0,high=2, size=[N, D_out], dtype=T.float)
+    elif category_out:
+        y = T.randint(low=0,high=D_out, size=[N], dtype=T.long)
     else:
         y = T.randn(N, D_out)
     while True:

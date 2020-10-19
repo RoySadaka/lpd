@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import Dense
-from lpd.extensions.custom_metrics import binary_accuracy_with_logits
+from lpd.metrics import BinaryAccuracyWithLogits
 from lpd.callbacks import StatsPrint, EarlyStopping, SchedulerStep
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 import lpd.utils.general_utils as gu
@@ -111,7 +111,7 @@ def get_trainer(params):
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.99)
 
-    metric_name_to_func = {"acc":binary_accuracy_with_logits}
+    metric_name_to_func = {"acc":BinaryAccuracyWithLogits()}
 
     callbacks = [   
                     SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN),

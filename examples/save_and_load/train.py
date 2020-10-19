@@ -6,7 +6,7 @@ from lpd.trainer import Trainer
 from lpd.callbacks import SchedulerStep, StatsPrint, ModelCheckPoint
 from lpd.extensions.custom_schedulers import DoNothingToLR
 from lpd.enums import Phase, State, MonitorType, StatsType, MonitorMode
-from lpd.extensions.custom_metrics import binary_accuracy_with_logits
+from lpd.metrics import BinaryAccuracyWithLogits
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 import examples.utils as eu
@@ -38,7 +38,7 @@ def get_trainer_base(D_in, H, D_out):
     scheduler = DoNothingToLR() #CAN ALSO USE scheduler=None, BUT DoNothingToLR IS MORE EXPLICIT
     
     # LETS ADD 2 METRICS (EVEN IF THEY ARE THE SAME) TO SEE StatsPrint WITH MULTIPLE METRICS
-    metric_name_to_func = {"acc1":binary_accuracy_with_logits, "acc2":binary_accuracy_with_logits}
+    metric_name_to_func = {"acc1":BinaryAccuracyWithLogits(), "acc2":BinaryAccuracyWithLogits()}
 
     return device, model, loss_func, optimizer, scheduler, metric_name_to_func
 

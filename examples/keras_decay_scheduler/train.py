@@ -9,13 +9,15 @@ from lpd.enums import Phase, State
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 import examples.utils as eu
+from lpd.metrics import CategoricalAccuracyWithLogits
+
 
 def get_parameters():
     # N is batch size; D_in is input dimension;
     # H is hidden dimension; D_out is output dimension.
     N, D_in, H, D_out = 64, 1000, 100, 10
     num_epochs = 5
-    data_loader = eu.examples_data_generator(N, D_in, D_out)
+    data_loader = eu.examples_data_generator(N, D_in, D_out, category_out=True)
     data_loader_steps = 100
     return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps
 
@@ -25,7 +27,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
 
     model = eu.get_basic_model(D_in, H, D_out).to(device)
 
-    loss_func = nn.MSELoss(reduction='sum').to(device)
+    loss_func = nn.CrossEntropyLoss().to(device)
    
     optimizer = optim.Adam(model.parameters(), lr=0.1)
 
@@ -43,13 +45,13 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     # EPOCH 5 LR: 0.1 * (1./(1. + 0.01 * 5)) = 0.09523809523
     scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) 
     
-    metric_name_to_func = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
+    metric_name_to_func = {'acc':CategoricalAccuracyWithLogits()}
 
     callbacks = [   
                     SchedulerStep(apply_on_phase=Phase.EPOCH_END,
                                   apply_on_states=State.EXTERNAL,
                                   verbose=1),                        #LET'S PRINT TO SEE THE ACTUAL CHANGES
-                    StatsPrint()
+                    StatsPrint(metric_names=metric_name_to_func.keys())
                 ]
 
     trainer = Trainer(model=model, 
