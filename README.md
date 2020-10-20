@@ -37,7 +37,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     seed_all(seed=42) # because its the answer to life and the universe
 
     device = get_gpu_device_if_available() # with fallback to CPU if GPU not avilable
-    model = TestModel(config, num_embeddings).to(device) # this is your model class, and its being sent to the relevant device
+    model = MyModel(config, num_embeddings).to(device) # this is your model class, and its being sent to the relevant device
     optimizer = optim.SGD(params=model.parameters())
     scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) # decay scheduler using keras formula 
     loss_func = nn.BCEWithLogitsLoss().to(device) # this is your loss class, already sent to the relevant device
@@ -45,7 +45,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 
     # you can use some of the defined callbacks, or you can create your own
     callbacks = [
-                SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss()), # notice lambda for scheduler that takes loss in step()
+                SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN),
                 ModelCheckPoint(checkpoint_dir, checkpoint_file_name, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN, save_best_only=True), 
                 Tensorboard(summary_writer_dir=summary_writer_dir),
                 EarlyStopping(patience=10, MonitorType.METRIC, StatsType.VAL, MonitorMode.MAX, metric_name='acc'),
@@ -166,7 +166,7 @@ The callback will save the model, optimizer, scheduler, and epoch number.
 You can also configure it to save Full Trainer.
 
 For example, ModelCheckPoint that will save a new *full trainer checkpoint* every time the validation metric_name ``my_metric``
-is improving (getting higher than highest so far).
+is getting higher than highest value so far.
 
 ```python
     ModelCheckPoint(checkpoint_dir, 
@@ -181,8 +181,7 @@ is improving (getting higher than highest so far).
 
 ### EarlyStopping Callback
 Stops the trainer when a monitored loss/metric has stopped improving.
-For example, EarlyStopping that will monitor at the end of every epoch if the validation loss didn't improve (decrease) for 10 
-epochs, and stop the trainer in that case
+For example, EarlyStopping that will monitor at the end of every epoch, and stop the trainer if the validation loss didn't improve (decrease) for the last 10 epochs.
 ```python
     EarlyStopping(apply_on_phase=Phase.EPOCH_END, 
                   apply_on_states=State.EXTERNAL,
@@ -194,10 +193,9 @@ epochs, and stop the trainer in that case
 
 ### SchedulerStep Callback
 
-Will invoke ``step()`` on your scheduler.
+Will invoke ``step()`` on your scheduler in the desired phase and state.
 
-For example, SchedulerStep callback to control your scheduler,
-but only at the end of every batch, and only when in train state (as opposed to validation and test)
+For example, SchedulerStep callback to invoke ``scheduler.step()`` at the end of every batch, and only in train state (as opposed to validation and test)
 then define your SchedulerStep callback like so:
 ```python
     from lpd.callbacks import SchedulerStep
@@ -299,7 +297,7 @@ Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our valid
         def __init__(self):
             self.bawl = BinaryAccuracyWithLogits() # we exploit BinaryAccuracyWithLogits for the computation
 
-        def __call__(self, y_pred: T.Tensor, y_true: T.Tensor): # <=== implement this method!
+        def __call__(self, y_pred, y_true): # <=== implement this method!
             # your implementation here
             acc = self.bawl(y_pred, y_true)
             return 1 - acc  # return the inaccuracy
