@@ -59,7 +59,7 @@ class Trainer():
         self.train_steps = train_steps
         self.val_steps = val_steps
         self.num_epochs = num_epochs
-        self.callbacks = callbacks
+        self.callbacks = callbacks if callbacks else []
         self.name = name
         self.optimizer_step_and_zero_grad_criteria = optimizer_step_and_zero_grad_criteria or (lambda trainer: True)
 
@@ -368,6 +368,10 @@ class Trainer():
         self._invoke_callbacks()
         self.phase = Phase.IDLE
 
+    def predict_batch(self, inputs):
+        outputs = self.predict([inputs], 1)
+        return outputs[0]
+
     def predict(self, inputs_data_loader, steps):
         """
             return numpy array(s) of current trainer model's predictions.
@@ -390,7 +394,8 @@ class Trainer():
         # REMOVE COLLECT OUTPUTS CALLBACK 
         self.callbacks.pop()
         
-        return collect_outputs.get_outputs_for_state(State.PREDICT)
+        outputs = collect_outputs.get_outputs_for_state(State.PREDICT)
+        return outputs
 
 
 

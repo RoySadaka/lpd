@@ -64,4 +64,9 @@ def run():
     trainer.evaluate(data_loader, data_loader_steps)
 
     data_generator_for_predictions = eu.examples_prediction_data_generator(data_loader, data_loader_steps)
+
+    # PREDICT ON A SINGLE BATCH
+    prediction = trainer.predict_batch(next(data_generator_for_predictions))
+
+    # PREDICTION ON A DATA LOADER
     predictions = trainer.predict(data_generator_for_predictions, data_loader_steps)

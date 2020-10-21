@@ -75,8 +75,14 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ```
 
 ### Making predictions
+On data loader:
 ```python
     predictions = trainer.predict(data_loader, steps)
+```
+
+On batch:
+```python
+    prediction = trainer.predict_batch(x)
 ```
 
 ## TrainerStats

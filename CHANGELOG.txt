@@ -2,6 +2,13 @@ Change Log
 ==========
 
 
+0.2.4 (21/10/2020)
+-----------------
+* Added predict_batch
+* Adjusted predict example
+* Added threshold argument to BinaryAccuracy and BinaryAccuracyWithLogits
+
+
 0.2.3 (19/10/2020)
 -----------------
 * Custom metrics are now in a separate module
