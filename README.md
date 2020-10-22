@@ -43,7 +43,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ```python
     from lpd.trainer import Trainer
     from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
-    from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
+    from lpd.callbacks import LossOptimizerHandler, StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
     from lpd.extensions.custom_schedulers import KerasDecay
     from lpd.metrics import BinaryAccuracyWithLogits
     from lpd.utils.torch_utils import get_gpu_device_if_available
@@ -60,6 +60,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 
     # you can use some of the defined callbacks, or you can create your own
     callbacks = [
+                LossOptimizerHandler(),
                 SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN),
                 ModelCheckPoint(checkpoint_dir, checkpoint_file_name, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN, save_best_only=True), 
                 Tensorboard(summary_writer_dir=summary_writer_dir),
