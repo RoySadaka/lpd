@@ -180,14 +180,16 @@ With phases and states, you have full control over the timing of your callbacks,
 ### LossOptimizerHandler Callback
 Derives from ``LossOptimizerHandlerBase``, probaly the most important callback 😎 
 
-Use ``LossOptimizerHandler`` to determine when to call, or, you may choose to create your own ``AwesomeLossOptimizerHandler`` class by deriving from ``LossOptimizerHandlerBase``
-
-``Trainer`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided
+Use ``LossOptimizerHandler`` to determine when to call: 
 ```python
     loss.backward(...)
     optimizer.step(...)
     optimizer.zero_grad(...)
 ```
+Or, you may choose to create your own ``AwesomeLossOptimizerHandler`` class by deriving from ``LossOptimizerHandlerBase``.
+
+``Trainer`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided
+
 For example, say your machine can handle up to batch_size = 8, but you want to accumulate gradients for samples until you reach 32 samples before you backprop, then you can define your optimizer handler function, to pass it later to ``LossOptimizerHandler``:
 ```python
     def my_optimizer_handler_closure(action):
