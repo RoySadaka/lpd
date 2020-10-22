@@ -7,5 +7,5 @@ from lpd.callbacks.early_stopping import EarlyStopping
 from lpd.callbacks.scheduler_step import SchedulerStep
 from lpd.callbacks.callback_context import CallbackContext
 from lpd.callbacks.collect_outputs import CollectOutputs
-
- 
+from lpd.callbacks.loss_optimizer_handler import LossOptimizerHandler
+from lpd.callbacks.loss_optimizer_handler_base import LossOptimizerHandlerBase

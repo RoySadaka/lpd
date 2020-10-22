@@ -3,7 +3,7 @@ import torch.optim as optim
 import torch.nn as nn
 
 from lpd.trainer import Trainer
-from lpd.callbacks import SchedulerStep, StatsPrint, ModelCheckPoint
+from lpd.callbacks import SchedulerStep, StatsPrint, ModelCheckPoint, LossOptimizerHandler
 from lpd.extensions.custom_schedulers import DoNothingToLR
 from lpd.enums import Phase, State, MonitorType, StatsType, MonitorMode
 from lpd.metrics import BinaryAccuracyWithLogits
@@ -46,6 +46,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     device, model, loss_func, optimizer, scheduler, metric_name_to_func = get_trainer_base(D_in, H, D_out)
 
     callbacks = [   
+                    LossOptimizerHandler(),
                     #ADDING ModelCheckPoint WITH save_full_trainer=True TO SAVE FULL TRAINER
                     ModelCheckPoint(checkpoint_dir=save_to_dir, checkpoint_file_name=trainer_file_name, save_best_only=True, save_full_trainer=True),
                     SchedulerStep(),

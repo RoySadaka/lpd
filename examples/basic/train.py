@@ -7,8 +7,9 @@ import torch.nn as nn
 import torch.optim as optim
 
 from lpd.trainer import Trainer
-from lpd.callbacks import StatsPrint, SchedulerStep
+from lpd.callbacks import StatsPrint, SchedulerStep, LossOptimizerHandler
 from lpd.extensions.custom_schedulers import DoNothingToLR
+from lpd.enums import Phase, State
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 import examples.utils as eu
@@ -38,6 +39,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     metric_name_to_func = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
     callbacks = [   
+                    LossOptimizerHandler(),
                     SchedulerStep(),
                     StatsPrint()
                 ]

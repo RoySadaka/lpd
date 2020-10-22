@@ -2,7 +2,7 @@ import torch.optim as optim
 import torch.nn as nn
 
 from lpd.trainer import Trainer
-from lpd.callbacks import StatsPrint, SchedulerStep
+from lpd.callbacks import StatsPrint, SchedulerStep, LossOptimizerHandler
 from lpd.enums import Phase, State 
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
@@ -40,6 +40,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     # NOTICE!!! WE USE verbose=1 TO SEE THE PRINTS FOR THIS EXAMPLE, BUT YOU MIGHT PREFER TO USE verbose=0 or verbose=2
     # BECAUSE ON BATCH LEVEL IT WILL PRINT A LOT 
     callbacks = [   
+                    LossOptimizerHandler(),
                     SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN, verbose=1), #CAN ALSO BE IN FORM OF ARRAY - apply_on_states=[State.TRAIN]
                     StatsPrint(apply_on_phase=Phase.EPOCH_END)
                 ]

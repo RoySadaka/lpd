@@ -38,6 +38,16 @@ class CallbackBase():
             State.EXTERNAL
             Phase.TEST_END
 
+        Predict phases and states will behave as follow
+            State.EXTERNAL
+            Phase.PREDICT_BEGIN
+            State.PREDICT
+            # batches loop:
+                Phase.BATCH_BEGIN
+                # batch
+                Phase.BATCH_END
+            State.EXTERNAL
+            Phase.PREDICT_END
 
         Agrs:
             apply_on_phase - (lpd.enums.Phase) the phase to invoke this callback
@@ -52,6 +62,9 @@ class CallbackBase():
         self.apply_on_states = self._extract_apply_on_states(apply_on_states)
         self.round_values_on_print_to = round_values_on_print_to
         self._validations()
+
+    def __call__(self, callback_context: CallbackContext):
+        raise NotImplementedError('Implement this function')
 
     def _extract_apply_on_states(self, apply_on_states):
         result = set()

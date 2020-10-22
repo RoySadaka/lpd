@@ -13,4 +13,8 @@ class CallbackContext():
 
         self.trainer_state = trainer.state
         self.trainer_phase = trainer.phase
+        self.scheduler = trainer.scheduler
+        self.optimizer = trainer.optimizer
         self.trainer = trainer
+
+        self.train_last_loss = trainer.train_last_loss

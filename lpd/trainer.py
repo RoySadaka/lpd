@@ -1,6 +1,6 @@
 import torch as T
 from tqdm import tqdm
-from lpd.callbacks import CallbackContext, CollectOutputs
+from lpd.callbacks import CallbackContext, CollectOutputs, LossOptimizerHandlerBase
 from lpd.enums import State, Phase
 from lpd.trainer_stats import TrainerStats
 import lpd.utils.file_utils as fu
@@ -24,8 +24,8 @@ class Trainer():
             val_steps - total number of steps (batches) before declaring the epoch as finished
             num_epochs - number of epochs to train the model
             callbacks - list of lpd.callbacks to apply during the differrent training phases
+                        callbacks will be executed by the order of the list 
             name - just an identifier, in case you create multiple trainers
-            optimizer_step_and_zero_grad_criteria - in case of special handling, pass a function that expect the trainer, else pass None
 
         Methods:
             summary - will print information about the trainer and the model
@@ -45,9 +45,8 @@ class Trainer():
                        train_steps,
                        val_steps,
                        num_epochs=50,
-                       callbacks = [],
-                       name = 'lpd',
-                       optimizer_step_and_zero_grad_criteria=None):
+                       callbacks = None,
+                       name = 'lpd'):
         self.device = device
         self.model = model
         self.loss_func = loss_func
@@ -61,7 +60,6 @@ class Trainer():
         self.num_epochs = num_epochs
         self.callbacks = callbacks if callbacks else []
         self.name = name
-        self.optimizer_step_and_zero_grad_criteria = optimizer_step_and_zero_grad_criteria or (lambda trainer: True)
 
         self.epoch = 0
         self.sample_count = 0
@@ -72,31 +70,38 @@ class Trainer():
         self.state = State.EXTERNAL
         self.phase = Phase.IDLE
         self.train_stats = TrainerStats(self.metric_name_to_func)
-        self.train_last_loss_object = None
+        self.train_last_loss = None
         self.val_stats = TrainerStats(self.metric_name_to_func)
-        self.val_last_loss_object = None
+        self.val_last_loss = None
         self.test_stats = TrainerStats(self.metric_name_to_func)
-        self.test_last_loss_object = None
+        self.test_last_loss = None
+
+        self._validate_callbacks()
 
         self._stopped = False
         self._last_outputs = None
+
+    def _validate_callbacks(self):
+        has_loss_optimizer_handler = False
+        for cb in self.callbacks:
+            if isinstance(cb, LossOptimizerHandlerBase):
+                has_loss_optimizer_handler = True
+
+        if not has_loss_optimizer_handler:
+            raise ValueError('[Trainer] - callbacks not containing LossOptimizerHandlerBase, either use LossOptimizerHandler callback, or create your own callback derived from LossOptimizerHandlerBase')
 
     def _train_handler(self, loss, batch_size):
         self.sample_count += batch_size
         self.sample_count_in_epoch += batch_size
         self.iteration += 1
         self.iteration_in_epoch += 1
-        self.train_last_loss_object = loss
-        loss.backward()
-        if self.optimizer_step_and_zero_grad_criteria(self):
-            self.optimizer.step()
-            self.optimizer.zero_grad()
+        self.train_last_loss = loss
 
     def _val_handler(self, loss, batch_size):
-        self.val_last_loss_object = loss
+        self.val_last_loss = loss
 
     def _test_handler(self, loss, batch_size):
-        self.test_last_loss_object = loss
+        self.test_last_loss = loss
 
     def _predict_handler(self, loss, batch_size):
         pass
@@ -218,6 +223,35 @@ class Trainer():
             if callback.should_apply_on_phase(context) and \
                callback.should_apply_on_state(context):
                 callback(context)
+
+    def _predict(self, inputs_data_loader, steps):
+        """
+            return numpy array(s) of current trainer model's predictions.
+        """
+
+        # ADD COLLECT OUTPUTS CALLBACK 
+        collect_outputs = CollectOutputs(apply_on_phase=Phase.BATCH_END, apply_on_states=State.PREDICT)
+        self.callbacks.append(collect_outputs)
+
+        self._stopped = False
+        self.phase = Phase.PREDICT_BEGIN
+        self._invoke_callbacks()
+        self.state = State.PREDICT
+        self._fwd_pass_predict(inputs_data_loader, steps)
+        self.state = State.EXTERNAL
+        self.phase = Phase.PREDICT_END
+        self._invoke_callbacks()
+        self.phase = Phase.IDLE
+
+        # REMOVE COLLECT OUTPUTS CALLBACK 
+        self.callbacks.pop()
+        
+        outputs = collect_outputs.get_outputs_for_state(State.PREDICT)
+        return outputs
+
+
+    # ---------------- PUBLIC ---------------- 
+
 
     def save_trainer(self, dir_path, file_name, msg='', verbose=1):
         full_path = dir_path + file_name
@@ -368,34 +402,18 @@ class Trainer():
         self._invoke_callbacks()
         self.phase = Phase.IDLE
 
-    def predict_batch(self, inputs):
-        outputs = self.predict([inputs], 1)
+    def predict_sample(self, inputs):
+        # MAKE BATCH WITH 1 SAMPLE USING unsqueeze
+        outputs = self.predict_batch(inputs.unsqueeze(0))
         return outputs[0]
 
-    def predict(self, inputs_data_loader, steps):
-        """
-            return numpy array(s) of current trainer model's predictions.
-        """
+    def predict_batch(self, inputs):
+        # MAKE ITERATOR WITH 1 BATCH 1 STEP
+        outputs = self.predict_data_loader([inputs], 1)
+        return outputs[0]
 
-        # ADD COLLECT OUTPUTS CALLBACK 
-        collect_outputs = CollectOutputs(apply_on_phase=Phase.BATCH_END, apply_on_states=State.PREDICT)
-        self.callbacks.append(collect_outputs)
-
-        self._stopped = False
-        self.phase = Phase.PREDICT_BEGIN
-        self._invoke_callbacks()
-        self.state = State.PREDICT
-        self._fwd_pass_predict(inputs_data_loader, steps)
-        self.state = State.EXTERNAL
-        self.phase = Phase.PREDICT_END
-        self._invoke_callbacks()
-        self.phase = Phase.IDLE
-
-        # REMOVE COLLECT OUTPUTS CALLBACK 
-        self.callbacks.pop()
-        
-        outputs = collect_outputs.get_outputs_for_state(State.PREDICT)
-        return outputs
+    def predict_data_loader(self, inputs_data_loader, steps):
+        return self._predict(inputs_data_loader, steps)
 
 
 

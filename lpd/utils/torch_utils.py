@@ -5,7 +5,7 @@ def seed_torch(seed):
     T.cuda.manual_seed_all(seed)
     T.backends.cudnn.deterministic = True
 
-def is_gpu_available(verbose = 1):
+def is_gpu_available(verbose=1):
     res = T.cuda.is_available()
     if verbose: print(f"GPU Availability: {res}")
     return res
@@ -50,3 +50,6 @@ def load_checkpoint(checkpoint_filepath, model, optimizer, scheduler, verbose=1)
 
 def get_lrs_from_optimizer(optimizer):
     return [group['lr'] for group in optimizer.param_groups]
+
+def copy_model_weights(source_model, target_model):
+    self.target_model.load_state_dict(self.source_model.state_dict())

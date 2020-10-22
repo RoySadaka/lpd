@@ -18,8 +18,8 @@ class CollectOutputs(CallbackBase):
     """
 
     def __init__(self, 
-                    apply_on_phase: Phase=Phase.BATCH_END, 
-                    apply_on_states: Union[State, List[State]]=None):
+                    apply_on_phase: Phase, 
+                    apply_on_states: Union[State, List[State]]):
         super(CollectOutputs, self).__init__(apply_on_phase, apply_on_states)
         self.state_to_outputs = {}
 

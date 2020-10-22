@@ -5,7 +5,7 @@ import torch.optim as optim
 from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
-from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
+from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep, LossOptimizerHandler
 from lpd.metrics import BinaryAccuracyWithLogits
 from lpd.extensions.custom_schedulers import DoNothingToLR
 import lpd.utils.torch_utils as tu
@@ -73,9 +73,7 @@ def get_trainer(config,
     model = TestModel(config, num_embeddings).to(device)
    
     optimizer = optim.SGD(params=model.parameters(), lr=config.LEARNING_RATE, momentum=0.9)
-    # optimizer = optim.Adam(params=model.parameters(), lr=config.LEARNING_RATE)
 
-    # scheduler = DoNothingToLR(optimizer=optimizer)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=config.EARLY_STOPPING_PATIENCE // 2, verbose=True) # needs SchedulerStep callback WITH scheduler_parameters_func
     
     loss_func = nn.BCEWithLogitsLoss().to(device)
@@ -83,7 +81,8 @@ def get_trainer(config,
     metric_name_to_func = {"acc":BinaryAccuracyWithLogits()}
 
     callbacks = [   
-                    SchedulerStep(scheduler_parameters_func=lambda trainer: trainer.val_stats.get_loss()),
+                    LossOptimizerHandler(),
+                    SchedulerStep(scheduler_parameters_func=lambda callback_context: callback_context.val_stats.get_loss()),
                     ModelCheckPoint(checkpoint_dir=checkpoint_dir, 
                                     checkpoint_file_name=checkpoint_file_name, 
                                     monitor_type=MonitorType.LOSS, 

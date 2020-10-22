@@ -41,7 +41,7 @@ class StatsPrint(CallbackBase):
             result = set(metric_names)
         
         if len(result) == 0:
-            print('[StatsPrint][WARNING] - no metric_names provided')
+            print('[StatsPrint][Warning] - no metric_names provided')
         return result
 
     def _get_print_from_monitor_result(self, monitor_result: CallbackMonitorResult) -> str:

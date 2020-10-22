@@ -2,6 +2,21 @@ Change Log
 ==========
 
 
+0.2.5 (22/10/2020)
+-----------------
+* Added predict_sample and predict_data_loader methods to Trainer
+* Added LossOptimizerHandler and LossOptimizerHandlerBase to callbacks
+* Trainer must have at least one callback of type LossOptimizerHandlerBase
+* Removed optimizer_step_and_zero_grad_criteria argument from Trainer, use LossOptimizerHandler callback instead
+* CallbackContext now have optimizer, scheduler and train_last_loss properties for easier access
+* CollectOutput arguments now must be passed explicitly
+* CallbackBase will raise exception if __call__ not implemented 
+* Trainer have callbacks validation upon initialization, more validations will be added 
+* SchedulerStep scheduler_parameters_func should accept CallbackContext instead of Trainer
+* Added copy_model_weights to torch_utils, (as requested, thank you for using lpd :))
+* Adjusted all examples
+
+
 0.2.4 (21/10/2020)
 -----------------
 * Added predict_batch

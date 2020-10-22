@@ -2,7 +2,7 @@ import torch as T
 import torch.nn as nn
 import torch.optim as optim
 from lpd.trainer import Trainer
-from lpd.callbacks import StatsPrint
+from lpd.callbacks import StatsPrint, LossOptimizerHandler
 from lpd.extensions.custom_schedulers import DoNothingToLR
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
@@ -32,6 +32,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     metric_name_to_func = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
     callbacks = [   
+                    LossOptimizerHandler(),
                     StatsPrint()
                 ]
 
@@ -65,8 +66,13 @@ def run():
 
     data_generator_for_predictions = eu.examples_prediction_data_generator(data_loader, data_loader_steps)
 
+    #PREDICT ON A SINGLE SAMPLE
+    sample = next(data_generator_for_predictions)[0]
+    sample_prediction = trainer.predict_sample(sample)
+
     # PREDICT ON A SINGLE BATCH
-    prediction = trainer.predict_batch(next(data_generator_for_predictions))
+    batch = next(data_generator_for_predictions)
+    batch_prediction = trainer.predict_batch(batch)
 
     # PREDICTION ON A DATA LOADER
-    predictions = trainer.predict(data_generator_for_predictions, data_loader_steps)
+    data_loader_predictions = trainer.predict_data_loader(data_generator_for_predictions, data_loader_steps)

@@ -19,6 +19,21 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
+
+<b>[v0.2.5-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added ``predict_sample`` and ``predict_data_loader`` methods to ``Trainer``
+* Added ``LossOptimizerHandler`` and ``LossOptimizerHandlerBase`` to callbacks
+* ``Trainer`` must have at least one callback of type ``LossOptimizerHandlerBase``
+* Removed ``optimizer_step_and_zero_grad_criteria`` argument from ``Trainer`` (use ``LossOptimizerHandler`` callback instead)
+* Added ``optimizer``, ``scheduler`` and ``train_last_loss`` to CallbackContext properties for easier access
+* ``CollectOutputs``'s arguments now must be explicitly provided
+* ``CallbackBase`` will raise exception if ``__call__`` not implemented 
+* ``Trainer`` have callbacks validation upon initialization, more validations will be added 
+* ``SchedulerStep``'s ``scheduler_parameters_func`` should accept ``CallbackContext`` instead of ``Trainer``
+* Added ``copy_model_weights`` to ``lpd.utils.torch_utils``, (as requested, thank you for using lpd 🥳)
+* Adjusted all examples
+
+
 ## Usage
 
 ``lpd`` intended to properly structure your PyTorch model training. The main usages are given below.
@@ -75,14 +90,15 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ```
 
 ### Making predictions
-On data loader:
-```python
-    predictions = trainer.predict(data_loader, steps)
-```
 
-On batch:
+
 ```python
-    prediction = trainer.predict_batch(x)
+    # On single sample:
+    prediction = trainer.predict_sample(sample)
+    # On batch:
+    predictions = trainer.predict_batch(batch)
+    # On Dataloader/Iterable/Generator:
+    predictions = trainer.predict_data_loader(data_loader, steps)
 ```
 
 ## TrainerStats
@@ -106,7 +122,7 @@ Some common callbacks are available under ``lpd.callbacks``.
 
 Notice that ``apply_on_phase`` (``lpd.enums.Phase``) will determine the execution phase,
 
-and that ``apply_on_states`` (``lpd.enums.State`` or ``list(lpd.enums.State)``) will determine the execution states
+and ``apply_on_states`` (``lpd.enums.State`` or ``list(lpd.enums.State)``) will determine the execution states
 
 These are the current available phases and states, more might be added in future releases
 ```python
@@ -160,10 +176,55 @@ Predict phases and states will behave as follow
 
 With phases and states, you have full control over the timing of your callbacks,
 
+### LossOptimizerHandler Callback
+Derives from ``LossOptimizerHandlerBase``, probaly the most important callback 😎 
+
+Use ``LossOptimizerHandler`` to determine when to call, or, you may choose to create your own ``AwesomeLossOptimizerHandler`` class by deriving from ``LossOptimizerHandlerBase``
+
+``Trainer`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided
+```python
+    loss.backward(...)
+    optimizer.step(...)
+    optimizer.zero_grad(...)
+```
+For example, say your machine can handle up to batch_size = 8, but you want to accumulate gradients for samples until you reach 32 samples before you backprop, then you can define your optimizer handler function, to pass it later to ``LossOptimizerHandler``:
+```python
+    def my_optimizer_handler_closure(action):
+        last_invocation_sample_count = 0 # closure state
+
+        def handler(callback_context): # CallbackContext class will be passed here by LossOptimizerHandler
+            nonlocal last_invocation_sample_count # for closure state
+            trainer = callback_context.trainer
+            optimizer = callback_context.optimizer
+            
+            if trainer.sample_count - last_invocation_sample_count >= 32:
+                last_invocation_sample_count = trainer.sample_count
+                if action == 'step':
+                    optimizer.step()
+                elif action == 'zero_grad':
+                    optimizer.zero_grad()
+
+        return handler
+```
+And now, use it in ``LossOptimizerHandler`` callback :
+```python
+    LossOptimizerHandler(apply_on_phase=Phase.BATCH_END, 
+                         apply_on_states=State.TRAIN,
+                         loss_handler=None, # use default loss handler
+                         optimizer_step_handler=my_optimizer_handler_closure(action='step'), 
+                         optimizer_zero_grad_handler=my_optimizer_handler_closure(action='zero_grad')), 
+```
+
+
 ### StatsPrint Callback
-Below is an output example for ``StatsPrint`` callback that will print an epoch summary at the end of every epoch
+``StatsPrint`` callback will print an epoch summary at the end of every epoch
+```python
+    StatsPrint(apply_on_phase=Phase.EPOCH_END, apply_on_states=State.EXTERNAL, metric_names=my_metric_names)
+```
+Output example: 
 
 ![EpochSummary](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/epoch_summary.png)
+
 
 
 ### ModelCheckPoint Callback
@@ -201,8 +262,7 @@ For example, EarlyStopping that will monitor at the end of every epoch, and stop
 
 Will invoke ``step()`` on your scheduler in the desired phase and state.
 
-For example, SchedulerStep callback to invoke ``scheduler.step()`` at the end of every batch, and only in train state (as opposed to validation and test)
-then define your SchedulerStep callback like so:
+For example, SchedulerStep callback to invoke ``scheduler.step()`` at the end of every batch, in train state (as opposed to validation and test):
 ```python
     from lpd.callbacks import SchedulerStep
     from lpd.enums import Phase, State
@@ -225,11 +285,11 @@ Will export the loss and the metrics at a given phase and state, in a format tha
 
 ### CollectOutputs Callback
 In case you want to collect the outputs of any given state during training
+
+CollectOutputs is automatically used when predicting your model to collect the predictions
 ```python
     CollectOutputs(apply_on_phase=Phase.BATCH_END, apply_on_states=State.VAL)
 ```
-CollectOutputs is automatically used in ``trainer.predict(...)`` to collect the predictions
-
 
 ### Create your custom callbacks
 
@@ -250,12 +310,13 @@ CollectOutputs is automatically used in ``trainer.predict(...)`` to collect the 
             train_loss = callback_context.train_stats.get_loss()
             train_metrics = callback_context.train_stats.get_metrics()
             val_metrics = callback_context.val_stats.get_metrics()
-            opt = callback_context.trainer.optimizer
-            scheduler = callback_context.trainer.scheduler
+            optimizer = callback_context.optimizer
+            scheduler = callback_context.scheduler
+            trainer = callback_context.trainer
 
             if val_loss < 0.0001:
                 # you can also mark the trainer to STOP training by calling stop()
-                callback_context.trainer.stop()
+                trainer.stop()
 ```
 
 Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our validation loss is getting better
@@ -308,7 +369,7 @@ Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our valid
             acc = self.bawl(y_pred, y_true)
             return 1 - acc  # return the inaccuracy
 
-    # now we can define our metrics and pass them to the trainer
+    # we can now define our metrics and pass them to the trainer
     metric_name_to_func = {'accuracy':BinaryAccuracyWithLogits(), 'inaccuracy':InaccuracyWithLogits()}
 ``` 
 
@@ -324,7 +385,7 @@ Or, you can invoke it directly from your trainer
     your_trainer.save_trainer(dir_path, file_name)
 ``` 
 
-Loading a trainer is as simple as:
+Loading a trainer from checkpoint is as simple as:
 ```python
     loaded_trainer = Trainer.load_trainer(dir_path,             # the folder where the saved trainer file exists 
                                           trainer_file_name,    # the saved trainer file name 
@@ -340,21 +401,22 @@ Loading a trainer is as simple as:
 ``` 
 
 ### Utils
-``lpd.utils`` provides few files (torch_utils, file_utils and general_utils)
-For example, a good practice is to use 
+``lpd.utils`` provides ``torch_utils``, ``file_utils`` and ``general_utils``
+
+For example, a good practice is to use ``seed_all`` as early as possible in your code, to make sure that results are reproducible:
 ```python
     import lpd.utils.general_utils as gu
     gu.seed_all(seed=42)  # because its the answer to life and the universe
 ```
-As early as possible in your code, to make sure that results are reproducible
+
 
 ### Extensions
 ``lpd.extensions`` provides some custom PyTorch layers, and schedulers, these are just some stuff we like using when we create our models, to gain better flexibility.
 
-So you can use them at your own will.
-We will add more extensions from time to time.
+So you can use them at your own will, more extensions are added from time to time.
 
 ## TODOS (more added frequently)
+* StatsPrint callback - add support for custom monitoring
 * Add Logger
 * Add support for multiple schedulers 
 * Add support for multiple losses

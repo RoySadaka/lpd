@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from lpd.trainer import Trainer
-from lpd.callbacks import StatsPrint, SchedulerStep
+from lpd.callbacks import StatsPrint, SchedulerStep, LossOptimizerHandler
 from lpd.extensions.custom_schedulers import KerasDecay
 from lpd.enums import Phase, State 
 import lpd.utils.torch_utils as tu
@@ -48,6 +48,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     metric_name_to_func = {'acc':CategoricalAccuracyWithLogits()}
 
     callbacks = [   
+                    LossOptimizerHandler(),
                     SchedulerStep(apply_on_phase=Phase.EPOCH_END,
                                   apply_on_states=State.EXTERNAL,
                                   verbose=1),                        #LET'S PRINT TO SEE THE ACTUAL CHANGES
