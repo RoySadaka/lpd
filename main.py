@@ -1,4 +1,5 @@
 from  tests.test_metrics import TestMetrics
+from  tests.test_trainer import TestTrainer
 import unittest
 
 import examples.multiple_inputs.train as multiple_inputs_example

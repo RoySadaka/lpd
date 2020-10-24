@@ -1,7 +1,6 @@
 import unittest
 import torch as T
 from lpd.metrics import BinaryAccuracy, BinaryAccuracyWithLogits, CategoricalAccuracy, CategoricalAccuracyWithLogits
-from torch.autograd import Variable
 
 class TestMetrics(unittest.TestCase):
 
@@ -55,8 +54,8 @@ class TestMetrics(unittest.TestCase):
 
         # y_true:
         # [0,1,2,3]
-        y_pred = Variable(T.eye(dim))
-        y_true = Variable(T.LongTensor(list(range(dim))))
+        y_pred = T.eye(dim)
+        y_true = T.LongTensor(list(range(dim)))
         self.assertEqual(metric(y_pred, y_true), 1.0)
         
         # y_pred:
@@ -67,9 +66,9 @@ class TestMetrics(unittest.TestCase):
 
         # y_true:
         # [0,1,2,3]
-        y_pred = Variable(T.zeros(dim, dim))
+        y_pred = T.zeros(dim, dim)
         y_pred.data[:, 0] = T.ones(dim)
-        y_true = Variable(T.LongTensor(list(range(dim))))
+        y_true = T.LongTensor(list(range(dim)))
         self.assertEqual(metric(y_pred, y_true), 0.25)
 
     def test_categorical_accuracy_with_logits(self):

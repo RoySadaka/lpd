@@ -2,6 +2,16 @@ Change Log
 ==========
 
 
+0.2.6 (24/10/2020)
+* Added test for trainer save and load
+* Moved LossOptimizerHandlerBase validation to Trainer.train() instead if Trainer.__init__
+* Added name property to CallbackMonitorResult
+* StatsPrint now accept list of monitors arguments for metrics
+* StatsPrint will make validations on provided monitors
+* Removed num_epochs from Trainer arguments, now its in Trainer.train(num_epochs)
+* Adjusted all examples
+
+
 0.2.5 (22/10/2020)
 -----------------
 * Added predict_sample and predict_data_loader methods to Trainer

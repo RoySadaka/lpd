@@ -7,57 +7,72 @@ from typing import Union, List, Optional, Dict, Iterable
 
 class StatsPrint(CallbackBase):
     """
-        Informative summary of the trainer state, most likely at the end of the epoch, 
-        but you can change apply_on_phase and apply_on_states if you need it on a different phases
+        Prints informative summary of the trainer stats including loss and metrics.
         Args:
             apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
             round_values_on_print_to - see in CallbackBase
+
+            train_metrics_monitors - CallbackMonitor instance or list of CallbackMonitor instances that will track the improvement of the trainer's metrics.
+                                    if empty list, no monitoring will be applied to metrics.
+                                    if None, it will assign CallbackMonitor with MonitorMode.MAX per each metric
+
+                                    val_metric_monitors will be applied automatically based in train_metrics_monitors
     """
 
     def __init__(self, apply_on_phase: Phase=Phase.EPOCH_END, 
                        apply_on_states: Union[State, List[State]]=State.EXTERNAL, 
                        round_values_on_print_to: Optional[int]=None,
-                       metric_names: Optional[Union[str,Iterable]]=None):
+                       train_metrics_monitors: Union[CallbackMonitor,Iterable[CallbackMonitor]]=None):
         super(StatsPrint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
-        self.metric_names = self._extract_metric_names(metric_names)
         self.train_loss_monitor = CallbackMonitor(None, MonitorType.LOSS, StatsType.TRAIN, MonitorMode.MIN)
         self.val_loss_monitor = CallbackMonitor(None, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN)
-
-        self.train_metric_name_to_monitor = {}
-        self.val_metric_name_to_monitor = {}
-        for metric_name in self.metric_names:
-            self.train_metric_name_to_monitor[metric_name] = CallbackMonitor(None, MonitorType.METRIC, StatsType.TRAIN, MonitorMode.MAX, metric_name)
-            self.val_metric_name_to_monitor[metric_name] = CallbackMonitor(None, MonitorType.METRIC, StatsType.VAL, MonitorMode.MAX, metric_name)
-
+        self.train_metrics_monitors = self._parse_train_metrics_monitors(train_metrics_monitors)
+        self.val_metric_monitors = None
+        self._validate_stats_type()
         self.GREEN_PRINT_COLOR = "\033[92m"
         self.END_PRINT_COLOR = "\033[0m"
 
-    def _extract_metric_names(self, metric_names):
-        result = set()
-        if isinstance(metric_names, str):
-            result.add(metric_names)
-        elif isinstance(metric_names, Iterable):
-            result = set(metric_names)
-        
-        if len(result) == 0:
-            print('[StatsPrint][Warning] - no metric_names provided')
-        return result
+    def _parse_train_metrics_monitors(self, train_metrics_monitors):
+        if isinstance(train_metrics_monitors, list):
+            return train_metrics_monitors
+        if isinstance(train_metrics_monitors, CallbackMonitor):
+            return [train_metrics_monitors]
+
+    def _validate_stats_type(self):
+        if self.train_metrics_monitors is not None:
+            for m in self.train_metrics_monitors:
+                if m.stats_type != StatsType.TRAIN:
+                    raise ValueError(f'[StatsPrint] - train_metrics_monitors contains monitor with stats_Type {m.stats_Type}, expected {StatsType.TRAIN}')
+            
+    def _ensure_metrics_created(self, callback_context: CallbackContext):
+        if self.train_metrics_monitors is not None and self.val_metric_monitors is not None:
+            # ENSURED ALREADY
+            return
+
+        metric_names = callback_context.trainer.metric_name_to_func.keys()
+        if self.train_metrics_monitors is None:
+            self.train_metrics_monitors = [CallbackMonitor(None, MonitorType.METRIC, StatsType.TRAIN, MonitorMode.MAX, metric_name) for metric_name in metric_names]
+
+        self.val_metric_monitors = []
+        for m in self.train_metrics_monitors:
+            self.val_metric_monitors.append(CallbackMonitor(m.patience, m.monitor_type, StatsType.VAL, m.monitor_mode, m.metric_name))
 
     def _get_print_from_monitor_result(self, monitor_result: CallbackMonitorResult) -> str:
         r = self.round_to #READABILITY
         mtr = monitor_result #READABILITY
         return f'curr:{r(mtr.new_value)}, prev:{r(mtr.prev_value)}, best:{r(mtr.new_best)}, change_from_prev:{r(mtr.change_from_previous)}, change_from_best:{r(mtr.change_from_best)}'
 
-    def _get_print_from_metrics(self, metric_name_to_monitor_result: Dict[str, CallbackMonitorResult], prefix: str='') -> str:
+    def _get_print_from_metrics(self, train_metric_monitor_results: Iterable[CallbackMonitorResult], prefix: str='') -> str:
         gdim = self._get_did_improved_colored #READABILITY 
 
-        if len(metric_name_to_monitor_result) == 0:
+        if len(train_metric_monitor_results) == 0:
             return 'no metrics found'
         prints = []
         pre = ''
-        for metric_name,monitor_result in metric_name_to_monitor_result.items():
-            prints.append(f'{pre}name: {metric_name}{gdim(monitor_result)}, {self._get_print_from_monitor_result(monitor_result)}')
+        for monitor_result in train_metric_monitor_results:
+            name = monitor_result.name
+            prints.append(f'{pre}name: {name}{gdim(monitor_result)}, {self._get_print_from_monitor_result(monitor_result)}')
             pre = prefix # APPEND PREFIX FROM THE SECOND METRIC AND ON
 
         return '\n'.join(prints)
@@ -73,14 +88,14 @@ class StatsPrint(CallbackBase):
         gdim = self._get_did_improved_colored #READABILITY 
         gmfp = self._get_print_from_metrics #READABILITY 
 
+        self._ensure_metrics_created(c)
+
         # INVOKE MONITORS
         t_loss_monitor_result = self.train_loss_monitor.track(c)
         v_loss_monitor_result = self.val_loss_monitor.track(c)
-        train_metric_name_to_monitor_result = {}
-        val_metric_name_to_monitor_result = {}
-        for metric_name in self.metric_names:
-            train_metric_name_to_monitor_result[metric_name] = self.train_metric_name_to_monitor[metric_name].track(c)
-            val_metric_name_to_monitor_result[metric_name]   = self.val_metric_name_to_monitor[metric_name].track(c)
+
+        train_metric_monitor_results = [m.track(c) for m in self.train_metrics_monitors]
+        val_metric_monitor_results = [m.track(c) for m in self.val_metric_monitors]
 
         current_lrs = get_lrs_from_optimizer(c.trainer.optimizer)
 
@@ -95,12 +110,12 @@ class StatsPrint(CallbackBase):
         print(f'|   |     |-- loss{gdim(t_loss_monitor_result)}')
         print(f'|   |     |     |-- {self._get_print_from_monitor_result(t_loss_monitor_result)}')
         print(f'|   |     |-- metrics')
-        print(f'|   |           |-- {gmfp(train_metric_name_to_monitor_result, prefix="|   |           |-- ")}')
+        print(f'|   |           |-- {gmfp(train_metric_monitor_results, prefix="|   |           |-- ")}')
         print(f'|   |')
         print(f'|   |-- Validation')
         print(f'|         |-- loss{gdim(v_loss_monitor_result)}')
         print(f'|         |     |-- {self._get_print_from_monitor_result(v_loss_monitor_result)}')
         print(f'|         |-- metrics')
-        print(f'|               |-- {gmfp(val_metric_name_to_monitor_result, prefix="|               |-- ")}')
+        print(f'|               |-- {gmfp(val_metric_monitor_results, prefix="|               |-- ")}')
         print('------------------------------------------------------')
         print('') #EMPTY LINE SEPARATOR

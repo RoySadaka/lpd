@@ -130,7 +130,6 @@ def get_trainer(params):
                       val_data_loader=val_data_loader,
                       train_steps=len(train_dataset),
                       val_steps=len(val_dataset),
-                      num_epochs=params['num_epochs'],
                       callbacks=callbacks,
                       name='DataLoader-Example')
     return trainer
@@ -143,6 +142,6 @@ def run():
     
     trainer.summary()
 
-    trainer.train()
+    trainer.train(params['num_epochs'])
 
     trainer.evaluate(test_data_loader, len(test_data_loader))

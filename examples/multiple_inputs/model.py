@@ -66,8 +66,7 @@ def get_trainer(config,
                 val_steps,
                 checkpoint_dir,
                 checkpoint_file_name,
-                summary_writer_dir,
-                num_epochs):
+                summary_writer_dir):
     device = tu.get_gpu_device_if_available()
 
     model = TestModel(config, num_embeddings).to(device)
@@ -92,7 +91,7 @@ def get_trainer(config,
                                     round_values_on_print_to=7), 
                     Tensorboard(summary_writer_dir=summary_writer_dir),
                     EarlyStopping(apply_on_phase=Phase.EPOCH_END, apply_on_states=State.EXTERNAL, patience=config.EARLY_STOPPING_PATIENCE),
-                    StatsPrint(apply_on_phase=Phase.EPOCH_END, round_values_on_print_to=7, metric_names=metric_name_to_func.keys()) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
+                    StatsPrint(apply_on_phase=Phase.EPOCH_END, round_values_on_print_to=7) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
                 ]
 
     trainer = Trainer(model=model, 
@@ -105,7 +104,6 @@ def get_trainer(config,
                       val_data_loader=val_data_loader,
                       train_steps=train_steps,
                       val_steps=val_steps,
-                      num_epochs=num_epochs,
                       callbacks=callbacks,
                       name='Multi-Input-Example')
     return trainer

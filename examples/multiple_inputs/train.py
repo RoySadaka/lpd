@@ -90,10 +90,9 @@ def run():
                           steps,
                           model_weights_dir,
                           config.MODEL_WEIGHTS_FILE_NAME,
-                          tensorboard_data_dir,
-                          config.NUM_EPOCHS)
+                          tensorboard_data_dir)
     trainer.summary()
 
-    trainer.train()
+    trainer.train(config.NUM_EPOCHS)
 
     trainer.evaluate(generator_infinite, steps)

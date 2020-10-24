@@ -11,6 +11,7 @@ class EarlyStopping(CallbackBase):
             apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
             patience - int or None (will be set to inf) track how many epochs/iterations without improvements in monitoring
+                       (negative number will set to inf)
             monitor_type - e.g. lpd.enums.MonitorType.LOSS, what to monitor (see CallbackMonitor)
             stats_type - e.g. lpd.enums.StatsType.VAL (see CallbackMonitor)
             monitor_mode - e.g. lpd.enums.MonitorMode.MIN (see CallbackMonitor)

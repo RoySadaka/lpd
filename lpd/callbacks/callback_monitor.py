@@ -14,7 +14,7 @@ class CallbackMonitor():
         metric_name - in case of monitor_mode=lpd.enums.MonitorMode.METRIC, provide metric_name, otherwise, leave it None
     """
     def __init__(self, patience: int, monitor_type: MonitorType, stats_type: StatsType, monitor_mode: MonitorMode, metric_name: Optional[str]=None):
-        self.patience = patience if patience else inf
+        self.patience = inf if patience is None or patience < 0 else patience
         self.patience_countdown = self.patience
         self.monitor_type = monitor_type
         self.stats_type = stats_type
@@ -69,6 +69,7 @@ class CallbackMonitor():
         self.previous = value_to_consider
         did_improve = False
         new_best = self._get_best()
+        name = self.metric_name if self.metric_name else 'loss'
 
         if  self.monitor_mode == MonitorMode.MIN and value_to_consider < curr_minimum or \
             self.monitor_mode == MonitorMode.MAX and value_to_consider > curr_maximum:
@@ -83,7 +84,8 @@ class CallbackMonitor():
                                      change_from_previous=change_from_previous,
                                      change_from_best=change_from_best,
                                      patience_left=self.patience_countdown, 
-                                     description=self.description)
+                                     description=self.description,
+                                     name = name)
 
 
 class CallbackMonitorResult():
@@ -95,7 +97,9 @@ class CallbackMonitorResult():
                         change_from_previous: float,
                         change_from_best: float,
                         patience_left: int,
-                        description: str):
+                        description: str,
+                        name: str):
+        self.name = name
         self.did_improve = did_improve
         self.new_value = new_value
         self.prev_value = prev_value

@@ -17,7 +17,7 @@ def get_parameters():
     data_loader_steps = 100
     return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps
 
-def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
+def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
 
     device = tu.get_gpu_device_if_available()
 
@@ -46,7 +46,6 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
                       val_data_loader=data_loader,
                       train_steps=data_loader_steps,
                       val_steps=data_loader_steps,
-                      num_epochs=num_epochs,
                       callbacks=callbacks,
                       name='Train-Evaluate-Predict-Example')
     return trainer
@@ -56,11 +55,11 @@ def run():
 
     N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps = get_parameters()
 
-    trainer = get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps)
+    trainer = get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps)
     
     trainer.summary()
 
-    trainer.train()
+    trainer.train(num_epochs)
 
     trainer.evaluate(data_loader, data_loader_steps)
 

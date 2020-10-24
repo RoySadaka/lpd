@@ -1,7 +1,3 @@
-# THIS EXAMPLE WAS TAKEN FROM:
-# https://pytorch.org/tutorials/beginner/pytorch_with_examples.html
-# AND CONVERTED TO USE lpd
-
 import torch as T
 import torch.nn as nn
 import torch.optim as optim
@@ -24,7 +20,7 @@ def get_parameters():
     return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps
 
 
-def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
+def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
 
     device = tu.get_gpu_device_if_available()
 
@@ -54,7 +50,6 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
                       val_data_loader=data_loader,
                       train_steps=data_loader_steps,
                       val_steps=data_loader_steps,
-                      num_epochs=num_epochs,
                       callbacks=callbacks,
                       name='Basic-Example')
     return trainer
@@ -64,10 +59,10 @@ def run():
 
     N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps = get_parameters()
 
-    trainer = get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps)
+    trainer = get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps)
     
     trainer.summary()
 
-    trainer.train()
+    trainer.train(num_epochs)
 
     trainer.evaluate(data_loader, data_loader_steps)

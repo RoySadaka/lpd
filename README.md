@@ -19,18 +19,13 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-
-<b>[v0.2.5-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added ``predict_sample`` and ``predict_data_loader`` methods to ``Trainer``
-* Added ``LossOptimizerHandler`` and ``LossOptimizerHandlerBase`` to callbacks
-* ``Trainer`` must have at least one callback of type ``LossOptimizerHandlerBase``
-* Removed ``optimizer_step_and_zero_grad_criteria`` argument from ``Trainer`` (use ``LossOptimizerHandler`` callback instead)
-* Added ``optimizer``, ``scheduler`` and ``train_last_loss`` to CallbackContext properties for easier access
-* ``CollectOutputs``'s arguments now must be explicitly provided
-* ``CallbackBase`` will raise exception if ``__call__`` not implemented 
-* ``Trainer`` have callbacks validation upon initialization, more validations will be added 
-* ``SchedulerStep``'s ``scheduler_parameters_func`` should accept ``CallbackContext`` instead of ``Trainer``
-* Added ``copy_model_weights`` to ``lpd.utils.torch_utils``, (as requested, thank you for using lpd 🥳)
+<b>[v0.2.6-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added test for trainer save and load
+* Moved LossOptimizerHandlerBase validation to Trainer.train() instead if Trainer.__init__
+* Added name property to CallbackMonitorResult
+* StatsPrint now accept list of monitors arguments for metrics
+* StatsPrint will make validations on provided monitors
+* Removed num_epochs from Trainer arguments, now its in Trainer.train(num_epochs)
 * Adjusted all examples
 
 
@@ -43,7 +38,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ```python
     from lpd.trainer import Trainer
     from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
-    from lpd.callbacks import LossOptimizerHandler, StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep
+    from lpd.callbacks import LossOptimizerHandler, StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep, CallbackMonitor
     from lpd.extensions.custom_schedulers import KerasDecay
     from lpd.metrics import BinaryAccuracyWithLogits
     from lpd.utils.torch_utils import get_gpu_device_if_available
@@ -64,8 +59,8 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
                 SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN),
                 ModelCheckPoint(checkpoint_dir, checkpoint_file_name, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN, save_best_only=True), 
                 Tensorboard(summary_writer_dir=summary_writer_dir),
-                EarlyStopping(patience=10, MonitorType.METRIC, StatsType.VAL, MonitorMode.MAX, metric_name='acc'),
-                StatsPrint(apply_on_phase=Phase.EPOCH_END, metric_names=metric_name_to_func.keys())
+                EarlyStopping(10, MonitorType.METRIC, StatsType.VAL, MonitorMode.MAX, metric_name='acc'),
+                StatsPrint(train_metrics_monitors=CallbackMonitor(-1, MonitorType.METRIC, StatsType.TRAIN, MonitorMode.MAX, metric_name='acc'))
             ]
 
     trainer = Trainer(model, 
@@ -78,11 +73,10 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
                       val_data_loader,    # DataLoader, Iterable or Generator
                       train_steps,
                       val_steps,
-                      num_epochs,
                       callbacks,
                       name='Readme-Example')
     
-    trainer.train()
+    trainer.train(num_epochs)
 ```
 
 ### Evaluating your model
@@ -178,7 +172,7 @@ Predict phases and states will behave as follow
 With phases and states, you have full control over the timing of your callbacks,
 
 ### LossOptimizerHandler Callback
-Derives from ``LossOptimizerHandlerBase``, probaly the most important callback 😎 
+Derives from ``LossOptimizerHandlerBase``, probably the most important callback 😎 
 
 Use ``LossOptimizerHandler`` to determine when to call: 
 ```python
@@ -188,7 +182,7 @@ Use ``LossOptimizerHandler`` to determine when to call:
 ```
 Or, you may choose to create your own ``AwesomeLossOptimizerHandler`` class by deriving from ``LossOptimizerHandlerBase``.
 
-``Trainer`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided
+``Trainer.train(num_epochs)`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided
 
 For example, say your machine can handle up to batch_size = 8, but you want to accumulate gradients for samples until you reach 32 samples before you backprop, then you can define your optimizer handler function, to pass it later to ``LossOptimizerHandler``:
 ```python
@@ -200,8 +194,8 @@ For example, say your machine can handle up to batch_size = 8, but you want to a
             trainer = callback_context.trainer
             optimizer = callback_context.optimizer
             
-            if trainer.sample_count - last_invocation_sample_count >= 32:
-                last_invocation_sample_count = trainer.sample_count
+            if callback_context.sample_count - last_invocation_sample_count >= 32:
+                last_invocation_sample_count = callback_context.sample_count
                 if action == 'step':
                     optimizer.step()
                 elif action == 'zero_grad':
@@ -220,9 +214,15 @@ And now, use it in ``LossOptimizerHandler`` callback :
 
 
 ### StatsPrint Callback
-``StatsPrint`` callback will print an epoch summary at the end of every epoch
+``StatsPrint`` callback prints informative summary of the trainer stats including loss and metrics.
 ```python
-    StatsPrint(apply_on_phase=Phase.EPOCH_END, apply_on_states=State.EXTERNAL, metric_names=my_metric_names)
+    StatsPrint(apply_on_phase=Phase.EPOCH_END, 
+               apply_on_states=State.EXTERNAL, 
+               train_metrics_monitors=CallbackMonitor(patience=None, 
+                                                      monitor_type=MonitorType.METRIC,
+                                                      stats_type=StatsType.TRAIN,
+                                                      monitor_mode=MonitorMode.MAX,
+                                                      metric_name='Accuracy'))
 ```
 Output example: 
 
@@ -236,7 +236,7 @@ The callback will save the model, optimizer, scheduler, and epoch number.
 You can also configure it to save Full Trainer.
 
 For example, ModelCheckPoint that will save a new *full trainer checkpoint* every time the validation metric_name ``my_metric``
-is getting higher than highest value so far.
+is getting higher than the highest value so far.
 
 ```python
     ModelCheckPoint(checkpoint_dir, 
@@ -419,7 +419,7 @@ For example, a good practice is to use ``seed_all`` as early as possible in your
 So you can use them at your own will, more extensions are added from time to time.
 
 ## TODOS (more added frequently)
-* StatsPrint callback - add support for custom monitoring
+* ModelCheckPoint to accept CallbackMonitor
 * Add Logger
 * Add support for multiple schedulers 
 * Add support for multiple losses

@@ -22,7 +22,6 @@ class Trainer():
             val_data_loader - an iterable or generator to get the next val data batch
             train_steps - total number of steps (batches) before declaring the epoch as finished
             val_steps - total number of steps (batches) before declaring the epoch as finished
-            num_epochs - number of epochs to train the model
             callbacks - list of lpd.callbacks to apply during the differrent training phases
                         callbacks will be executed by the order of the list 
             name - just an identifier, in case you create multiple trainers
@@ -44,7 +43,6 @@ class Trainer():
                        val_data_loader,
                        train_steps,
                        val_steps,
-                       num_epochs=50,
                        callbacks = None,
                        name = 'lpd'):
         self.device = device
@@ -57,7 +55,6 @@ class Trainer():
         self.val_data_loader = val_data_loader
         self.train_steps = train_steps
         self.val_steps = val_steps
-        self.num_epochs = num_epochs
         self.callbacks = callbacks if callbacks else []
         self.name = name
 
@@ -76,19 +73,18 @@ class Trainer():
         self.test_stats = TrainerStats(self.metric_name_to_func)
         self.test_last_loss = None
 
-        self._validate_callbacks()
-
         self._stopped = False
         self._last_outputs = None
+        self._total_num_epochs = 0
 
-    def _validate_callbacks(self):
+    def _traine_callbacks_validations(self):
         has_loss_optimizer_handler = False
         for cb in self.callbacks:
             if isinstance(cb, LossOptimizerHandlerBase):
                 has_loss_optimizer_handler = True
 
         if not has_loss_optimizer_handler:
-            raise ValueError('[Trainer] - callbacks not containing LossOptimizerHandlerBase, either use LossOptimizerHandler callback, or create your own callback derived from LossOptimizerHandlerBase')
+            raise ValueError('[Trainer][train] - callbacks not containing LossOptimizerHandlerBase, either use LossOptimizerHandler callback, or create your own callback derived from LossOptimizerHandlerBase')
 
     def _train_handler(self, loss, batch_size):
         self.sample_count += batch_size
@@ -120,9 +116,9 @@ class Trainer():
         if self.state == State.TEST or self.state == State.PREDICT:
             desc = f'[{self.state}]'
         elif self.state == State.VAL:
-            desc = f'[Val   epoch {self.epoch}/{self.num_epochs}]'
+            desc = f'[Val   epoch {self.epoch}/{self._total_num_epochs}]'
         else: #TRAIN
-            desc = f'[Train epoch {self.epoch}/{self.num_epochs}]'
+            desc = f'[Train epoch {self.epoch}/{self._total_num_epochs}]'
 
         loop.set_description(desc)
         if self.state != State.PREDICT:
@@ -273,7 +269,6 @@ class Trainer():
                             'callbacks': self.callbacks,
                             'name': self.name,
                             'epoch': self.epoch,
-                            'num_epochs': self.num_epochs,
                             'iteration': self.iteration,
                             'sample_count': self.sample_count,
                             'train_stats': self.train_stats,
@@ -312,7 +307,6 @@ class Trainer():
                        val_data_loader=val_data_loader,
                        train_steps=train_steps,
                        val_steps=val_steps,
-                       num_epochs=checkpoint['num_epochs'],
                        callbacks=checkpoint['callbacks'],
                        name=checkpoint['name'])
         
@@ -333,9 +327,6 @@ class Trainer():
 
     def summary(self):
         print(f'Trainer - {self.name}')
-        print('Model Summary - ')
-        print(self.model)
-        print('')
 
         print('defined callbacks:')
         for c in self.callbacks:
@@ -350,6 +341,11 @@ class Trainer():
         print('')
         print('optimizer', type(self.optimizer))
         print('')
+        
+        print('Model Summary - ')
+        print(self.model)
+        print('')
+        
         total_params = sum(p.numel() for p in self.model.parameters())
         total_params_requires_grad = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
@@ -357,19 +353,23 @@ class Trainer():
         print(f'Trainable params: {total_params_requires_grad}')
         print(f'Non-trainable params: {total_params_requires_grad-total_params}')
 
+        
+
     def stop(self):
         self._stopped = True
 
     def get_last_outputs(self):
         return self._last_outputs.data.numpy()
 
-    def train(self):
+    def train(self, num_epochs):
+        self._total_num_epochs = self.epoch + num_epochs
+        self._traine_callbacks_validations()
         self._stopped = False
         self.state = State.EXTERNAL
         self.phase = Phase.TRAIN_BEGIN
         self._invoke_callbacks()
 
-        for _ in range(1, self.num_epochs + 1):
+        for _ in range(num_epochs):
             self.epoch += 1
 
             self.phase = Phase.EPOCH_BEGIN
