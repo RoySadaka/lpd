@@ -11,7 +11,7 @@ from torch.utils.data import Dataset, DataLoader
 from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import Dense
 from lpd.metrics import BinaryAccuracyWithLogits
-from lpd.callbacks import StatsPrint, EarlyStopping, SchedulerStep, LossOptimizerHandler
+from lpd.callbacks import StatsPrint, EarlyStopping, SchedulerStep, LossOptimizerHandler, CallbackMonitor
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 import lpd.utils.general_utils as gu
 import lpd.utils.torch_utils as tu
@@ -116,7 +116,7 @@ def get_trainer(params):
     callbacks = [  
                     LossOptimizerHandler(),
                     SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN),
-                    EarlyStopping(patience=3, monitor_type=MonitorType.LOSS, stats_type=StatsType.VAL, monitor_mode=MonitorMode.MIN),
+                    EarlyStopping(callback_monitor=CallbackMonitor(patience=3, monitor_type=MonitorType.LOSS, stats_type=StatsType.VAL, monitor_mode=MonitorMode.MIN)),
                     StatsPrint(round_values_on_print_to=7)
                 ]
 

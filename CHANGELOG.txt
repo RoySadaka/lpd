@@ -2,7 +2,17 @@ Change Log
 ==========
 
 
+0.2.7 (25/10/2020)
+-----------------
+* Added trainer validation for metric_name_to_func
+* ModelCheckpoint args changed to accept CallbackMonitor
+* EarlyStopping args changed to accept CallbackMonitor
+* Adjusted examples and tests
+* Added more unittests
+
+
 0.2.6 (24/10/2020)
+-----------------
 * Added test for trainer save and load
 * Moved LossOptimizerHandlerBase validation to Trainer.train() instead if Trainer.__init__
 * Added name property to CallbackMonitorResult

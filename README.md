@@ -19,14 +19,12 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.2.6-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added test for trainer save and load
-* Moved LossOptimizerHandlerBase validation to Trainer.train() instead if Trainer.__init__
-* Added name property to CallbackMonitorResult
-* StatsPrint now accept list of monitors arguments for metrics
-* StatsPrint will make validations on provided monitors
-* Removed num_epochs from Trainer arguments, now its in Trainer.train(num_epochs)
-* Adjusted all examples
+<b>[v0.2.7-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added ``trainer`` validation for ``metric_name_to_func``
+* ``ModelCheckpoint`` args changed to accept ``CallbackMonitor``
+* ``EarlyStopping`` args changed to accept ``CallbackMonitor``
+* Adjusted examples and tests
+* Added more unittests
 
 
 ## Usage
@@ -48,20 +46,34 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 
     device = get_gpu_device_if_available() # with fallback to CPU if GPU not avilable
     model = MyModel(config, num_embeddings).to(device) # this is your model class, and its being sent to the relevant device
-    optimizer = optim.SGD(params=model.parameters())
+    optimizer = torch.optim.SGD(params=model.parameters())
     scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) # decay scheduler using keras formula 
-    loss_func = nn.BCEWithLogitsLoss().to(device) # this is your loss class, already sent to the relevant device
+    loss_func = torch.nn.BCEWithLogitsLoss().to(device) # this is your loss class, already sent to the relevant device
     metric_name_to_func = {'acc':BinaryAccuracyWithLogits()} # define your metrics in a dictionary
 
     # you can use some of the defined callbacks, or you can create your own
     callbacks = [
                 LossOptimizerHandler(),
                 SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN),
-                ModelCheckPoint(checkpoint_dir, checkpoint_file_name, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN, save_best_only=True), 
+                ModelCheckPoint(checkpoint_dir, 
+                                checkpoint_file_name, 
+                                CallbackMonitor(patience=-1,
+                                                monitor_type=MonitorType.LOSS, 
+                                                stats_type=StatsType.VAL, 
+                                                monitor_mode=MonitorMode.MIN),
+                                save_best_only=True), 
                 Tensorboard(summary_writer_dir=summary_writer_dir),
-                EarlyStopping(10, MonitorType.METRIC, StatsType.VAL, MonitorMode.MAX, metric_name='acc'),
-                StatsPrint(train_metrics_monitors=CallbackMonitor(-1, MonitorType.METRIC, StatsType.TRAIN, MonitorMode.MAX, metric_name='acc'))
-            ]
+                EarlyStopping(CallbackMonitor(patience=10, 
+                                              monitor_type=MonitorType.METRIC, 
+                                              stats_type=StatsType.VAL, 
+                                              monitor_mode=MonitorMode.MAX,
+                                              metric_name='acc')),
+                StatsPrint(train_metrics_monitors=CallbackMonitor(patience=-1, 
+                                                                  monitor_type=MonitorType.METRIC,
+                                                                  stats_type=StatsType.TRAIN,
+                                                                  monitor_mode=MonitorMode.MAX,
+                                                                  metric_name='acc'))
+                ]
 
     trainer = Trainer(model, 
                       device, 
@@ -85,8 +97,6 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ```
 
 ### Making predictions
-
-
 ```python
     # On single sample:
     prediction = trainer.predict_sample(sample)
@@ -182,9 +192,9 @@ Use ``LossOptimizerHandler`` to determine when to call:
 ```
 Or, you may choose to create your own ``AwesomeLossOptimizerHandler`` class by deriving from ``LossOptimizerHandlerBase``.
 
-``Trainer.train(num_epochs)`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided
+``Trainer.train(num_epochs)`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided.
 
-For example, say your machine can handle up to batch_size = 8, but you want to accumulate gradients for samples until you reach 32 samples before you backprop, then you can define your optimizer handler function, to pass it later to ``LossOptimizerHandler``:
+For example, say your machine can handle up to batch_size = 8, but you want to accumulate gradients until you reach 32 samples before you backprop, then you can define your optimizer handler function, to pass it later to ``LossOptimizerHandler``:
 ```python
     def my_optimizer_handler_closure(action):
         last_invocation_sample_count = 0 # closure state
@@ -207,7 +217,7 @@ And now, use it in ``LossOptimizerHandler`` callback :
 ```python
     LossOptimizerHandler(apply_on_phase=Phase.BATCH_END, 
                          apply_on_states=State.TRAIN,
-                         loss_handler=None, # use default loss handler
+                         loss_handler=None, # default loss handler will be used (calls loss.backward() every invocation)
                          optimizer_step_handler=my_optimizer_handler_closure(action='step'), 
                          optimizer_zero_grad_handler=my_optimizer_handler_closure(action='zero_grad')), 
 ```
@@ -240,25 +250,26 @@ is getting higher than the highest value so far.
 
 ```python
     ModelCheckPoint(checkpoint_dir, 
-                    checkpoint_file_name, 
-                    monitor_type=MonitorType.METRIC, 
-                    stats_type=StatsType.VAL, 
-                    monitor_mode=MonitorMode.MAX, 
+                    checkpoint_file_name,
+                    callback_monitor=CallbackMonitor(patience=None,
+                                                        monitor_type=MonitorType.METRIC, 
+                                                        stats_type=StatsType.VAL, 
+                                                        monitor_mode=MonitorMode.MAX,
+                                                        metric_name='my_metric'),
                     save_best_only=False, 
-                    metric_name='my_metric',
-                    save_full_trainer=True)
+                    save_full_trainer=True))
 ```
 
 ### EarlyStopping Callback
 Stops the trainer when a monitored loss/metric has stopped improving.
 For example, EarlyStopping that will monitor at the end of every epoch, and stop the trainer if the validation loss didn't improve (decrease) for the last 10 epochs.
 ```python
-    EarlyStopping(apply_on_phase=Phase.EPOCH_END, 
-                  apply_on_states=State.EXTERNAL,
-                  patience=10, 
-                  monitor_type=MonitorType.LOSS, 
-                  stats_type=StatsType.VAL, 
-                  monitor_mode=MonitorMode.MIN)
+EarlyStopping(apply_on_phase=Phase.EPOCH_END, 
+                apply_on_states=State.EXTERNAL,
+                callback_monitor=CallbackMonitor(patience=10, 
+                                                 monitor_type=MonitorType.LOSS, 
+                                                 stats_type=StatsType.VAL, 
+                                                 monitor_mode=MonitorMode.MIN))
 ```
 
 ### SchedulerStep Callback
@@ -287,9 +298,9 @@ Will export the loss and the metrics at a given phase and state, in a format tha
 
 
 ### CollectOutputs Callback
-In case you want to collect the outputs of any given state during training
+Use it in case you want to collect the outputs of any given state during training.
 
-CollectOutputs is automatically used when predicting your model to collect the predictions
+CollectOutputs is automatically used by ``Trainer`` to collect the predictions when calling one of the ``predict`` methods. 
 ```python
     CollectOutputs(apply_on_phase=Phase.BATCH_END, apply_on_states=State.VAL)
 ```
@@ -419,7 +430,6 @@ For example, a good practice is to use ``seed_all`` as early as possible in your
 So you can use them at your own will, more extensions are added from time to time.
 
 ## TODOS (more added frequently)
-* ModelCheckPoint to accept CallbackMonitor
 * Add Logger
 * Add support for multiple schedulers 
 * Add support for multiple losses

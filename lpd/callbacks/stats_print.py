@@ -80,7 +80,7 @@ class StatsPrint(CallbackBase):
     def _get_did_improved_colored(self, monitor_result):
         if monitor_result.has_improved():
             return self.GREEN_PRINT_COLOR + ' IMPROVED' + self.END_PRINT_COLOR
-        return ' '
+        return ''
 
     def __call__(self, callback_context: CallbackContext):
         c = callback_context #READABILITY 

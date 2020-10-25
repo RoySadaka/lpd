@@ -58,19 +58,26 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     callbacks = [   
                     LossOptimizerHandler(),
                     #ADDING ModelCheckPoint WITH save_full_trainer=True TO SAVE FULL TRAINER
-                    ModelCheckPoint(checkpoint_dir=save_to_dir, checkpoint_file_name=trainer_file_name, save_best_only=True, save_full_trainer=True),
+                    ModelCheckPoint(checkpoint_dir=save_to_dir, 
+                                    checkpoint_file_name=trainer_file_name, 
+                                    callback_monitor=CallbackMonitor(patience=None,
+                                                                     monitor_type=MonitorType.LOSS, 
+                                                                     stats_type=StatsType.VAL, 
+                                                                     monitor_mode=MonitorMode.MIN),
+                                    save_best_only=True, 
+                                    save_full_trainer=True),
                     SchedulerStep(),
                     # SINCE ACCURACY NEEDS TO GO UP AND INACCURACY NEEDS TO GO DOWN, LETS DEFINE CallbackMonitors for StatsPrint PER EACH METRIC
                     StatsPrint(train_metrics_monitors=[CallbackMonitor(patience=None, 
-                                                                    monitor_type=MonitorType.METRIC,
-                                                                    stats_type=StatsType.TRAIN,
-                                                                    monitor_mode=MonitorMode.MAX,
-                                                                    metric_name='Accuracy'),
-                                                    CallbackMonitor(patience=None, 
-                                                                    monitor_type=MonitorType.METRIC,
-                                                                    stats_type=StatsType.TRAIN,
-                                                                    monitor_mode=MonitorMode.MIN,
-                                                                    metric_name='InAccuracy')],
+                                                                       monitor_type=MonitorType.METRIC,
+                                                                       stats_type=StatsType.TRAIN,
+                                                                       monitor_mode=MonitorMode.MAX,
+                                                                       metric_name='Accuracy'),
+                                                       CallbackMonitor(patience=None, 
+                                                                       monitor_type=MonitorType.METRIC,
+                                                                       stats_type=StatsType.TRAIN,
+                                                                       monitor_mode=MonitorMode.MIN,
+                                                                       metric_name='InAccuracy')],
                     )
                 ]
 

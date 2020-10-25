@@ -7,7 +7,8 @@ class CallbackMonitor():
     """
     Will check if the desired metric improved with support for patience
     Agrs:
-        patience - int or None (will set to inf), track how many invocations without improvements
+        patience - int or None (will be set to inf) track how many epochs/iterations without improvements in monitoring
+                    (negative number will set to inf)
         monitor_type - e.g lpd.enums.MonitorType.LOSS
         stats_type - e.g lpd.enums.StatsType.VAL
         monitor_mode - e.g. lpd.enums.MonitorMode.MIN, min wothh check if the metric decreased, MAX will check for increase

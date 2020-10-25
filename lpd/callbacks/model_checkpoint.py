@@ -17,10 +17,7 @@ class ModelCheckPoint(CallbackBase):
             apply_on_states - see in CallbackBase
             checkpoint_dir - the folder to dave the model, if None was passed, will use current folder
             checkpoint_file_name - the name of the file that will be saved
-            monitor_type - e.g. lpd.enums.MonitorType.LOSS, what to monitor (see CallbackMonitor)
-            stats_type - e.g. lpd.enums.StatsType.VAL (see CallbackMonitor)
-            monitor_mode - e.g. lpd.enums.MonitorMode.MIN (see CallbackMonitor)
-            metric_name - name if lpd.enums.MonitorType.METRIC
+            callback_monitor - to monitor the loss/metric for saving checkpoint when improved
             save_best_only - if True, will override previous best model, else, will keep both
             verbose - 0=no print, 1=print
             round_values_on_print_to - see in CallbackBase
@@ -31,20 +28,19 @@ class ModelCheckPoint(CallbackBase):
                         apply_on_states: Union[State, List[State]]=State.EXTERNAL,
                         checkpoint_dir: str=None, 
                         checkpoint_file_name: str='checkpoint', 
-                        monitor_type: MonitorType=MonitorType.LOSS, 
-                        stats_type: StatsType=StatsType.VAL, 
-                        monitor_mode: MonitorMode=MonitorMode.MIN, 
-                        metric_name: str=None,
+                        callback_monitor: CallbackMonitor=None,
                         save_best_only: bool=False, 
                         verbose: int=1,
                         round_values_on_print_to: int=None,
                         save_full_trainer: bool=False):
         super(ModelCheckPoint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
-        self.checkpoint_dir = checkpoint_dir
-        if self.checkpoint_dir is None:
+        if checkpoint_dir is None:
             raise ValueError("[ModelCheckPoint] - checkpoint_dir was not provided")
+        self.checkpoint_dir = checkpoint_dir
         self.checkpoint_file_name = checkpoint_file_name
-        self.monitor = CallbackMonitor(None, monitor_type, stats_type, monitor_mode, metric_name)
+        if callback_monitor is None:
+            raise ValueError("[ModelCheckPoint] - callback_monitor was not provided")
+        self.monitor = callback_monitor
         self.save_best_only = save_best_only
         self.verbose = verbose  # VERBOSITY MODE, 0 OR 1.
         self.save_full_trainer = save_full_trainer

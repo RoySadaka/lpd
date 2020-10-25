@@ -5,7 +5,7 @@ import torch.optim as optim
 from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
-from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep, LossOptimizerHandler
+from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep, LossOptimizerHandler, CallbackMonitor
 from lpd.metrics import BinaryAccuracyWithLogits
 from lpd.extensions.custom_schedulers import DoNothingToLR
 import lpd.utils.torch_utils as tu
@@ -77,20 +77,27 @@ def get_trainer(config,
     
     loss_func = nn.BCEWithLogitsLoss().to(device)
 
-    metric_name_to_func = {"acc":BinaryAccuracyWithLogits()}
+    metric_name_to_func = {"Accuracy":BinaryAccuracyWithLogits()}
 
     callbacks = [   
                     LossOptimizerHandler(),
                     SchedulerStep(scheduler_parameters_func=lambda callback_context: callback_context.val_stats.get_loss()),
+                    
                     ModelCheckPoint(checkpoint_dir=checkpoint_dir, 
                                     checkpoint_file_name=checkpoint_file_name, 
-                                    monitor_type=MonitorType.LOSS, 
-                                    stats_type=StatsType.VAL, 
-                                    monitor_mode=MonitorMode.MIN,
+                                    callback_monitor=CallbackMonitor(patience=-1,
+                                                                     monitor_type=MonitorType.LOSS, 
+                                                                     stats_type=StatsType.VAL, 
+                                                                     monitor_mode=MonitorMode.MIN),
                                     save_best_only=True, 
                                     round_values_on_print_to=7), 
                     Tensorboard(summary_writer_dir=summary_writer_dir),
-                    EarlyStopping(apply_on_phase=Phase.EPOCH_END, apply_on_states=State.EXTERNAL, patience=config.EARLY_STOPPING_PATIENCE),
+                    EarlyStopping(apply_on_phase=Phase.EPOCH_END, 
+                                  apply_on_states=State.EXTERNAL,
+                                  callback_monitor=CallbackMonitor(patience=config.EARLY_STOPPING_PATIENCE, 
+                                                                    monitor_type=MonitorType.LOSS, 
+                                                                    stats_type=StatsType.VAL, 
+                                                                    monitor_mode=MonitorMode.MIN)),
                     StatsPrint(apply_on_phase=Phase.EPOCH_END, round_values_on_print_to=7) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
                 ]
 

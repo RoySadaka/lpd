@@ -10,26 +10,19 @@ class EarlyStopping(CallbackBase):
         Args:
             apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
-            patience - int or None (will be set to inf) track how many epochs/iterations without improvements in monitoring
-                       (negative number will set to inf)
-            monitor_type - e.g. lpd.enums.MonitorType.LOSS, what to monitor (see CallbackMonitor)
-            stats_type - e.g. lpd.enums.StatsType.VAL (see CallbackMonitor)
-            monitor_mode - e.g. lpd.enums.MonitorMode.MIN (see CallbackMonitor)
-            metric_name - name if lpd.enums.MonitorType.METRIC is being monitored
+            callback_monitor - to monitor the loss/metric and stop training when stopped improving
             verbose - 0 = no print, 1 = print all, 2 = print save only
     """
 
     def __init__(self, 
                     apply_on_phase: Phase=Phase.EPOCH_END, 
                     apply_on_states: Union[State, List[State]]=State.EXTERNAL,
-                    patience: int=0, 
-                    monitor_type: MonitorType=MonitorType.LOSS, 
-                    stats_type: StatsType=StatsType.VAL, 
-                    monitor_mode: MonitorMode=MonitorMode.MIN, 
-                    metric_name: Optional[str]=None,
+                    callback_monitor: CallbackMonitor=None,
                     verbose: int=1):
         super(EarlyStopping, self).__init__(apply_on_phase, apply_on_states)
-        self.monitor = CallbackMonitor(patience, monitor_type, stats_type, monitor_mode, metric_name)
+        if callback_monitor is None:
+            raise ValueError("[EarlyStopping] - callback_monitor was not provided")
+        self.monitor = callback_monitor
         self.verbose = verbose
 
     def __call__(self, callback_context: CallbackContext):

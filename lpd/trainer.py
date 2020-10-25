@@ -1,5 +1,6 @@
 import torch as T
 from tqdm import tqdm
+from lpd.metrics import MetricBase
 from lpd.callbacks import CallbackContext, CollectOutputs, LossOptimizerHandlerBase
 from lpd.enums import State, Phase
 from lpd.trainer_stats import TrainerStats
@@ -51,6 +52,7 @@ class Trainer():
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.metric_name_to_func = metric_name_to_func if metric_name_to_func else {}
+        self._validate_metric_name_to_func()
         self.train_data_loader = train_data_loader
         self.val_data_loader = val_data_loader
         self.train_steps = train_steps
@@ -76,6 +78,11 @@ class Trainer():
         self._stopped = False
         self._last_outputs = None
         self._total_num_epochs = 0
+
+    def _validate_metric_name_to_func(self):
+        for name,func in self.metric_name_to_func.items():
+            if not isinstance(func, MetricBase):
+                raise ValueError(f'[Trainer] - metric "{name}" is of type {type(func)}, expected {MetricBase}')
 
     def _traine_callbacks_validations(self):
         has_loss_optimizer_handler = False
