@@ -12,7 +12,7 @@ class Trainer():
 
         Args:
             model - your model (nn.Module)
-            device - the device to send the inputs to
+            device - the device to send the inputs/labels to
             loss_func - the model's loss function
             optimizer - the model's optimizer
             scheduler - the model's scheduler (make sure you add SchedulerStep to your callbacks),
@@ -25,13 +25,19 @@ class Trainer():
             val_steps - total number of steps (batches) before declaring the epoch as finished
             callbacks - list of lpd.callbacks to apply during the differrent training phases
                         callbacks will be executed by the order of the list 
-            name - just an identifier, in case you create multiple trainers
+            name - a friendly identifier
 
         Methods:
+            save_trainer - saving the full trainer state to a file
+            load_trainer - for creating a new Trainer instance from a saved Trainer checkpoint
             summary - will print information about the trainer and the model
             stop - will indicate this trainer to stop, e.g. from a callback
+            get_last_outputs - the last outputs fed to the model as numpy array
             train - this is the training loop, it will invoke the training and validation phases, as well as callbacks and maintain stats
             evaluate - will run a forward pass on the test data
+            predict_sample - make prediction on single sample
+            predict_batch - make prediction on single batch
+            predict_data_loader - make prediction on data loader (DataLoader/Iterable/Generator)
     """
 
     def __init__(self, model,
@@ -84,7 +90,7 @@ class Trainer():
             if not isinstance(func, MetricBase):
                 raise ValueError(f'[Trainer] - metric "{name}" is of type {type(func)}, expected {MetricBase}')
 
-    def _traine_callbacks_validations(self):
+    def _train_callbacks_validation(self):
         has_loss_optimizer_handler = False
         for cb in self.callbacks:
             if isinstance(cb, LossOptimizerHandlerBase):
@@ -360,8 +366,6 @@ class Trainer():
         print(f'Trainable params: {total_params_requires_grad}')
         print(f'Non-trainable params: {total_params_requires_grad-total_params}')
 
-        
-
     def stop(self):
         self._stopped = True
 
@@ -370,7 +374,7 @@ class Trainer():
 
     def train(self, num_epochs):
         self._total_num_epochs = self.epoch + num_epochs
-        self._traine_callbacks_validations()
+        self._train_callbacks_validation()
         self._stopped = False
         self.state = State.EXTERNAL
         self.phase = Phase.TRAIN_BEGIN

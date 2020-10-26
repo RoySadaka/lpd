@@ -37,6 +37,7 @@ class TestTrainer(unittest.TestCase):
         data_loader = eu.examples_data_generator(10, 10, 10)
         data_loader_steps = 100
 
+        # ASSERT BAD VALUE FOR metric_name_to_func
         self.assertRaises(ValueError, Trainer, model=model, 
                                                 device=device, 
                                                 loss_func=loss_func, 
@@ -50,6 +51,7 @@ class TestTrainer(unittest.TestCase):
                                                 callbacks=callbacks,
                                                 name='Trainer-Test')
 
+        # ASSERT GOOD VALUE FOR metric_name_to_func
         metric_name_to_func = {"acc":BinaryAccuracyWithLogits()}
         trainer = Trainer(model=model, 
                         device=device, 

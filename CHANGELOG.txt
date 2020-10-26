@@ -2,6 +2,13 @@ Change Log
 ==========
 
 
+0.2.8 (26/10/2020)
+-----------------
+* Added Predictor class !! predicting was never easier, see README for more details
+* Added example for train/save/load/predict using the new Predictor
+* Added unittests for predictor
+
+
 0.2.7 (25/10/2020)
 -----------------
 * Added trainer validation for metric_name_to_func

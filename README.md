@@ -97,6 +97,23 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ```
 
 ### Making predictions
+``Predictor`` class will help you generates output predictions from input samples.
+```python
+    predictor_from_trainer = Predictor(trainer.model, trainer.device)
+    predictions = predictor_from_trainer.predict_batch(batch)
+```
+
+``Predictor`` class can also be created from saved Trainer checkpoint
+```python
+    predictor_from_checkpoint = Predictor.from_checkpoint(checkpoint_dir,
+                                                          checkpoint_file_name,
+                                                          model, # nn.Module, weights will be loaded from checkpoint
+                                                          device)
+    prediction = predictor_from_checkpoint.predict_sample(sample)
+```
+
+
+Just to be fair, you can also predict directly from ``Trainer`` class 
 ```python
     # On single sample:
     prediction = trainer.predict_sample(sample)
@@ -123,13 +140,17 @@ Here are some examples
 
 
 ## Callbacks
-Some common callbacks are available under ``lpd.callbacks``.
+Will be used to perform actions at various stages.
 
-Notice that ``apply_on_phase`` (``lpd.enums.Phase``) will determine the execution phase,
+Some common callbacks are available under ``lpd.callbacks``, and you can also create your own, more detailes below.
+
+In a callback, ``apply_on_phase`` (``lpd.enums.Phase``) will determine the execution phase,
 
 and ``apply_on_states`` (``lpd.enums.State`` or ``list(lpd.enums.State)``) will determine the execution states
 
 These are the current available phases and states, more might be added in future releases
+
+### Training and Validation phases and states will behave as follow
 ```python
         State.EXTERNAL
         Phase.TRAIN_BEGIN
@@ -152,7 +173,7 @@ These are the current available phases and states, more might be added in future
         Phase.TRAIN_END
 ```
 
-Evaluation phases and states will behave as follow
+### Evaluation phases and states will behave as follow
 ```python
         State.EXTERNAL
         Phase.TEST_BEGIN
@@ -166,7 +187,7 @@ Evaluation phases and states will behave as follow
 ```
 
 
-Predict phases and states will behave as follow
+### Predict phases and states will behave as follow
 ```python
         State.EXTERNAL
         Phase.PREDICT_BEGIN
@@ -178,11 +199,12 @@ Predict phases and states will behave as follow
         State.EXTERNAL
         Phase.PREDICT_END
 ```
+Callbacks will be executed by the order of the list.
 
-With phases and states, you have full control over the timing of your callbacks,
+With phases and states, you have full control over the timing of your callbacks.
 
 ### LossOptimizerHandler Callback
-Derives from ``LossOptimizerHandlerBase``, probably the most important callback 😎 
+Derives from ``LossOptimizerHandlerBase``, probably the most important callback during training 😎 
 
 Use ``LossOptimizerHandler`` to determine when to call: 
 ```python
@@ -194,7 +216,9 @@ Or, you may choose to create your own ``AwesomeLossOptimizerHandler`` class by d
 
 ``Trainer.train(num_epochs)`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided.
 
-For example, say your machine can handle up to batch_size = 8, but you want to accumulate gradients until you reach 32 samples before you backprop, then you can define your optimizer handler function, to pass it later to ``LossOptimizerHandler``:
+Let's see an example of customizing ``LossOptimizerHandler``
+
+Say your machine can handle up to batch_size = 8, but you want to accumulate gradients until you reach 32 samples before you backprop, then you can define your optimizer handler function, to pass it later to ``LossOptimizerHandler``:
 ```python
     def my_optimizer_handler_closure(action):
         last_invocation_sample_count = 0 # closure state
@@ -242,6 +266,7 @@ Output example:
 
 ### ModelCheckPoint Callback
 Saving a checkpoint when a monitored loss/metric has improved.
+
 The callback will save the model, optimizer, scheduler, and epoch number.
 You can also configure it to save Full Trainer.
 
@@ -249,27 +274,29 @@ For example, ModelCheckPoint that will save a new *full trainer checkpoint* ever
 is getting higher than the highest value so far.
 
 ```python
-    ModelCheckPoint(checkpoint_dir, 
+    ModelCheckPoint(Phase.EPOCH_END, 
+                    State.EXTERNAL,
+                    checkpoint_dir, 
                     checkpoint_file_name,
-                    callback_monitor=CallbackMonitor(patience=None,
-                                                        monitor_type=MonitorType.METRIC, 
-                                                        stats_type=StatsType.VAL, 
-                                                        monitor_mode=MonitorMode.MAX,
-                                                        metric_name='my_metric'),
+                    CallbackMonitor(patience=None,
+                                    monitor_type=MonitorType.METRIC, 
+                                    stats_type=StatsType.VAL, 
+                                    monitor_mode=MonitorMode.MAX,
+                                    metric_name='my_metric'),
                     save_best_only=False, 
-                    save_full_trainer=True))
+                    save_full_trainer=True)
 ```
 
 ### EarlyStopping Callback
 Stops the trainer when a monitored loss/metric has stopped improving.
 For example, EarlyStopping that will monitor at the end of every epoch, and stop the trainer if the validation loss didn't improve (decrease) for the last 10 epochs.
 ```python
-EarlyStopping(apply_on_phase=Phase.EPOCH_END, 
-                apply_on_states=State.EXTERNAL,
-                callback_monitor=CallbackMonitor(patience=10, 
-                                                 monitor_type=MonitorType.LOSS, 
-                                                 stats_type=StatsType.VAL, 
-                                                 monitor_mode=MonitorMode.MIN))
+EarlyStopping(Phase.EPOCH_END, 
+              State.EXTERNAL,
+              CallbackMonitor(patience=10, 
+                              monitor_type=MonitorType.LOSS, 
+                              stats_type=StatsType.VAL, 
+                              monitor_mode=MonitorMode.MIN))
 ```
 
 ### SchedulerStep Callback
@@ -281,10 +308,6 @@ For example, SchedulerStep callback to invoke ``scheduler.step()`` at the end of
     from lpd.callbacks import SchedulerStep
     from lpd.enums import Phase, State
     SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN)
-```
-In case you need it on validation state as well, pass a list for ``apply_on_states`` like so:
-```python
-    SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=[State.TRAIN, State.VAL])
 ```
 
 
@@ -298,7 +321,7 @@ Will export the loss and the metrics at a given phase and state, in a format tha
 
 
 ### CollectOutputs Callback
-Use it in case you want to collect the outputs of any given state during training.
+Will collect model's outputs for the defined states.
 
 CollectOutputs is automatically used by ``Trainer`` to collect the predictions when calling one of the ``predict`` methods. 
 ```python

@@ -7,7 +7,7 @@ from typing import Union, List, Optional, Dict
 class CollectOutputs(CallbackBase):
     """
         This callback will collect outputs per each state, (it is currently used in trainer.predict() method.)
-        It will collect the numpy outputs in the defined states to a dictionary.
+        It will collect the numpy outputs in the defined states to a dictionary (state->outputs)
 
         Methods:
             get_outputs_for_state - for a given state, returns the collected outputs

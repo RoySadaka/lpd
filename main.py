@@ -1,5 +1,6 @@
 from  tests.test_metrics import TestMetrics
 from  tests.test_trainer import TestTrainer
+from  tests.test_predictor import TestPredictor
 import unittest
 
 import examples.multiple_inputs.train as multiple_inputs_example
@@ -10,6 +11,7 @@ import examples.save_and_load.train as save_and_load_example
 import examples.keras_decay_scheduler.train as keras_decay_scheduler_example
 import examples.accumulate_grads.train as accumulate_grads_example
 import examples.train_evaluate_predict.train as train_evaluate_predict_example
+import examples.predictor.train_save_load_predict as train_save_load_predict_example
 
 # EXAMPLES
 basic_example.run()
@@ -20,6 +22,7 @@ save_and_load_example.run()
 keras_decay_scheduler_example.run()
 accumulate_grads_example.run()
 train_evaluate_predict_example.run()
+train_save_load_predict_example.run()
 print('----------------------------------------------------------------------')
 print('Ran all examples')
 
