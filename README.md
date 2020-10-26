@@ -19,12 +19,10 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.2.7-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added ``trainer`` validation for ``metric_name_to_func``
-* ``ModelCheckpoint`` args changed to accept ``CallbackMonitor``
-* ``EarlyStopping`` args changed to accept ``CallbackMonitor``
-* Adjusted examples and tests
-* Added more unittests
+<b>[v0.2.8-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added Predictor class !! predicting was never easier, see Predicting section for more details
+* Added example for train/save/load/predict using the new Predictor
+* Added unittests for predictor
 
 
 ## Usage
