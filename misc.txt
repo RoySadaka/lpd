@@ -1,4 +1,12 @@
-Build pypi package cmd:
->> python setup.py sdist
-Publish pypi package cmd:
->> twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+Steps:
+1) Run tests and examples
+2) Update Readme with new version
+3) Update Changelog
+4) Update setup
+5) Push
+6) Github Release
+7) PyPi release 
+    Build pypi package cmd:
+    >> python setup.py sdist
+    Publish pypi package cmd:
+    >> twine upload --repository-url https://upload.pypi.org/legacy/ dist/*

@@ -2,6 +2,12 @@ Change Log
 ==========
 
 
+0.2.81 (27/10/2020)
+-----------------
+* Minor release
+* Metrics optimizations
+
+
 0.2.8 (26/10/2020)
 -----------------
 * Added Predictor class !! predicting was never easier, see README for more details

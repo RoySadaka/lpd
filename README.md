@@ -19,10 +19,11 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.2.8-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+<b>[v0.2.81-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
 * Added Predictor class !! predicting was never easier, see Predicting section for more details
 * Added example for train/save/load/predict using the new Predictor
 * Added unittests for predictor
+* Metrics optimizations
 
 
 ## Usage
@@ -101,7 +102,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     predictions = predictor_from_trainer.predict_batch(batch)
 ```
 
-``Predictor`` class can also be created from saved Trainer checkpoint
+``Predictor`` class can also be created from saved ``Trainer`` checkpoint
 ```python
     predictor_from_checkpoint = Predictor.from_checkpoint(checkpoint_dir,
                                                           checkpoint_file_name,
