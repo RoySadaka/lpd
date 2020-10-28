@@ -19,7 +19,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.2.9-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+<b>[v0.2.90-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
 * Added verbosity support in Trainer.train(verbose=1) and Trainer.evaluate(verbose=1)
 * StatsPrint validation bug fix
 * Added unittest for StatsPrint validation
