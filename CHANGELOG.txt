@@ -2,6 +2,13 @@ Change Log
 ==========
 
 
+0.2.9 (28/10/2020)
+-----------------
+* Added verbosity support in Trainer.train(verbose=1) and Trainer.evaluate(verbose=1)
+* StatsPrint validation bug fix
+* Added unittest for StatsPrint validation
+
+
 0.2.81 (27/10/2020)
 -----------------
 * Minor release

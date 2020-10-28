@@ -56,7 +56,7 @@ class TestPredictor(unittest.TestCase):
         # PREDICT BEFORE TRAIN
         sample_prediction_before_train = trainer.predict_sample(sample)
 
-        trainer.train(num_epochs)
+        trainer.train(num_epochs, verbose=0)
         
         # PREDICT AFTER TRAIN
         sample_prediction_from_trainer = trainer.predict_sample(sample)

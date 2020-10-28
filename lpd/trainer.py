@@ -125,17 +125,37 @@ class Trainer():
         #SINGLE INPUT
         return [inputs.to(self.device)]
 
-    def _get_tqdm_description(self, loop, stats):
+    def _get_epoch_description(self):
         if self.state == State.TEST or self.state == State.PREDICT:
             desc = f'[{self.state}]'
         elif self.state == State.VAL:
             desc = f'[Val   epoch {self.epoch}/{self._total_num_epochs}]'
         else: #TRAIN
             desc = f'[Train epoch {self.epoch}/{self._total_num_epochs}]'
+        return desc
+
+    def _tqdm_description(self, loop, stats):
+        desc = self._get_epoch_description()
 
         loop.set_description(desc)
         if self.state != State.PREDICT:
-            loop.set_postfix(loss=stats.get_loss(), metrics=stats.get_metrics())
+            metrics = stats.get_metrics()
+            if metrics:
+                loop.set_postfix(loss=stats.get_loss(), metrics=metrics)
+            else:
+                loop.set_postfix(loss=stats.get_loss())
+            
+    def _print_verbos_2(self, stats, verbose):
+        if verbose != 2:
+            return
+        desc = self._get_epoch_description()
+        loss=stats.get_loss()
+        metrics=stats.get_metrics()
+        if metrics:
+            metrics_str = f', metrics={metrics}'
+        else:
+            metrics_str = ''
+        print(f'{desc}, loss={loss}{metrics_str}')
 
     def _prepare_next_batch(self, batch):
         if self.state == State.PREDICT:
@@ -144,9 +164,9 @@ class Trainer():
             inputs,labels = batch
         return inputs,labels
 
-    def _fwd_pass_base(self, data_loader, steps, state_handler, stats, loss_f):
+    def _fwd_pass_base(self, data_loader, steps, state_handler, stats, loss_f, verbose):
         stats.reset()
-        loop = tqdm(data_loader, total=steps-1)
+        loop = tqdm(data_loader, total=steps-1, disable=verbose-1) #verbose-1 maps 0,2=>True, 1=>False
         self.sample_count_in_epoch = 0
         self.iteration_in_epoch = 0
         for batch in loop:
@@ -169,7 +189,7 @@ class Trainer():
             self.phase = Phase.BATCH_END
             self._invoke_callbacks()
 
-            self._get_tqdm_description(loop, stats)
+            self._tqdm_description(loop, stats)
 
             if self._stopped:
                 break
@@ -187,9 +207,10 @@ class Trainer():
                                 predict_steps, 
                                 self._predict_handler, 
                                 stats=TrainerStats({}), # NO STATS
-                                loss_f=lambda outputs, y: T.Tensor([0])) # DO NOTHING LOSS
+                                loss_f=lambda outputs, y: T.Tensor([0]), # DO NOTHING LOSS
+                                verbose=0) 
 
-    def _fwd_pass_test(self, test_data_loader, test_steps):
+    def _fwd_pass_test(self, test_data_loader, test_steps, verbose):
         if self._stopped:
             return
             
@@ -199,9 +220,10 @@ class Trainer():
                                 test_steps, 
                                 self._test_handler, 
                                 self.test_stats, 
-                                loss_f=self.loss_func)
+                                loss_f=self.loss_func,
+                                verbose=verbose)
 
-    def _fwd_pass_val(self):
+    def _fwd_pass_val(self, verbose):
         if self._stopped or self.val_data_loader is None or self.val_steps == 0:
             return
 
@@ -211,9 +233,10 @@ class Trainer():
                                 self.val_steps, 
                                 self._val_handler, 
                                 self.val_stats, 
-                                loss_f=self.loss_func)
+                                loss_f=self.loss_func,
+                                verbose=verbose)
 
-    def _fwd_pass_train(self):
+    def _fwd_pass_train(self, verbose):
         if self._stopped:
             return
             
@@ -222,7 +245,10 @@ class Trainer():
                             self.train_steps, 
                             self._train_handler, 
                             self.train_stats, 
-                            loss_f=self.loss_func)
+                            loss_f=self.loss_func,
+                            verbose=verbose)
+
+        self._print_verbos_2(self.train_stats, verbose)
 
     def _invoke_callbacks(self):
         if self._stopped:
@@ -372,7 +398,11 @@ class Trainer():
     def get_last_outputs(self):
         return self._last_outputs.data.numpy()
 
-    def train(self, num_epochs):
+    def train(self, num_epochs, verbose=1):
+        """
+            num_epochs - amount of epochs to run
+            verbose: 0 = no progress bar, 1 = progress bar, 2 = one line per epoch
+        """
         self._total_num_epochs = self.epoch + num_epochs
         self._train_callbacks_validation()
         self._stopped = False
@@ -387,9 +417,9 @@ class Trainer():
             self._invoke_callbacks()
 
             self.state = State.TRAIN
-            self._fwd_pass_train()
+            self._fwd_pass_train(verbose)
             self.state = State.VAL
-            self._fwd_pass_val()
+            self._fwd_pass_val(verbose)
             self.state = State.EXTERNAL
 
             self.phase = Phase.EPOCH_END
@@ -402,12 +432,15 @@ class Trainer():
         self._invoke_callbacks()
         self.phase = Phase.IDLE
 
-    def evaluate(self, test_data_loader, test_steps):
+    def evaluate(self, test_data_loader, test_steps, verbose=1):
+        """
+            verbose: 0 = no progress bar, 1 = progress bar, 2 = one line per epoch
+        """
         self._stopped = False
         self.phase = Phase.TEST_BEGIN
         self._invoke_callbacks()
         self.state = State.TEST
-        self._fwd_pass_test(test_data_loader, test_steps)
+        self._fwd_pass_test(test_data_loader, test_steps, verbose)
         self.state = State.EXTERNAL
         self.phase = Phase.TEST_END
         self._invoke_callbacks()

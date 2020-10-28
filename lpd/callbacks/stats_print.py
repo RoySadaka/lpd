@@ -43,7 +43,7 @@ class StatsPrint(CallbackBase):
         if self.train_metrics_monitors is not None:
             for m in self.train_metrics_monitors:
                 if m.stats_type != StatsType.TRAIN:
-                    raise ValueError(f'[StatsPrint] - train_metrics_monitors contains monitor with stats_Type {m.stats_Type}, expected {StatsType.TRAIN}')
+                    raise ValueError(f'[StatsPrint] - train_metrics_monitors contains monitor with stats_type {m.stats_type}, expected {StatsType.TRAIN}')
             
     def _ensure_metrics_created(self, callback_context: CallbackContext):
         if self.train_metrics_monitors is not None and self.val_metric_monitors is not None:

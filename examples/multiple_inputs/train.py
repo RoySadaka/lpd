@@ -1,4 +1,4 @@
-import numpy as np
+import random
 import torch as T
 import os 
 from .config import Config
@@ -44,13 +44,15 @@ def data_generator(config, num_embeddings, num_cycles=1e9):
     # X3 IS SINGLE EMBEDDING INDEX          (LIKE A SINGLE WORD)
     # y IS 0/1 - SO ITS LIKE A BINARY CLASSIFICATION CHALLENGE
 
+    emb_idxs = list(range(num_embeddings))
+
     seq_length_to_samples = {}
     for x1_seq_len in range(4, 20):  # X1, SEQ LEN WILL RANGE FROM 4-20, SO NOT ALL SEQUENCES ARE OF THE SAME LENGHT
 
         # ALL THE SEQUENCES OF LEN x1_seq_len WILL SHARE THE SAME ENTRY IN THE seq_length_to_samples DICTIONARY
         seq_length_to_samples[x1_seq_len] = []
         for s in range(1, 100):  # 100 SAMPLES PER EACH LEN
-            choice = np.random.choice(num_embeddings, x1_seq_len + 2)
+            choice = random.sample(emb_idxs, x1_seq_len + 2)
             x1 = choice[:-2]    # TAKE ALL EMBEDDING INDICES BUT THE LAST 2
             x2 = choice[-2]     # TAKE THE SECOND TO LAST EMBEDDING INDEX
             x3 = choice[-1]     # TAKE THE LAST EMBEDDING INDEX

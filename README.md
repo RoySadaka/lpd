@@ -19,11 +19,10 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.2.81-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added Predictor class !! predicting was never easier, see Predicting section for more details
-* Added example for train/save/load/predict using the new Predictor
-* Added unittests for predictor
-* Metrics optimizations
+<b>[v0.2.9-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added verbosity support in Trainer.train(verbose=1) and Trainer.evaluate(verbose=1)
+* StatsPrint validation bug fix
+* Added unittest for StatsPrint validation
 
 
 ## Usage
@@ -44,7 +43,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     seed_all(seed=42) # because its the answer to life and the universe
 
     device = get_gpu_device_if_available() # with fallback to CPU if GPU not avilable
-    model = MyModel(config, num_embeddings).to(device) # this is your model class, and its being sent to the relevant device
+    model = MyModel().to(device) # this is your model class, and its being sent to the relevant device
     optimizer = torch.optim.SGD(params=model.parameters())
     scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) # decay scheduler using keras formula 
     loss_func = torch.nn.BCEWithLogitsLoss().to(device) # this is your loss class, already sent to the relevant device

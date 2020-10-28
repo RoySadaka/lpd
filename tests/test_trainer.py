@@ -7,7 +7,7 @@ from lpd.trainer import Trainer
 from lpd.callbacks import StatsPrint, SchedulerStep, LossOptimizerHandler, ModelCheckPoint, CallbackMonitor
 from lpd.extensions.custom_schedulers import KerasDecay
 from lpd.enums import Phase, State, MonitorType, StatsType, MonitorMode
-from lpd.metrics import BinaryAccuracyWithLogits
+from lpd.metrics import BinaryAccuracyWithLogits, CategoricalAccuracyWithLogits
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 import examples.utils as eu
@@ -75,13 +75,13 @@ class TestTrainer(unittest.TestCase):
 
         model = eu.get_basic_model(10, 10, 10).to(device)
 
-        loss_func = nn.BCEWithLogitsLoss().to(device)
+        loss_func = nn.CrossEntropyLoss().to(device)
     
         optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
         scheduler = KerasDecay(optimizer, 0.0001, last_step=-1)
         
-        metric_name_to_func = {"acc":BinaryAccuracyWithLogits()}
+        metric_name_to_func = {"acc":CategoricalAccuracyWithLogits()}
 
         callbacks = [   
                         LossOptimizerHandler(),
@@ -92,13 +92,14 @@ class TestTrainer(unittest.TestCase):
                                                                          stats_type=StatsType.VAL, 
                                                                          monitor_mode=MonitorMode.MIN),
                                         save_best_only=False, 
-                                        save_full_trainer=True),
+                                        save_full_trainer=True,
+                                        verbose=0),
                         SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN),
                         StatsPrint()
                     ]
 
         
-        data_loader = eu.examples_data_generator(10, 10, 10)
+        data_loader = eu.examples_data_generator(10, 10, 10, category_out=True)
         data_loader_steps = 100
         num_epochs = 5
 
@@ -115,7 +116,7 @@ class TestTrainer(unittest.TestCase):
                         callbacks=callbacks,
                         name='Trainer-Test')
         
-        trainer.train(num_epochs)
+        trainer.train(num_epochs, verbose=0)
 
         loaded_trainer = Trainer.load_trainer(dir_path=save_to_dir,
                                             file_name=trainer_file_name + f'_epoch_{num_epochs}',
@@ -154,7 +155,8 @@ class TestTrainer(unittest.TestCase):
         data_loader = eu.examples_data_generator(10, 10, 10)
         data_loader_steps = 100
         num_epochs = 5
-
+        verbose = 0
+        
         trainer = Trainer(model=model, 
                         device=device, 
                         loss_func=loss_func, 
@@ -168,7 +170,7 @@ class TestTrainer(unittest.TestCase):
                         callbacks=callbacks,
                         name='Trainer-Test')
         
-        self.assertRaises(ValueError, trainer.train, num_epochs)
+        self.assertRaises(ValueError, trainer.train, num_epochs, verbose)
 
         trainer.callbacks.append(LossOptimizerHandler())
-        trainer.train(num_epochs)
+        trainer.train(num_epochs, verbose=0)
