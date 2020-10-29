@@ -33,7 +33,6 @@ class Trainer():
             load_trainer - for creating a new Trainer instance from a saved Trainer checkpoint
             summary - will print information about the trainer and the model
             stop - will indicate this trainer to stop, e.g. from a callback
-            get_last_outputs - the last outputs fed to the model as numpy array
             train - this is the training loop, it will invoke the training and validation phases, as well as callbacks and maintain stats
             evaluate - will run a forward pass on the test data
             predict_sample - make prediction on single sample
@@ -396,9 +395,6 @@ class Trainer():
 
     def stop(self):
         self._stopped = True
-
-    def get_last_outputs(self):
-        return self._last_outputs.data.numpy()
 
     def train(self, num_epochs, verbose=1):
         """

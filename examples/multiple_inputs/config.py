@@ -8,7 +8,7 @@ class Config():
 
 		self.BATCH_SIZE = 512
 		self.NUM_EPOCHS = 100
-		self.EARLY_STOPPING_PATIENCE = 3
+		self.EARLY_STOPPING_PATIENCE = 2
 
 		self.EMBEDDINGS_SIZE = 8										
 

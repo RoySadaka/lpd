@@ -24,7 +24,7 @@ class CollectOutputs(CallbackBase):
         self.state_to_outputs = {}
 
     def get_outputs_for_state(self, state: State):
-        return self.state_to_outputs[state]
+        return [data.cpu().numpy() for data in self.state_to_outputs[state]]
 
     def __call__(self, callback_context: CallbackContext):
         c = callback_context #READABILITY DOWN THE ROAD
@@ -35,5 +35,5 @@ class CollectOutputs(CallbackBase):
             if state not in self.state_to_outputs:
                 self.state_to_outputs[state] = []
 
-            last_outputs = c.trainer.get_last_outputs()
+            last_outputs = c.trainer._last_outputs.data
             self.state_to_outputs[state].append(last_outputs)

@@ -19,13 +19,16 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.3.1-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+<b>[v0.3.2-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
 * Added metric ``TopKCategoricalAccuracy``
 * Added ``Predictor.from_trainer()`` method to ``Predictor`` class
+* Fixed CollectOutputs callbacks on GPU
 * Fixed loading predictor ``from_checkpoint`` if the checkpoint is not Full Trainer
 * Fixed loading ``Trainer``/``Predictor`` on CPU from GPU checkpoint 
-* Fixed saving/loading is scheduler is None 
+* Fixed saving/loading if scheduler is None 
 * Added unittest for ``TopKCategoricalAccuracy``
+* Pipfile explicit versioning
+
 
 
 ## Usage

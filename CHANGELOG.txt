@@ -2,10 +2,16 @@ Change Log
 ==========
 
 
+0.3.2 (29/10/2020)
+-----------------
+* Fixed CollectOutputs callbacks on GPU
+* Pipfile explicit versioning
+
+
 0.3.1 (29/10/2020)
 -----------------
-* Fixed loading ``Trainer``/``Predictor`` on CPU from GPU checkpoint 
-* Fixed saving/loading is scheduler is None 
+* Fixed loading Trainer & Predictor on CPU from GPU checkpoint 
+* Fixed saving/loading if scheduler is None 
 
 
 0.3.0 (29/10/2020)
