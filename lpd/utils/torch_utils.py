@@ -39,10 +39,10 @@ def save_checkpoint(dir_path, file_name, trainer, msg='', verbose=1):
                   }
     T.save(checkpoint, full_path)
 
-def load_checkpoint(checkpoint_filepath, model, optimizer, scheduler, verbose=1):
+def load_checkpoint(checkpoint_filepath, model, optimizer, scheduler, device, verbose=1):
     if verbose:
         print('Loading checkpoint')
-    checkpoint = T.load(checkpoint_filepath)
+    checkpoint = T.load(checkpoint_filepath, map_location=device)
     model.load_state_dict(checkpoint['model'])
     optimizer.load_state_dict(checkpoint['optimizer'])
     scheduler.load_state_dict(checkpoint['scheduler'])

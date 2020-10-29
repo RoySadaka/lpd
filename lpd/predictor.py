@@ -55,7 +55,7 @@ class Predictor():
                         model, 
                         device):
         full_path = dir_path + file_name
-        checkpoint = T.load(full_path)
+        checkpoint = T.load(full_path, map_location=device)
         print(f'[Predictor] - Loading from {full_path}')
         model.load_state_dict(checkpoint['model'])
 

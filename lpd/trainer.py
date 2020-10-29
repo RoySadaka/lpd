@@ -5,6 +5,7 @@ from lpd.callbacks import CallbackContext, CollectOutputs, LossOptimizerHandlerB
 from lpd.enums import State, Phase
 from lpd.trainer_stats import TrainerStats
 import lpd.utils.file_utils as fu
+from lpd.extensions.custom_schedulers import DoNothingToLR
 
 class Trainer():
     """
@@ -56,7 +57,7 @@ class Trainer():
         self.model = model
         self.loss_func = loss_func
         self.optimizer = optimizer
-        self.scheduler = scheduler
+        self.scheduler = scheduler if scheduler else DoNothingToLR()
         self.metric_name_to_func = metric_name_to_func if metric_name_to_func else {}
         self._validate_metric_name_to_func()
         self.train_data_loader = train_data_loader
@@ -329,11 +330,12 @@ class Trainer():
                      train_steps,
                      val_steps):
         full_path = dir_path + file_name
-        checkpoint = T.load(full_path)
+        checkpoint = T.load(full_path, map_location=device)
         print(f'[Trainer] - Loading from {full_path}')
         model.load_state_dict(checkpoint['model'])
         loss_func.load_state_dict(checkpoint['loss_func'])
         optimizer.load_state_dict(checkpoint['optimizer'])
+        scheduler = scheduler if scheduler else DoNothingToLR()
         scheduler.load_state_dict(checkpoint['scheduler'])
 
         trainer = Trainer(model=model, 
