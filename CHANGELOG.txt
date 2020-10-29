@@ -2,6 +2,14 @@ Change Log
 ==========
 
 
+0.3.0 (29/10/2020)
+-----------------
+* Added metric TopKCategoricalAccuracy
+* Added Predictor.from_trainer() method to Predictor class
+* Fixed loading predictor from_checkpoint if the checkpoint is not Full Trainer
+* Added unittest for TopKCategoricalAccuracy
+
+
 0.2.90 (28/10/2020)
 -----------------
 * Added verbosity support in Trainer.train(verbose=1) and Trainer.evaluate(verbose=1)

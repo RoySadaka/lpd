@@ -5,8 +5,9 @@ import torch.optim as optim
 import torch.nn as nn
 from lpd.trainer import Trainer
 from lpd.predictor import Predictor
-from lpd.callbacks import LossOptimizerHandler
+from lpd.callbacks import LossOptimizerHandler, ModelCheckPoint, CallbackMonitor
 from lpd.metrics import BinaryAccuracyWithLogits
+from lpd.enums import MonitorType, MonitorMode, StatsType
 import lpd.utils.torch_utils as tu
 import examples.utils as eu
 
@@ -15,6 +16,7 @@ class TestPredictor(unittest.TestCase):
     def test_save_and_predict(self):
 
         save_to_dir = os.path.dirname(__file__) + '/trainer_checkpoint/'
+        checkpoint_file_name = 'checkpoint'
         trainer_file_name = 'trainer'
 
         device = tu.get_gpu_device_if_available()
@@ -31,6 +33,14 @@ class TestPredictor(unittest.TestCase):
 
         callbacks = [   
                         LossOptimizerHandler(),
+                        ModelCheckPoint(checkpoint_dir=save_to_dir, 
+                                        checkpoint_file_name=checkpoint_file_name, 
+                                        callback_monitor=CallbackMonitor(patience=-1,
+                                                                        monitor_type=MonitorType.LOSS, 
+                                                                        stats_type=StatsType.VAL, 
+                                                                        monitor_mode=MonitorMode.MIN),
+                                        save_best_only=True, 
+                                        save_full_trainer=False), 
                     ]
 
         data_loader = eu.examples_data_generator(10, 10, 10)
@@ -64,9 +74,10 @@ class TestPredictor(unittest.TestCase):
         # SAVE THE TRAINER
         trainer.save_trainer(save_to_dir, trainer_file_name)
 
-
+        #-----------------------------------------------#
         # CREATE PREDICTOR FROM CURRENT TRAINER
-        predictor_from_trainer = Predictor(trainer.model, trainer.device)
+        #-----------------------------------------------#
+        predictor_from_trainer = Predictor.from_trainer(trainer)
 
         # PREDICT FROM PREDICTOR
         sample_prediction_from_predictor = predictor_from_trainer.predict_sample(sample)
@@ -75,7 +86,28 @@ class TestPredictor(unittest.TestCase):
         self.assertTrue((sample_prediction_from_predictor==sample_prediction_from_trainer).all())
 
 
+
+        #-----------------------------------------------#
+        # LOAD MODEL CHECKPOINT AS NEW PREDICTOR
+        #-----------------------------------------------#
+        fresh_device = tu.get_gpu_device_if_available()
+        fresh_model = eu.get_basic_model(10, 10, 10).to(fresh_device)
+        loaded_predictor = Predictor.from_checkpoint(save_to_dir,
+                                                     checkpoint_file_name+'_best_only',
+                                                     fresh_model, 
+                                                     fresh_device)
+
+        # PREDICT AFTER LOAD
+        sample_prediction_from_loaded_predictor = loaded_predictor.predict_sample(sample)
+
+        self.assertFalse((sample_prediction_before_train==sample_prediction_from_trainer).all())
+        self.assertTrue((sample_prediction_from_loaded_predictor==sample_prediction_from_trainer).all())
+
+
+
+        #-----------------------------------------------#
         # LOAD TRAINER CHECKPOINT AS NEW PREDICTOR
+        #-----------------------------------------------#
         fresh_device = tu.get_gpu_device_if_available()
         fresh_model = eu.get_basic_model(10, 10, 10).to(fresh_device)
         loaded_predictor = Predictor.from_checkpoint(save_to_dir,

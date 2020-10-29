@@ -14,12 +14,12 @@ class Predictor():
             name - a friendly identifier
 
         Methods:
+            from_trainer - for creating a new Predictor instance from given Trainer
             from_checkpoint - for creating a new Predictor instance from a saved Trainer checkpoint
             predict_sample - make prediction on single sample
             predict_batch - make prediction on single batch
             predict_data_loader - make prediction on data loader (DataLoader/Iterable/Generator)
     """
-
 
     def __init__(self, model,
                        device,
@@ -39,6 +39,17 @@ class Predictor():
                              name=name)
 
     @staticmethod
+    def from_trainer(trainer):
+        print(f'[Predictor] - Loading from trainer {trainer.name}')
+
+        predictor = Predictor(model=trainer.model, 
+                              device=trainer.device, 
+                              callbacks=trainer.callbacks,
+                              name=f'Predictor-for-Trainer-{trainer.name}')
+
+        return predictor
+
+    @staticmethod
     def from_checkpoint(dir_path,
                         file_name,
                         model, 
@@ -48,10 +59,18 @@ class Predictor():
         print(f'[Predictor] - Loading from {full_path}')
         model.load_state_dict(checkpoint['model'])
 
+        callbacks = None
+        if 'callbacks' in checkpoint:
+            callbacks = checkpoint['callbacks']
+
+        name = None
+        if 'name' in checkpoint:
+            name = checkpoint['name']
+            
         predictor = Predictor(model=model, 
                               device=device, 
-                              callbacks=checkpoint['callbacks'],
-                              name=checkpoint['name'])
+                              callbacks=callbacks,
+                              name=name)
 
         return predictor
 

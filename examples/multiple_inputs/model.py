@@ -18,7 +18,7 @@ class TestModel(nn.Module):
         self.num_embeddings = num_embeddings
 
         #LAYERS
-        self.embedding_layer = nn.Embedding(num_embeddings=num_embeddings + config.NUM_RESERVED_EMBEDDINGS, 
+        self.embedding_layer = nn.Embedding(num_embeddings=num_embeddings, 
                                             embedding_dim=config.EMBEDDINGS_SIZE)
         nn.init.uniform_(self.embedding_layer.weight, a=-0.05, b=0.05) # I PREFER THE INIT THAT TensorFlow DO FOR Embedding
 

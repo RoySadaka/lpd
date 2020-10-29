@@ -19,10 +19,11 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.2.90-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added verbosity support in Trainer.train(verbose=1) and Trainer.evaluate(verbose=1)
-* StatsPrint validation bug fix
-* Added unittest for StatsPrint validation
+<b>[v0.3.0-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added metric ``TopKCategoricalAccuracy``
+* Added ``Predictor.from_trainer()`` method to ``Predictor`` class
+* Fixed loading predictor ``from_checkpoint`` if the checkpoint is not Full Trainer
+* Added unittest for ``TopKCategoricalAccuracy``
 
 
 ## Usage
@@ -95,13 +96,15 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ```
 
 ### Making predictions
-``Predictor`` class will help you generates output predictions from input samples.
+``Predictor`` class will help generate output predictions from input samples.
+
+``Predictor`` class can be created from ``Trainer``
 ```python
-    predictor_from_trainer = Predictor(trainer.model, trainer.device)
+    predictor_from_trainer = Predictor.from_trainer(trainer)
     predictions = predictor_from_trainer.predict_batch(batch)
 ```
 
-``Predictor`` class can also be created from saved ``Trainer`` checkpoint
+``Predictor`` class can also be created from saved checkpoint
 ```python
     predictor_from_checkpoint = Predictor.from_checkpoint(checkpoint_dir,
                                                           checkpoint_file_name,
@@ -109,7 +112,14 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
                                                           device)
     prediction = predictor_from_checkpoint.predict_sample(sample)
 ```
-
+Lastly, ``Predictor`` class can be initialized explicitly
+```python
+    predictor = Predictor(model,
+                          device,
+                          callbacks, # relevant only for prediction callbacks (see callbacks Phases and States)
+                          name='lpd predictor')
+    predictions = predictor.predict_data_loader(data_loader, steps)
+```
 
 Just to be fair, you can also predict directly from ``Trainer`` class 
 ```python
@@ -247,6 +257,12 @@ And now, use it in ``LossOptimizerHandler`` callback :
 
 ### StatsPrint Callback
 ``StatsPrint`` callback prints informative summary of the trainer stats including loss and metrics.
+
+Loss will be monitored as ``MonitorMode.MIN``. 
+
+For train metrics, provide your own monitors via ``train_metrics_monitors``.
+
+Validation loss & metrics monitors will be added automatically.
 ```python
     StatsPrint(apply_on_phase=Phase.EPOCH_END, 
                apply_on_states=State.EXTERNAL, 
