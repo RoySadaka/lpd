@@ -2,6 +2,12 @@ Change Log
 ==========
 
 
+0.3.3 (01/11/2020)
+-----------------
+* Added StatsResult class
+* Trainer.evaluate(...) now returns StatsResult instance with loss and metrics details
+
+
 0.3.2 (29/10/2020)
 -----------------
 * Fixed CollectOutputs callbacks on GPU

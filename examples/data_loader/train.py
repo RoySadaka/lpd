@@ -144,4 +144,6 @@ def run():
 
     trainer.train(params['num_epochs'])
 
-    trainer.evaluate(test_data_loader, len(test_data_loader))
+    evaluation = trainer.evaluate(test_data_loader, len(test_data_loader))
+
+    print(evaluation)

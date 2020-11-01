@@ -19,15 +19,9 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.3.2-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added metric ``TopKCategoricalAccuracy``
-* Added ``Predictor.from_trainer()`` method to ``Predictor`` class
-* Fixed CollectOutputs callbacks on GPU
-* Fixed loading predictor ``from_checkpoint`` if the checkpoint is not Full Trainer
-* Fixed loading ``Trainer``/``Predictor`` on CPU from GPU checkpoint 
-* Fixed saving/loading if scheduler is None 
-* Added unittest for ``TopKCategoricalAccuracy``
-* Pipfile explicit versioning
+<b>[v0.3.3-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added StatsResult class
+* Trainer.evaluate(...) now returns StatsResult instance with loss and metrics details
 
 
 
@@ -96,9 +90,11 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ```
 
 ### Evaluating your model
+``trainer.evaluate`` will return ``StatsResult`` that stores the loss and metrics results for the test set 
 ```python
-    trainer.evaluate(test_data_loader, test_steps)
+    evaluation_result = trainer.evaluate(test_data_loader, test_steps)
 ```
+
 
 ### Making predictions
 ``Predictor`` class will generate output predictions from input samples.

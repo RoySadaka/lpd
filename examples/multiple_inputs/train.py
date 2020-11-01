@@ -97,4 +97,5 @@ def run():
 
     trainer.train(config.NUM_EPOCHS)
 
-    trainer.evaluate(generator_infinite, steps)
+    evaluation = trainer.evaluate(generator_infinite, steps)
+    print(evaluation)

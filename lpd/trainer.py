@@ -3,7 +3,7 @@ from tqdm import tqdm
 from lpd.metrics import MetricBase
 from lpd.callbacks import CallbackContext, CollectOutputs, LossOptimizerHandlerBase
 from lpd.enums import State, Phase
-from lpd.trainer_stats import TrainerStats
+from lpd.trainer_stats import TrainerStats, StatsResult
 import lpd.utils.file_utils as fu
 from lpd.extensions.custom_schedulers import DoNothingToLR
 
@@ -432,7 +432,7 @@ class Trainer():
 
     def evaluate(self, test_data_loader, test_steps, verbose=1):
         """
-            verbose: 0 = no progress bar, 1 = progress bar, 2 = one line per epoch
+            verbose: 0 = no progress bar, 1 = progress bar
         """
         self._stopped = False
         self.phase = Phase.TEST_BEGIN
@@ -443,6 +443,8 @@ class Trainer():
         self.phase = Phase.TEST_END
         self._invoke_callbacks()
         self.phase = Phase.IDLE
+
+        return StatsResult(self.name, self.test_stats)
 
     def predict_sample(self, inputs):
         # MAKE BATCH WITH 1 SAMPLE USING unsqueeze

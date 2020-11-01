@@ -21,6 +21,26 @@ class Stats():
         mean = self.sum/self.count
         return mean
 
+
+class StatsResult():
+    def __init__(self, trainer_name, trainer_stats):
+        self.trainer_name = trainer_name
+        self.loss = trainer_stats.get_loss()
+        self.metrics = trainer_stats.get_metrics()
+
+    def __str__(self):
+        metrics_str = 'Metrics: no metrics found'
+        if self.metrics:
+            metrics_str = f'Metrics: {self.metrics}'
+
+        return '------------------\n' \
+               'Evaluation Result:\n' \
+               f'Trainer name: "{self.trainer_name}"\n' \
+               f'Loss: {self.loss}\n' \
+               f'{metrics_str}\n' \
+               '------------------'
+
+
 class TrainerStats():
     def __init__(self, metric_name_to_func):
         self.metric_name_to_func = metric_name_to_func

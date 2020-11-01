@@ -61,7 +61,8 @@ def run():
 
     trainer.train(num_epochs)
 
-    trainer.evaluate(data_loader, data_loader_steps)
+    evaluation = trainer.evaluate(data_loader, data_loader_steps)
+    print(evaluation)
 
     data_generator_for_predictions = eu.examples_prediction_data_generator(data_loader, data_loader_steps)
 
