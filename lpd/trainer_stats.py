@@ -1,8 +1,15 @@
+from lpd.enums.metric_method import MetricMethod
+from lpd.metrics.metric_base import MetricConfusionMatrixBase
+from lpd.metrics.confusion_matrix import ConfusionMatrix
+
+
+
 class Stats():
-    def __init__(self):
+    def __init__(self, metric_method: MetricMethod):
         self.sum = 0
         self.count = 0
         self.last = 0
+        self.metric_method = metric_method
         self.reset()
 
     def reset(self):
@@ -11,22 +18,37 @@ class Stats():
         self.last = 0
 
     def add_value(self, value, count):
-        self.sum += value * count
-        self.count += count
+        if self.metric_method == MetricMethod.MEAN:
+            self.sum += value * count
+            self.count += count
+
+        elif self.metric_method == MetricMethod.SUM:
+            self.sum += value
+            self.count += count
+        
+        elif self.metric_method == MetricMethod.LAST:
+            self.sum = value
+            self.count = 1
+
         self.last = value
 
-    def get_mean(self):
-        if self.count == 0:
-            return 0
-        mean = self.sum/self.count
-        return mean
+    def get_value(self):
+        if self.metric_method == MetricMethod.MEAN:
+            if self.count == 0:
+                return 0
+            return self.sum/self.count
 
+        elif self.metric_method == MetricMethod.SUM:
+            return self.sum
+
+        elif self.metric_method == MetricMethod.LAST:
+            return self.sum
 
 class StatsResult():
-    def __init__(self, trainer_name, trainer_stats):
+    def __init__(self, trainer_name, stats):
         self.trainer_name = trainer_name
-        self.loss = trainer_stats.get_loss()
-        self.metrics = trainer_stats.get_metrics()
+        self.loss = stats.get_loss().tolist()
+        self.metrics = {name:value.tolist() for name,value in stats.get_metrics().items()}
 
     def __str__(self):
         metrics_str = 'Metrics: no metrics found'
@@ -40,29 +62,50 @@ class StatsResult():
                f'{metrics_str}\n' \
                '------------------'
 
-
 class TrainerStats():
     def __init__(self, metric_name_to_func):
         self.metric_name_to_func = metric_name_to_func
-        self.loss_stats = Stats()
-        self.metric_name_to_stats = {metric_name:Stats() for metric_name,_ in self.metric_name_to_func.items()}
+        self.loss_stats = Stats(MetricMethod.MEAN)
+        self.metric_name_to_stats = {metric_name:Stats(metric.metric_method) for metric_name,metric in self.metric_name_to_func.items()}
+        self.confusion_matrix = self._handle_confusion_matrix()
+
+    def _handle_confusion_matrix(self):
+        for _,metric in self.metric_name_to_func.items():
+            if isinstance(metric, MetricConfusionMatrixBase):
+                confusion_matrix = ConfusionMatrix(num_classes=metric.num_classes, 
+                                                   labels=metric.labels, 
+                                                   predictions_to_classes_convertor=metric.predictions_to_classes_convertor, 
+                                                   threshold=metric.threshold)
+                # NEED A SINGLE CONFUSION MATRIX PER TRAINER-STATS
+                return confusion_matrix
+        return None
 
     def reset(self):
         self.loss_stats.reset()
+
         for metric_name, stats in self.metric_name_to_stats.items():
             stats.reset()
 
+        if self.confusion_matrix:
+            self.confusion_matrix.reset()
+
     def add_loss(self, loss, batch_size):
-        self.loss_stats.add_value(loss.item(), batch_size)
+        self.loss_stats.add_value(loss.clone().detach(), batch_size)
 
     def add_metrics(self, y_pred, y_true, batch_size):
+        if self.confusion_matrix:
+            self.confusion_matrix.update_state(y_pred, y_true)
+            for _, metric in self.metric_name_to_func.items():
+                if isinstance(metric, MetricConfusionMatrixBase):
+                    metric._set_confusion_matrix(self.confusion_matrix)
+
         for metric_name, stats in self.metric_name_to_stats.items():
             metric_func = self.metric_name_to_func[metric_name]
             metric_value = metric_func(y_pred, y_true)
-            stats.add_value(metric_value.item(), batch_size)
+            stats.add_value(metric_value.clone().detach(), batch_size)
 
     def get_loss(self):
-        return self.loss_stats.get_mean()
+        return self.loss_stats.get_value()
 
     def get_metrics(self):
-        return {metric_name:stats.get_mean() for metric_name, stats in self.metric_name_to_stats.items()}
+        return {metric_name:stats.get_value() for metric_name, stats in self.metric_name_to_stats.items()}

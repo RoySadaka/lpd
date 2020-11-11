@@ -2,6 +2,7 @@ from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 from lpd.callbacks.callback_context import CallbackContext
 from typing import Union, List, Optional, Dict
 from math import inf
+import torch as T
 
 class CallbackMonitor():
     """
@@ -25,6 +26,7 @@ class CallbackMonitor():
         self.maximum = -inf
         self.previous = self._get_best()
         self.description = self._get_description()
+        self._track_invoked = False 
 
     def _get_description(self):
         desc = f'{self.monitor_mode}_{self.stats_type}_{self.monitor_type}'
@@ -57,6 +59,12 @@ class CallbackMonitor():
                 raise ValueError(f'[CallbackMonitor] - monitor_mode={MonitorType.METRIC}, but cant find metric with name {self.metric_name}')
             value_to_consider = metrics_to_consider[self.metric_name]
 
+        if not self._track_invoked:
+            self.minimum = -T.log(T.zeros_like(value_to_consider))  # [[inf,inf,inf,inf]]
+            self.maximum = T.log(T.zeros_like(value_to_consider)) # [[-inf,-inf,-inf,-inf]]
+            self._track_invoked = True
+
+
         # MONITOR
         self.patience_countdown = max(0, self.patience_countdown - 1)
         change_from_previous = value_to_consider - self.previous
@@ -64,18 +72,23 @@ class CallbackMonitor():
         change_from_best = value_to_consider - curr_best
         curr_minimum = self.minimum
         curr_maximum = self.maximum
-        self.minimum = min(self.minimum, value_to_consider)
-        self.maximum = max(self.maximum, value_to_consider)
+        self.minimum = T.min(self.minimum, value_to_consider)
+        self.maximum = T.max(self.maximum, value_to_consider)
         curr_previous = self.previous
         self.previous = value_to_consider
         did_improve = False
         new_best = self._get_best()
         name = self.metric_name if self.metric_name else 'loss'
 
-        if  self.monitor_mode == MonitorMode.MIN and value_to_consider < curr_minimum or \
-            self.monitor_mode == MonitorMode.MAX and value_to_consider > curr_maximum:
-            did_improve = True
-            self.patience_countdown = self.patience
+        if len(value_to_consider.shape) == 0 or  \
+           (len(value_to_consider.shape) == 1 and value_to_consider.shape[0] == 1):
+            if  self.monitor_mode == MonitorMode.MIN and value_to_consider < curr_minimum or \
+                self.monitor_mode == MonitorMode.MAX and value_to_consider > curr_maximum:
+                did_improve = True
+                self.patience_countdown = self.patience
+        else:
+            if self.patience != inf:
+                raise ValueError("[CallbackMonitor] - can't monitor patience for metric that has multiple values")
         
         return CallbackMonitorResult(did_improve=did_improve, 
                                      new_value=value_to_consider, 

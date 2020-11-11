@@ -6,7 +6,7 @@ from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep, LossOptimizerHandler, CallbackMonitor
-from lpd.metrics import BinaryAccuracyWithLogits
+from lpd.metrics import BinaryAccuracyWithLogits, TruePositives
 from lpd.extensions.custom_schedulers import DoNothingToLR
 import lpd.utils.torch_utils as tu
 
@@ -20,13 +20,13 @@ class TestModel(nn.Module):
         #LAYERS
         self.embedding_layer = nn.Embedding(num_embeddings=num_embeddings, 
                                             embedding_dim=config.EMBEDDINGS_SIZE)
-        nn.init.uniform_(self.embedding_layer.weight, a=-0.05, b=0.05) # I PREFER THE INIT THAT TensorFlow DO FOR Embedding
+        nn.init.uniform_(self.embedding_layer.weight, a=-0.05, b=0.05) # I PREFER THIS INIT
 
         self.transformer_encoder = TransformerEncoderStack(in_dim=config.EMBEDDINGS_SIZE, 
                                                             key_dim=config.TRANSFORMER_KEY_DIM,
                                                             out_dim=config.EMBEDDINGS_SIZE,
-                                                            num_transformer_encoders=config.NUM_TRANSFORMER_ENCODERS,
-                                                            num_heads_per_transformer=config.NUM_HEADS_PER_TRANSFORMER,
+                                                            num_encoders=config.NUM_TRANSFORMER_ENCODERS,
+                                                            num_heads=config.NUM_HEADS_PER_TRANSFORMER,
                                                             drop_out_proba=config.TRANSFORMER_DROP_OUT_PROBA,
                                                             ff_expansion_rate=config.TRANSFORMER_FF_EXPANSION_RATE)
 
@@ -77,7 +77,10 @@ def get_trainer(config,
     
     loss_func = nn.BCEWithLogitsLoss().to(device)
 
-    metric_name_to_func = {"Accuracy":BinaryAccuracyWithLogits()}
+    metric_name_to_func = {
+                           "Accuracy":BinaryAccuracyWithLogits(),
+                           "TP":TruePositives(2, threshold = 0)
+                           }
 
     callbacks = [   
                     LossOptimizerHandler(),
@@ -98,7 +101,7 @@ def get_trainer(config,
                                                                     monitor_type=MonitorType.LOSS, 
                                                                     stats_type=StatsType.VAL, 
                                                                     monitor_mode=MonitorMode.MIN)),
-                    StatsPrint(apply_on_phase=Phase.EPOCH_END, round_values_on_print_to=7) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
+                    StatsPrint(apply_on_phase=Phase.EPOCH_END, round_values_on_print_to=7, print_confusion_matrix_normalized=True) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
                 ]
 
     trainer = Trainer(model=model, 

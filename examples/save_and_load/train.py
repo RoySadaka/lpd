@@ -5,7 +5,7 @@ import torch.nn as nn
 from lpd.trainer import Trainer
 from lpd.callbacks import SchedulerStep, StatsPrint, ModelCheckPoint, LossOptimizerHandler, CallbackMonitor
 from lpd.extensions.custom_schedulers import DoNothingToLR
-from lpd.enums import Phase, State, MonitorType, StatsType, MonitorMode
+from lpd.enums import Phase, State, MonitorType, StatsType, MonitorMode, MetricMethod
 from lpd.metrics import BinaryAccuracyWithLogits, MetricBase
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
@@ -30,6 +30,7 @@ def get_parameters():
 # LET'S CREATE A CUSTOM (ALTOUGH NOT SO INFORMATIVE) METRIC
 class InaccuracyWithLogits(MetricBase):
     def __init__(self):
+        super(InaccuracyWithLogits, self).__init__(MetricMethod.MEAN)
         self.bawl = BinaryAccuracyWithLogits() # we exploit BinaryAccuracyWithLogits for the computation
 
     def __call__(self, y_pred, y_true): # <=== implement this method!

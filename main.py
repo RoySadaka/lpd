@@ -13,6 +13,7 @@ import examples.keras_decay_scheduler.train as keras_decay_scheduler_example
 import examples.accumulate_grads.train as accumulate_grads_example
 import examples.train_evaluate_predict.train as train_evaluate_predict_example
 import examples.predictor.train_save_load_predict as train_save_load_predict_example
+import examples.confusion_matrix.train as confusion_matrix_example
 
 # EXAMPLES
 basic_example.run()
@@ -24,6 +25,7 @@ keras_decay_scheduler_example.run()
 accumulate_grads_example.run()
 train_evaluate_predict_example.run()
 train_save_load_predict_example.run()
+confusion_matrix_example.run()
 print('----------------------------------------------------------------------')
 print('Ran all examples')
 

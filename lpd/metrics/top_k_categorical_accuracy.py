@@ -1,5 +1,6 @@
 import torch as T
 from lpd.metrics.metric_base import MetricBase
+from lpd.enums.metric_method import MetricMethod
 
 
 class TopKCategoricalAccuracy(MetricBase):
@@ -8,6 +9,7 @@ class TopKCategoricalAccuracy(MetricBase):
         If it was we say that our model was correct.
     """
     def __init__(self, k):
+        super(TopKCategoricalAccuracy, self).__init__(MetricMethod.MEAN)
         self.k = k
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):

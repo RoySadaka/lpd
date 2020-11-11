@@ -2,6 +2,17 @@ Change Log
 ==========
 
 
+0.3.4 (11/11/2020)
+-----------------
+* Added MetricConfusionMatrixBase for adding custom confusion matrix based metrics
+* Added ConfusionMatrixBasedMetric Enum to get specific metrics such as tp,fp,fn,tn,precision,sensitivity,specificity,recall,ppv,npv,accuracy,f1score
+* Added confusion matrix common metrics (TruePositives, TrueNegatives, FalsePositives, FalseNegatives)
+* Added MetricMethod enum to pass to MetricBase, now you can define whether your metric is based on MEAN, SUM or LAST of all batches
+* StatsPrint callback now support "print_confusion_matrix" and "print_confusion_matrix_normalized" arguments in case MetricConfusionMatrixBase metric is found
+* Added confusion matrix tests and example
+* Some custom layers renames (breaking changes in this part)
+
+
 0.3.3 (01/11/2020)
 -----------------
 * Added StatsResult class

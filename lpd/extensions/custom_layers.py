@@ -73,10 +73,10 @@ class Attention(nn.Module):
             self.query_dense    = Dense(in_dim=self.key_dim, out_dim=self.key_dim, use_bias=False, activation=None, name = f'{self.name}__Dense')
 
     def forward(self, q,k,v, mask = None):
-        # q:    (batch, ?, key_dim)             "?" can be 1 or num_elements
-        # k:    (batch, num_elements, key_dim)
-        # v:    (batch, num_elements, key_dim)
-        # mask: (batch, 1, num_elements)
+        # q:    (batch, ?, key_dim)             where "?" can be 1 or seq_len
+        # k:    (batch, seq_len, key_dim)
+        # v:    (batch, seq_len, key_dim)
+        # mask: (batch, 1, seq_len)
 
         # APPLY ATTENTION:
         #                       (     Q * Kt     )
@@ -84,16 +84,16 @@ class Attention(nn.Module):
         #                       (    sqrt(dk)    )
 
         if self.use_query_dense:
-            q = self.query_dense(q)                                            # (batch, num_elements, key_dim)
+            q = self.query_dense(q)                                            # (batch, seq_len, key_dim)
 
-        q_k = self.mat_mul2d_t(q, k)                                           # (batch, ?, num_elements)
-        scores = q_k / self.sqrt_key_dim                                       # (batch, ?, num_elements)
+        q_k = self.mat_mul2d_t(q, k)                                           # (batch, ?, seq_len)
+        scores = q_k / self.sqrt_key_dim                                       # (batch, ?, seq_len)
 
         if mask is not None:
-            mask_ready = T.log(mask)                                           # (batch, 1, num_elements)
-            scores += mask_ready                                               # (batch, ?, num_elements) (+= is doing broadcasting)
+            mask_ready = T.log(mask)                                           # (batch, 1, seq_len)
+            scores += mask_ready                                               # (batch, ?, seq_len) (+= is doing broadcasting)
 
-        attention_weights = self.softmax_last_dim(scores)                      # (batch, ?, num_elements)
+        attention_weights = self.softmax_last_dim(scores)                      # (batch, ?, seq_len)
         attention_output = self.mat_mul2d(attention_weights, v)                # (batch, ?, key_dim)
 
         return attention_output                                                # (batch, ?, key_dim)
@@ -105,7 +105,7 @@ class AttentionHead(nn.Module):
         self.in_dim = in_dim
         self.key_dim = key_dim
         self.sqrt_key_dim = key_dim ** 0.5
-        self.name = name if name else 'attention_head'
+        self.name = name if name else 'Attention-Head'
 
         #LAYERS
         self.query_dense  = Dense(self.in_dim, self.key_dim, use_bias=True, activation=None, name = f'{self.name}__Q-Dense')
@@ -113,11 +113,11 @@ class AttentionHead(nn.Module):
         self.value_dense  = Dense(self.in_dim, self.key_dim, use_bias=True, activation=None, name = f'{self.name}__V-Dense')
         self.att          = Attention(self.key_dim, name = f'{self.name}__Attention')
 
-    def forward(self, inputs, mask = None):     # inputs:(batch, num_elements, emb_size), mask:(batch, num_elements)
-        q = self.query_dense(inputs)            # (batch, num_elements, key_dim)
-        k = self.key_dense(inputs)              # (batch, num_elements, key_dim)
-        v = self.value_dense(inputs)            # (batch, num_elements, key_dim)
-        return self.att(q,k,v,mask)             # (batch, num_elements, key_dim)
+    def forward(self, inputs, mask = None):     # inputs:(batch, seq_len, emb_size), mask:(batch, seq_len)
+        q = self.query_dense(inputs)            # (batch, seq_len, key_dim)
+        k = self.key_dense(inputs)              # (batch, seq_len, key_dim)
+        v = self.value_dense(inputs)            # (batch, seq_len, key_dim)
+        return self.att(q,k,v,mask)             # (batch, seq_len, key_dim)
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, in_dim,
@@ -133,7 +133,7 @@ class MultiHeadAttention(nn.Module):
         self.out_dim = out_dim
         self.num_heads = num_heads
         self.drop_out_proba = drop_out_proba
-        self.name = name if name else 'multihead_attentions'
+        self.name = name if name else 'Multi-Head-Attention'
 
         #LAYERS
         self.attention_heads = nn.ModuleList([AttentionHead(self.in_dim, self.key_dim, name = f'{self.name}__H{i}') for i in range(self.num_heads)])
@@ -141,12 +141,12 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(p=self.drop_out_proba)
         self.norm = nn.LayerNorm(normalized_shape=self.out_dim) # WILL APPLY NORM OVER THE LAST DIMENTION ONLY
 
-    def forward(self, inputs, mask=None):                                                     # inputs.shape: (batch, num_elements, emb_size == out_dim)
-        attention_outputs = [head(inputs, mask = mask) for head in self.attention_heads]      # [ (batch, num_elements, key_dim) ]
-        concatenated = T.cat(attention_outputs, dim=-1)                                       # (batch, num_elements, key_dim * num_heads)
-        output = self.output_dense(concatenated)                                              # (batch, num_elements, out_dim)
-        output = self.dropout(output)                                                         # (batch, num_elements, out_dim)
-        return self.norm(inputs + output)                             # RESIDUAL & NORM       # (batch, num_elements, out_dim)
+    def forward(self, inputs, mask=None):                                                     # inputs.shape: (batch, seq_len, emb_size == out_dim)
+        attention_outputs = [head(inputs, mask = mask) for head in self.attention_heads]      # [ (batch, seq_len, key_dim) ]
+        concatenated = T.cat(attention_outputs, dim=-1)                                       # (batch, seq_len, key_dim * num_heads)
+        output = self.output_dense(concatenated)                                              # (batch, seq_len, out_dim)
+        output = self.dropout(output)                                                         # (batch, seq_len, out_dim)
+        return self.norm(inputs + output)                             # RESIDUAL & NORM       # (batch, seq_len, out_dim)
 
 class TransformerEncoderFeedForward(nn.Module):
     def __init__(self, in_dim,
@@ -160,7 +160,7 @@ class TransformerEncoderFeedForward(nn.Module):
         self.out_dim = out_dim
         self.drop_out_proba = drop_out_proba
         self.expansion_rate = expansion_rate
-        self.name = name if name else 'transformer_encoder__feed_forward'
+        self.name = name if name else 'Transformer-Encoder__Feed-Forward'
 
         #LAYERS
         self.hidden_dense = Dense(in_dim=self.in_dim, out_dim=self.out_dim * self.expansion_rate, use_bias=True, activation=nn.ReLU(), name = f'{self.name}__Hidden-Dense')
@@ -169,13 +169,13 @@ class TransformerEncoderFeedForward(nn.Module):
 
         self.norm = nn.LayerNorm(normalized_shape=self.out_dim)   # WILL APPLY NORM OVER THE LAST DIMENSION ONLY
 
-    def forward(self, inputs):                                              # (batch, num_elements, out_dim)
-        hidden_values = self.hidden_dense(inputs)                           # (batch, num_elements, out_dim * expansion_rate)
-        output = self.output_dense(hidden_values)                           # (batch, num_elements, out_dim)
+    def forward(self, inputs):                                              # (batch, seq_len, out_dim)
+        hidden_values = self.hidden_dense(inputs)                           # (batch, seq_len, out_dim * expansion_rate)
+        output = self.output_dense(hidden_values)                           # (batch, seq_len, out_dim)
         output = self.dropout(output)                                       # (batch, num_elements, out_dim)
         return self.norm(inputs + output)    #RESIDUAL & NORM               # (batch, num_elements, out_dim)
 
-class TransformerEncoder(nn.Module):
+class TransformerBlock(nn.Module):
     def __init__(self, in_dim,
                        key_dim,
                        out_dim,
@@ -183,7 +183,7 @@ class TransformerEncoder(nn.Module):
                        drop_out_proba,
                        ff_expansion_rate,
                        name = None):
-        super(TransformerEncoder, self).__init__()
+        super(TransformerBlock, self).__init__()
         #PARAMS
         self.in_dim = in_dim
         self.key_dim = key_dim
@@ -191,7 +191,7 @@ class TransformerEncoder(nn.Module):
         self.num_heads = num_heads
         self.drop_out_proba = drop_out_proba
         self.ff_expansion_rate = ff_expansion_rate
-        self.name = name if name else 'transformer_encoder'
+        self.name = name if name else 'Transformer-Encoder'
         #LAYERS
         self.multi_head_self_attention = MultiHeadAttention(self.in_dim,
                                                             self.key_dim,
@@ -242,8 +242,8 @@ class TransformerEncoderStack(nn.Module):
     def __init__(self, in_dim,
                        key_dim,
                        out_dim,
-                       num_transformer_encoders,
-                       num_heads_per_transformer,
+                       num_encoders,
+                       num_heads,
                        drop_out_proba,
                        ff_expansion_rate,
                        maximum_position_encoding=None,
@@ -253,37 +253,32 @@ class TransformerEncoderStack(nn.Module):
         self.in_dim = in_dim
         self.key_dim = key_dim
         self.out_dim = out_dim
-        self.num_transformer_encoders = num_transformer_encoders
-        self.num_heads_per_transformer = num_heads_per_transformer
+        self.num_encoders = num_encoders
+        self.num_heads = num_heads
         self.drop_out_proba = drop_out_proba
         self.ff_expansion_rate = ff_expansion_rate
         self.maximum_position_encoding = maximum_position_encoding
-        self.name = name if name else 'transformer_encoder_stack'
+        self.name = name if name else 'Transformer-Encoder-Stack'
 
         #LAYERS
-        self.encoder_layers = nn.ModuleList([TransformerEncoder(self.in_dim,
+        self.transformer_blocks = nn.ModuleList([TransformerBlock(self.in_dim,
                                                     self.key_dim,
                                                     self.out_dim,
-                                                    self.num_heads_per_transformer,
+                                                    self.num_heads,
                                                     self.drop_out_proba,
                                                     self.ff_expansion_rate,
                                                     name=f'{self.name}__E{i}')
-                                                    for i in range(self.num_transformer_encoders)])
+                                                    for i in range(self.num_encoders)])
         self.pos_encoder = PositionalEncoding(self.in_dim, self.drop_out_proba, self.maximum_position_encoding)
 
     def forward(self, inputs, mask=None):
-        outputs = inputs                                        # (batch, num_elements, emb_size)
+        outputs = inputs                                        # (batch, seq_len, emb_size)
 
         #POSITION
         if self.maximum_position_encoding is not None:
             outputs = self.pos_encoder(outputs)
 
-        for encoder_layer in self.encoder_layers:
+        for encoder_layer in self.transformer_blocks:
             outputs = encoder_layer(inputs=outputs, mask=mask)
-        return outputs                                # (batch, num_elements, out_dim)   <-- USUALLY out_dim = emb_size
-
-
-
-
-
+        return outputs                                # (batch, seq_len, out_dim)   <-- USUALLY out_dim = emb_size
 

@@ -19,9 +19,14 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.3.3-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added StatsResult class
-* Trainer.evaluate(...) now returns StatsResult instance with loss and metrics details
+<b>[v0.3.4-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added ``MetricConfusionMatrixBase`` for adding custom confusion matrix based metrics
+* Added ``ConfusionMatrixBasedMetric`` Enum to get specific metrics such as tp,fp,fn,tn,precision,sensitivity,specificity,recall,ppv,npv,accuracy,f1score
+* Added confusion matrix common metrics (``TruePositives``, ``TrueNegatives``, ``FalsePositives``, ``FalseNegatives``)
+* Added ``MetricMethod`` enum to pass to ``MetricBase``, now you can define whether your metric is based on ``MEAN``, ``SUM`` or ``LAST`` of all batches
+* StatsPrint callback now support ``print_confusion_matrix`` and ``print_confusion_matrix_normalized`` arguments in case ``MetricConfusionMatrixBase`` metric is found
+* Added confusion matrix tests and example
+* Some custom layers renames (breaking changes in this part)
 
 
 
@@ -36,7 +41,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
     from lpd.callbacks import LossOptimizerHandler, StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep, CallbackMonitor
     from lpd.extensions.custom_schedulers import KerasDecay
-    from lpd.metrics import BinaryAccuracyWithLogits
+    from lpd.metrics import BinaryAccuracyWithLogits, FalsePositives
     from lpd.utils.torch_utils import get_gpu_device_if_available
     from lpd.utils.general_utils import seed_all
 
@@ -47,7 +52,8 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     optimizer = torch.optim.SGD(params=model.parameters())
     scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) # decay scheduler using keras formula 
     loss_func = torch.nn.BCEWithLogitsLoss().to(device) # this is your loss class, already sent to the relevant device
-    metric_name_to_func = {'acc':BinaryAccuracyWithLogits()} # define your metrics in a dictionary
+    metric_name_to_func = {'Accuracy':BinaryAccuracyWithLogits(), "FP":FalsePositives(num_class=2, threshold = 0)} # define your metrics in a dictionary
+                           
 
     # you can use some of the defined callbacks, or you can create your own
     callbacks = [
@@ -65,12 +71,17 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
                                               monitor_type=MonitorType.METRIC, 
                                               stats_type=StatsType.VAL, 
                                               monitor_mode=MonitorMode.MAX,
-                                              metric_name='acc')),
-                StatsPrint(train_metrics_monitors=CallbackMonitor(patience=-1, 
-                                                                  monitor_type=MonitorType.METRIC,
-                                                                  stats_type=StatsType.TRAIN,
-                                                                  monitor_mode=MonitorMode.MAX,
-                                                                  metric_name='acc'))
+                                              metric_name='Accuracy')),
+                StatsPrint(train_metrics_monitors=[CallbackMonitor(patience=-1, 
+                                                                   monitor_type=MonitorType.METRIC,
+                                                                   stats_type=StatsType.TRAIN,
+                                                                   monitor_mode=MonitorMode.MAX,  # <-- notice MAX
+                                                                   metric_name='Accuracy'),
+                                                   CallbackMonitor(patience=-1, 
+                                                                   monitor_type=MonitorType.METRIC,
+                                                                   stats_type=StatsType.TRAIN,
+                                                                   monitor_mode=MonitorMode.MIN, # <-- notice MIN
+                                                                   metric_name='FP')]
                 ]
 
     trainer = Trainer(model, 
@@ -142,9 +153,9 @@ Here are some examples
     val_loss = trainer.val_stats.get_loss()             # the mean of the last epoch's validation losses
     test_loss = trainer.test_stats.get_loss()           # the mean of the test losses (available only after calling evaluate)
 
-    train_metrics = trainer.train_stats.get_metrics()   # dict(metric_name, mean(values)) of the current epoch in train state
-    val_metrics = trainer.val_stats.get_metrics()       # dict(metric_name, mean(values)) of the current epoch in validation state
-    test_metrics = trainer.test_stats.get_metrics()     # dict(metric_name, mean(values)) of the test (available only after calling evaluate)
+    train_metrics = trainer.train_stats.get_metrics()   # dict(metric_name, MetricMethod(values)) of the current epoch in train state
+    val_metrics = trainer.val_stats.get_metrics()       # dict(metric_name, MetricMethod(values)) of the current epoch in validation state
+    test_metrics = trainer.test_stats.get_metrics()     # dict(metric_name, MetricMethod(values)) of the test (available only after calling evaluate)
 ```
 
 
@@ -250,20 +261,19 @@ And now, use it in ``LossOptimizerHandler`` callback :
 ```python
     LossOptimizerHandler(apply_on_phase=Phase.BATCH_END, 
                          apply_on_states=State.TRAIN,
-                         loss_handler=None, # default loss handler will be used (calls loss.backward() every invocation)
+                         loss_handler=None, # default loss handler will be used (calls loss.backward() every batch)
                          optimizer_step_handler=my_optimizer_handler_closure(action='step'), 
-                         optimizer_zero_grad_handler=my_optimizer_handler_closure(action='zero_grad')), 
+                         optimizer_zero_grad_handler=my_optimizer_handler_closure(action='zero_grad'))
 ```
 
 
 ### StatsPrint Callback
 ``StatsPrint`` callback prints informative summary of the trainer stats including loss and metrics.
 
-Loss will be monitored as ``MonitorMode.MIN``. 
+* Loss (for all states) will be monitored as ``MonitorMode.MIN``
+* For train metrics, provide your own monitors via ``train_metrics_monitors``
+* Validation metrics monitors will be added automatically according to ``train_metrics_monitors``
 
-For train metrics, provide your own monitors via ``train_metrics_monitors``.
-
-Validation loss & metrics monitors will be added automatically.
 ```python
     StatsPrint(apply_on_phase=Phase.EPOCH_END, 
                apply_on_states=State.EXTERNAL, 
@@ -271,7 +281,8 @@ Validation loss & metrics monitors will be added automatically.
                                                       monitor_type=MonitorType.METRIC,
                                                       stats_type=StatsType.TRAIN,
                                                       monitor_mode=MonitorMode.MAX,
-                                                      metric_name='Accuracy'))
+                                                      metric_name='TruePositives'),
+               print_confusion_matrix=True) # in case you use one of the ConfusionMatrix metrics (e.g. TruePositives), you may print the confusion matrix 
 ```
 Output example: 
 
@@ -407,13 +418,17 @@ Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our valid
 ```
 
 ## Metrics
-``lpd.metrics`` provides metrics to check the accuracy of your model, let's create a custom metric using ``MetricBase`` and also show the use of ``BinaryAccuracyWithLogits`` in this example
+``lpd.metrics`` provides metrics to check the accuracy of your model.
+
+Let's create a custom metric using ``MetricBase`` and also show the use of ``BinaryAccuracyWithLogits`` in this example
 ```python
     from lpd.metrics import BinaryAccuracyWithLogits, MetricBase
+    from lpd.enums import MetricMethod
 
     # our custom metric
     class InaccuracyWithLogits(MetricBase):
         def __init__(self):
+            super(InaccuracyWithLogits, self).__init__(MetricMethod.MEAN) # use mean over the batches
             self.bawl = BinaryAccuracyWithLogits() # we exploit BinaryAccuracyWithLogits for the computation
 
         def __call__(self, y_pred, y_true): # <=== implement this method!
@@ -424,6 +439,25 @@ Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our valid
     # we can now define our metrics and pass them to the trainer
     metric_name_to_func = {'accuracy':BinaryAccuracyWithLogits(), 'inaccuracy':InaccuracyWithLogits()}
 ``` 
+
+Let's do another example, a custom metric ``Positivity`` based on confusion matrix using ``MetricConfusionMatrixBase``
+```python
+    from lpd.metrics import MetricConfusionMatrixBase, MetricBase, TruePositives, TrueNegatives
+    from lpd.enums import ConfusionMatrixBasedMetric, MetricMethod
+
+    # our custom metric
+    class Positivity(MetricConfusionMatrixBase):
+        def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5):
+            super(Positivity, self).__init__(num_classes, labels, predictions_to_classes_convertor, threshold)
+
+        def __call__(self, y_pred, y_true): # <=== implement this method!
+            tp_per_class = self.get_stats(ConfusionMatrixBasedMetric.TP)
+            tn_per_class = self.get_stats(ConfusionMatrixBasedMetric.TN)
+            if self.is_binary(y_pred, y_true):
+                return tp_per_class[1] + tn_per_class[1]
+            return tp_per_class + tn_per_class
+``` 
+
 
 ## Save and Load full Trainer
 Sometimes you just want to save everything so you can continue training where you left off.

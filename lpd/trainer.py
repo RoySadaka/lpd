@@ -83,6 +83,7 @@ class Trainer():
 
         self._stopped = False
         self._last_outputs = None
+        self._last_labels = None
         self._total_num_epochs = 0
 
     def _validate_metric_name_to_func(self):
@@ -136,26 +137,24 @@ class Trainer():
 
     def _tqdm_description(self, loop, stats):
         desc = self._get_epoch_description()
-
         loop.set_description(desc)
         if self.state != State.PREDICT:
-            metrics = stats.get_metrics()
-            if metrics:
-                loop.set_postfix(loss=stats.get_loss(), metrics=metrics)
+            stats_result = StatsResult('', stats)
+            if stats_result.metrics:
+                loop.set_postfix(loss=stats_result.loss, metrics=stats_result.metrics)
             else:
-                loop.set_postfix(loss=stats.get_loss())
+                loop.set_postfix(loss=stats_result.loss)
             
     def _print_verbos_2(self, stats, verbose):
         if verbose != 2:
             return
         desc = self._get_epoch_description()
-        loss=stats.get_loss()
-        metrics=stats.get_metrics()
-        if metrics:
-            metrics_str = f', metrics={metrics}'
+        stats_result = StatsResult('', stats)
+        if stats_result.metrics:
+            metrics_str = f', metrics={stats_result.metrics}'
         else:
             metrics_str = ''
-        print(f'{desc}, loss={loss}{metrics_str}')
+        print(f'{desc}, loss={stats_result.loss}{stats_result.metrics_str}')
 
     def _prepare_next_batch(self, batch):
         if self.state == State.PREDICT:
@@ -181,6 +180,7 @@ class Trainer():
             batch_size = len(y)
             outputs = self.model(*x)
             self._last_outputs = outputs
+            self._last_labels = y
             loss = loss_f(outputs, y)
             stats.add_loss(loss, batch_size)
             stats.add_metrics(outputs, y, batch_size)
