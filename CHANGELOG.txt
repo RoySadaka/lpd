@@ -2,6 +2,12 @@ Change Log
 ==========
 
 
+0.3.5 (13/11/2020)
+-----------------
+* ``CallbackMonitor`` patience argument now optional for cleaner code
+* Better handling for binary ``get_stats`` in confusion matrix based metric
+
+
 0.3.4 (11/11/2020)
 -----------------
 * Added MetricConfusionMatrixBase for adding custom confusion matrix based metrics

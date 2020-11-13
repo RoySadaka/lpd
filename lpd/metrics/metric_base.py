@@ -36,12 +36,15 @@ class MetricConfusionMatrixBase(MetricBase):
         """
         self.confusion_matrix_ = confusion_matrix
 
-    def is_binary(self, y_pred, y_true):
+    def _is_binary(self):
         return self.confusion_matrix_.num_classes == 2
 
     def get_stats(self, metric: ConfusionMatrixBasedMetric):
         stats = self.confusion_matrix_.get_stats()
-        return T.Tensor([stats_per_class[metric] for stats_per_class in stats.values()])
+        result_per_class = T.Tensor([stats_per_class[metric] for stats_per_class in stats.values()])
+        if self._is_binary():
+            return result_per_class[1]
+        return result_per_class
 
     def get_confusion_matrix(self):
         return self.confusion_matrix_.get_confusion_matrix()

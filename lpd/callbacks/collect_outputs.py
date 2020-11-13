@@ -1,8 +1,7 @@
-from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
+from lpd.enums import Phase, State
 from lpd.callbacks.callback_base import CallbackBase
 from lpd.callbacks.callback_context import CallbackContext
-from lpd.callbacks.callback_monitor import CallbackMonitor, CallbackMonitorResult
-from typing import Union, List, Optional, Dict
+from typing import Union, List
 
 class CollectOutputs(CallbackBase):
     """

@@ -3,7 +3,7 @@ import torch.optim as optim
 import torch.nn as nn
 
 from lpd.trainer import Trainer
-from lpd.callbacks import SchedulerStep, StatsPrint, ModelCheckPoint, LossOptimizerHandler, CallbackMonitor
+from lpd.callbacks import SchedulerStep, StatsPrint, ModelCheckPoint, LossOptimizerHandler
 from lpd.extensions.custom_schedulers import DoNothingToLR
 from lpd.enums import Phase, State, MonitorType, StatsType, MonitorMode
 from lpd.metrics import TruePositives, FalsePositives, TrueNegatives, FalseNegatives

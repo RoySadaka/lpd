@@ -16,14 +16,12 @@ import examples.utils as eu
 class TestCallbacks(unittest.TestCase):
     def test_stats_print_validations(self):
         # ASSERT INVALID INIT
-        self.assertRaises(ValueError, StatsPrint, train_metrics_monitors=CallbackMonitor(patience=None, 
-                                                                                 monitor_type=MonitorType.METRIC,
-                                                                                 stats_type=StatsType.VAL,
-                                                                                 monitor_mode=MonitorMode.MAX,
-                                                                                 metric_name='Accuracy'))
+        self.assertRaises(ValueError, StatsPrint, train_metrics_monitors=CallbackMonitor(monitor_type=MonitorType.METRIC,
+                                                                                         stats_type=StatsType.VAL,
+                                                                                         monitor_mode=MonitorMode.MAX,
+                                                                                         metric_name='Accuracy'))
         # ASSERT VALID INIT
-        StatsPrint(train_metrics_monitors=CallbackMonitor(patience=None, 
-                                                            monitor_type=MonitorType.METRIC,
-                                                            stats_type=StatsType.TRAIN,
-                                                            monitor_mode=MonitorMode.MAX,
-                                                            metric_name='Accuracy'))
+        StatsPrint(train_metrics_monitors=CallbackMonitor(monitor_type=MonitorType.METRIC,
+                                                          stats_type=StatsType.TRAIN,
+                                                          monitor_mode=MonitorMode.MAX,
+                                                          metric_name='Accuracy'))

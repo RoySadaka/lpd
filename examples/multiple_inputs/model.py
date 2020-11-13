@@ -88,8 +88,7 @@ def get_trainer(config,
                     
                     ModelCheckPoint(checkpoint_dir=checkpoint_dir, 
                                     checkpoint_file_name=checkpoint_file_name, 
-                                    callback_monitor=CallbackMonitor(patience=-1,
-                                                                     monitor_type=MonitorType.LOSS, 
+                                    callback_monitor=CallbackMonitor(monitor_type=MonitorType.LOSS, 
                                                                      stats_type=StatsType.VAL, 
                                                                      monitor_mode=MonitorMode.MIN),
                                     save_best_only=True, 
@@ -97,10 +96,10 @@ def get_trainer(config,
                     Tensorboard(summary_writer_dir=summary_writer_dir),
                     EarlyStopping(apply_on_phase=Phase.EPOCH_END, 
                                   apply_on_states=State.EXTERNAL,
-                                  callback_monitor=CallbackMonitor(patience=config.EARLY_STOPPING_PATIENCE, 
-                                                                    monitor_type=MonitorType.LOSS, 
+                                  callback_monitor=CallbackMonitor(monitor_type=MonitorType.LOSS, 
                                                                     stats_type=StatsType.VAL, 
-                                                                    monitor_mode=MonitorMode.MIN)),
+                                                                    monitor_mode=MonitorMode.MIN,
+                                                                    patience=config.EARLY_STOPPING_PATIENCE)),
                     StatsPrint(apply_on_phase=Phase.EPOCH_END, round_values_on_print_to=7, print_confusion_matrix_normalized=True) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
                 ]
 

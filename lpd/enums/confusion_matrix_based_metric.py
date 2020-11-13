@@ -1,6 +1,10 @@
 from enum import Enum, auto
 
 class ConfusionMatrixBasedMetric(Enum):
+    """
+        An enum that represents all kinds of metric names that can be obtained from 
+        a metric that is based on MetricConfusionMatrixBase
+    """
     TP                          = auto()
     FP                          = auto()
     FN                          = auto()

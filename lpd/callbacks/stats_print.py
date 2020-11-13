@@ -31,8 +31,8 @@ class StatsPrint(CallbackBase):
                        print_confusion_matrix: bool=False,
                        print_confusion_matrix_normalized: bool=False):
         super(StatsPrint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
-        self.train_loss_monitor = CallbackMonitor(None, MonitorType.LOSS, StatsType.TRAIN, MonitorMode.MIN)
-        self.val_loss_monitor = CallbackMonitor(None, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN)
+        self.train_loss_monitor = CallbackMonitor(MonitorType.LOSS, StatsType.TRAIN, MonitorMode.MIN)
+        self.val_loss_monitor = CallbackMonitor(MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN)
         self.train_metrics_monitors = self._parse_train_metrics_monitors(train_metrics_monitors)
         self.print_confusion_matrix = print_confusion_matrix
         self.print_confusion_matrix_normalized = print_confusion_matrix_normalized
@@ -60,11 +60,11 @@ class StatsPrint(CallbackBase):
 
         metric_names = callback_context.trainer.metric_name_to_func.keys()
         if self.train_metrics_monitors is None:
-            self.train_metrics_monitors = [CallbackMonitor(None, MonitorType.METRIC, StatsType.TRAIN, MonitorMode.MAX, metric_name) for metric_name in metric_names]
+            self.train_metrics_monitors = [CallbackMonitor(MonitorType.METRIC, StatsType.TRAIN, MonitorMode.MAX, metric_name=metric_name) for metric_name in metric_names]
 
         self.val_metric_monitors = []
         for m in self.train_metrics_monitors:
-            self.val_metric_monitors.append(CallbackMonitor(m.patience, m.monitor_type, StatsType.VAL, m.monitor_mode, m.metric_name))
+            self.val_metric_monitors.append(CallbackMonitor(m.monitor_type, StatsType.VAL, m.monitor_mode, patience=m.patience, metric_name=m.metric_name))
 
     def _get_print_from_monitor_result(self, monitor_result: CallbackMonitorResult) -> str:
         r = self.round_to #READABILITY

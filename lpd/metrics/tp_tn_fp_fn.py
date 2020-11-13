@@ -20,8 +20,6 @@ class TruePositives(MetricConfusionMatrixBase):
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):
         result_per_class = self.get_stats(metric.TP)
-        if self.is_binary(y_pred, y_true):
-            return result_per_class[1]
         return result_per_class
 
 class TrueNegatives(MetricConfusionMatrixBase):
@@ -42,8 +40,6 @@ class TrueNegatives(MetricConfusionMatrixBase):
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):
         result_per_class = self.get_stats(metric.TN)
-        if self.is_binary(y_pred, y_true):
-            return result_per_class[1]
         return result_per_class
 
 class FalseNegatives(MetricConfusionMatrixBase):
@@ -64,8 +60,6 @@ class FalseNegatives(MetricConfusionMatrixBase):
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):
         result_per_class = self.get_stats(metric.FN)
-        if self.is_binary(y_pred, y_true):
-            return result_per_class[1]
         return result_per_class
 
 class FalsePositives(MetricConfusionMatrixBase):
@@ -86,6 +80,4 @@ class FalsePositives(MetricConfusionMatrixBase):
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):
         result_per_class = self.get_stats(metric.FP)
-        if self.is_binary(y_pred, y_true):
-            return result_per_class[1]
         return result_per_class

@@ -19,7 +19,11 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.3.4-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+<b>[v0.3.5-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* ``CallbackMonitor`` patience argument now optional for cleaner code
+* Better handling for binary ``get_stats`` in confusion matrix based metric
+
+Previously on lpd: 
 * Added ``MetricConfusionMatrixBase`` for adding custom confusion matrix based metrics
 * Added ``ConfusionMatrixBasedMetric`` Enum to get specific metrics such as tp,fp,fn,tn,precision,sensitivity,specificity,recall,ppv,npv,accuracy,f1score
 * Added confusion matrix common metrics (``TruePositives``, ``TrueNegatives``, ``FalsePositives``, ``FalseNegatives``)
@@ -52,7 +56,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     optimizer = torch.optim.SGD(params=model.parameters())
     scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) # decay scheduler using keras formula 
     loss_func = torch.nn.BCEWithLogitsLoss().to(device) # this is your loss class, already sent to the relevant device
-    metric_name_to_func = {'Accuracy':BinaryAccuracyWithLogits(), "FP":FalsePositives(num_class=2, threshold = 0)} # define your metrics in a dictionary
+    metric_name_to_func = {'Accuracy':BinaryAccuracyWithLogits(), "FP":FalsePositives(num_class=2, threshold=0)} # define your metrics in a dictionary
                            
 
     # you can use some of the defined callbacks, or you can create your own
@@ -61,27 +65,25 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
                 SchedulerStep(apply_on_phase=Phase.BATCH_END, apply_on_states=State.TRAIN),
                 ModelCheckPoint(checkpoint_dir, 
                                 checkpoint_file_name, 
-                                CallbackMonitor(patience=-1,
-                                                monitor_type=MonitorType.LOSS, 
+                                CallbackMonitor(monitor_type=MonitorType.LOSS, 
                                                 stats_type=StatsType.VAL, 
                                                 monitor_mode=MonitorMode.MIN),
                                 save_best_only=True), 
                 Tensorboard(summary_writer_dir=summary_writer_dir),
-                EarlyStopping(CallbackMonitor(patience=10, 
-                                              monitor_type=MonitorType.METRIC, 
+                EarlyStopping(CallbackMonitor(monitor_type=MonitorType.METRIC, 
                                               stats_type=StatsType.VAL, 
                                               monitor_mode=MonitorMode.MAX,
+                                              patience=10,
                                               metric_name='Accuracy')),
-                StatsPrint(train_metrics_monitors=[CallbackMonitor(patience=-1, 
-                                                                   monitor_type=MonitorType.METRIC,
+                StatsPrint(train_metrics_monitors=[CallbackMonitor(monitor_type=MonitorType.METRIC,
                                                                    stats_type=StatsType.TRAIN,
                                                                    monitor_mode=MonitorMode.MAX,  # <-- notice MAX
                                                                    metric_name='Accuracy'),
-                                                   CallbackMonitor(patience=-1, 
-                                                                   monitor_type=MonitorType.METRIC,
+                                                   CallbackMonitor(monitor_type=MonitorType.METRIC,
                                                                    stats_type=StatsType.TRAIN,
                                                                    monitor_mode=MonitorMode.MIN, # <-- notice MIN
-                                                                   metric_name='FP')]
+                                                                   metric_name='FP')],
+                           print_confusion_matrix=True) # since one of the metric (FalsePositives) is confusion matrix based, lets print the whole confusion matrix
                 ]
 
     trainer = Trainer(model, 
@@ -277,12 +279,11 @@ And now, use it in ``LossOptimizerHandler`` callback :
 ```python
     StatsPrint(apply_on_phase=Phase.EPOCH_END, 
                apply_on_states=State.EXTERNAL, 
-               train_metrics_monitors=CallbackMonitor(patience=None, 
-                                                      monitor_type=MonitorType.METRIC,
+               train_metrics_monitors=CallbackMonitor(monitor_type=MonitorType.METRIC,
                                                       stats_type=StatsType.TRAIN,
                                                       monitor_mode=MonitorMode.MAX,
                                                       metric_name='TruePositives'),
-               print_confusion_matrix=True) # in case you use one of the ConfusionMatrix metrics (e.g. TruePositives), you may print the confusion matrix 
+               print_confusion_matrix_normalized=True) # in case you use one of the ConfusionMatrix metrics (e.g. TruePositives), you may print the confusion matrix 
 ```
 Output example: 
 
@@ -304,8 +305,7 @@ is getting higher than the highest value so far.
                     State.EXTERNAL,
                     checkpoint_dir, 
                     checkpoint_file_name,
-                    CallbackMonitor(patience=None,
-                                    monitor_type=MonitorType.METRIC, 
+                    CallbackMonitor(monitor_type=MonitorType.METRIC, 
                                     stats_type=StatsType.VAL, 
                                     monitor_mode=MonitorMode.MAX,
                                     metric_name='my_metric'),
@@ -319,10 +319,10 @@ For example, EarlyStopping that will monitor at the end of every epoch, and stop
 ```python
 EarlyStopping(Phase.EPOCH_END, 
               State.EXTERNAL,
-              CallbackMonitor(patience=10, 
-                              monitor_type=MonitorType.LOSS, 
+              CallbackMonitor(monitor_type=MonitorType.LOSS, 
                               stats_type=StatsType.VAL, 
-                              monitor_mode=MonitorMode.MIN))
+                              monitor_mode=MonitorMode.MIN,
+                              patience=10))
 ```
 
 ### SchedulerStep Callback
@@ -391,8 +391,8 @@ Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our valid
         def __init__(self, apply_on_phase=Phase.BATCH_END, apply_on_states=[State.TRAIN, State.VAL]):
             super(MyAwesomeCallback, self).__init__(apply_on_phase, apply_on_states)
             
-            # adding CallbackMonitor to track VAL LOSS with regards to MIN (lower is better) and patience or 20 epochs
-            self.val_loss_monitor = CallbackMonitor(patience=20, MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN)
+            # adding CallbackMonitor to track VAL LOSS with regards to MIN (lower is better) and patience of 20 epochs
+            self.val_loss_monitor = CallbackMonitor(MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN, patience=20)
 
         def __call__(self, callback_context: CallbackContext): # <=== implement this method!
             # same as before, using callback_context, you can access anything in your trainer
@@ -403,7 +403,7 @@ Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our valid
             # since you configured your val_loss_monitor, it will get the relevant parameters from callback_context
             monitor_result = self.val_loss_monitor.track(callback_context)
 
-            # monitor_result (lpd.callbacks.CallbackMonitorResult) contains lots of informative properties
+            # monitor_result (lpd.callbacks.CallbackMonitorResult) contains informative properties
             # for example lets check the status of the patience countdown
 
             if monitor_result.has_patience():
@@ -442,8 +442,8 @@ Let's create a custom metric using ``MetricBase`` and also show the use of ``Bin
 
 Let's do another example, a custom metric ``Positivity`` based on confusion matrix using ``MetricConfusionMatrixBase``
 ```python
-    from lpd.metrics import MetricConfusionMatrixBase, MetricBase, TruePositives, TrueNegatives
-    from lpd.enums import ConfusionMatrixBasedMetric, MetricMethod
+    from lpd.metrics import MetricConfusionMatrixBase, TruePositives, TrueNegatives
+    from lpd.enums import ConfusionMatrixBasedMetric
 
     # our custom metric
     class Positivity(MetricConfusionMatrixBase):
@@ -453,8 +453,6 @@ Let's do another example, a custom metric ``Positivity`` based on confusion matr
         def __call__(self, y_pred, y_true): # <=== implement this method!
             tp_per_class = self.get_stats(ConfusionMatrixBasedMetric.TP)
             tn_per_class = self.get_stats(ConfusionMatrixBasedMetric.TN)
-            if self.is_binary(y_pred, y_true):
-                return tp_per_class[1] + tn_per_class[1]
             return tp_per_class + tn_per_class
 ``` 
 

@@ -2,8 +2,10 @@ import unittest
 import torch as T
 import torch.nn as nn
 from lpd.metrics import BinaryAccuracy, BinaryAccuracyWithLogits, CategoricalAccuracy, CategoricalAccuracyWithLogits
-from lpd.metrics import TopKCategoricalAccuracy, TruePositives, TrueNegatives, FalseNegatives, FalsePositives
+from lpd.metrics import TopKCategoricalAccuracy, TruePositives, TrueNegatives, FalseNegatives, FalsePositives, MetricConfusionMatrixBase
 from lpd.metrics.confusion_matrix import ConfusionMatrix
+from lpd.enums import ConfusionMatrixBasedMetric
+
 
 class TestMetrics(unittest.TestCase):
 
@@ -264,6 +266,17 @@ class TestMetrics(unittest.TestCase):
         self.assertTrue((conf==T.Tensor([[3,0,1,0],[0,2,1,0],[0,0,0,0],[0,1,0,0]])).all())
 
     def test_tp_tn_fp_fn(self):
+        # TEST ALSO AGAINST CUSTOM METRIC
+        class Positivity(MetricConfusionMatrixBase):
+            def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5):
+                super(Positivity, self).__init__(num_classes, labels, predictions_to_classes_convertor, threshold)
+
+            def __call__(self, y_pred, y_true):
+                tp_per_class = self.get_stats(ConfusionMatrixBasedMetric.TP)
+                tn_per_class = self.get_stats(ConfusionMatrixBasedMetric.TN)
+                return tp_per_class + tn_per_class
+
+
         # BINARY
         labels = ["a", "b"]
         num_classes = len(labels)
@@ -296,6 +309,12 @@ class TestMetrics(unittest.TestCase):
         metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
         result = metric(predicted, actual)
         self.assertTrue((result==T.Tensor([2])).all())
+
+
+        metric = Positivity(num_classes)
+        metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
+        result = metric(predicted, actual)
+        self.assertTrue((result==T.Tensor([7])).all())
 
 
         # BINARY AS 2 CLASSES
@@ -335,6 +354,11 @@ class TestMetrics(unittest.TestCase):
         self.assertTrue((result==T.Tensor([2])).all())
 
 
+        metric = Positivity(num_classes)
+        metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
+        result = metric(predicted, actual)
+        self.assertTrue((result==T.Tensor([7])).all())
+
 
         # 4 classes
 
@@ -359,21 +383,29 @@ class TestMetrics(unittest.TestCase):
         result = metric(predicted, actual)
         self.assertTrue((result==T.Tensor([3,2,0,0])).all())
 
-        metric = FalsePositives(num_classes)
-        metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
-        result = metric(predicted, actual)
-        self.assertTrue((result==T.Tensor([1,1,0,1])).all())
-
-        metric = FalseNegatives(num_classes)
-        metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
-        result = metric(predicted, actual)
-        self.assertTrue((result==T.Tensor([0,1,2,0])).all())
 
         metric = TrueNegatives(num_classes)
         metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
         result = metric(predicted, actual)
         self.assertTrue((result==T.Tensor([4,4,6,7])).all())
 
+
+        metric = FalsePositives(num_classes)
+        metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
+        result = metric(predicted, actual)
+        self.assertTrue((result==T.Tensor([1,1,0,1])).all())
+
+
+        metric = FalseNegatives(num_classes)
+        metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
+        result = metric(predicted, actual)
+        self.assertTrue((result==T.Tensor([0,1,2,0])).all())
+
+
+        metric = Positivity(num_classes)
+        metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
+        result = metric(predicted, actual)
+        self.assertTrue((result==T.Tensor([7,6,6,7])).all())
 
 
         # 4 CLASSES MULTI-LABEL
@@ -399,18 +431,27 @@ class TestMetrics(unittest.TestCase):
         result = metric(predicted, actual)
         self.assertTrue((result==T.Tensor([3,2,0,0])).all())
 
+
+        metric = TrueNegatives(num_classes)
+        metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
+        result = metric(predicted, actual)
+        self.assertTrue((result==T.Tensor([4,4,6,7])).all())
+
+
         metric = FalsePositives(num_classes)
         metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
         result = metric(predicted, actual)
         self.assertTrue((result==T.Tensor([1,1,0,1])).all())
+
 
         metric = FalseNegatives(num_classes)
         metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
         result = metric(predicted, actual)
         self.assertTrue((result==T.Tensor([0,1,2,0])).all())
 
-        metric = TrueNegatives(num_classes)
+
+        metric = Positivity(num_classes)
         metric._set_confusion_matrix(confusion_matrix) #IN REAL-TIME THIS IS BEING HANDLED BY TRAINER-STATS
         result = metric(predicted, actual)
-        self.assertTrue((result==T.Tensor([4,4,6,7])).all())
+        self.assertTrue((result==T.Tensor([7,6,6,7])).all())
 

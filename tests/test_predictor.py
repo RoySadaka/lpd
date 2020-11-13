@@ -35,10 +35,9 @@ class TestPredictor(unittest.TestCase):
                         LossOptimizerHandler(),
                         ModelCheckPoint(checkpoint_dir=save_to_dir, 
                                         checkpoint_file_name=checkpoint_file_name, 
-                                        callback_monitor=CallbackMonitor(patience=-1,
-                                                                        monitor_type=MonitorType.LOSS, 
-                                                                        stats_type=StatsType.VAL, 
-                                                                        monitor_mode=MonitorMode.MIN),
+                                        callback_monitor=CallbackMonitor(monitor_type=MonitorType.LOSS, 
+                                                                         stats_type=StatsType.VAL, 
+                                                                         monitor_mode=MonitorMode.MIN),
                                         save_best_only=True, 
                                         save_full_trainer=False), 
                     ]

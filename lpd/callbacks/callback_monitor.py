@@ -15,7 +15,7 @@ class CallbackMonitor():
         monitor_mode - e.g. lpd.enums.MonitorMode.MIN, min wothh check if the metric decreased, MAX will check for increase
         metric_name - in case of monitor_mode=lpd.enums.MonitorMode.METRIC, provide metric_name, otherwise, leave it None
     """
-    def __init__(self, patience: int, monitor_type: MonitorType, stats_type: StatsType, monitor_mode: MonitorMode, metric_name: Optional[str]=None):
+    def __init__(self, monitor_type: MonitorType, stats_type: StatsType, monitor_mode: MonitorMode, patience: int=None, metric_name: Optional[str]=None):
         self.patience = inf if patience is None or patience < 0 else patience
         self.patience_countdown = self.patience
         self.monitor_type = monitor_type
