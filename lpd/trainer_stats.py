@@ -95,9 +95,7 @@ class TrainerStats():
     def add_metrics(self, y_pred, y_true, batch_size):
         if self.confusion_matrix:
             self.confusion_matrix.update_state(y_pred, y_true)
-            for _, metric in self.metric_name_to_func.items():
-                if isinstance(metric, MetricConfusionMatrixBase):
-                    metric._set_confusion_matrix(self.confusion_matrix)
+            MetricConfusionMatrixBase.confusion_matrix_ = self.confusion_matrix
 
         for metric_name, stats in self.metric_name_to_stats.items():
             metric_func = self.metric_name_to_func[metric_name]

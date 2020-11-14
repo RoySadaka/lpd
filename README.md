@@ -19,11 +19,12 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
     pip install lpd
 ```
 
-<b>[v0.3.5-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* ``CallbackMonitor`` patience argument now optional for cleaner code
-* Better handling for binary ``get_stats`` in confusion matrix based metric
+<b>[v0.3.6-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Improved handling of ``MetricConfusionMatrixBase`` with custom metrics
 
 Previously on lpd: 
+* ``CallbackMonitor`` patience argument now optional for cleaner code
+* Better handling for binary ``get_stats`` in confusion matrix based metric
 * Added ``MetricConfusionMatrixBase`` for adding custom confusion matrix based metrics
 * Added ``ConfusionMatrixBasedMetric`` Enum to get specific metrics such as tp,fp,fn,tn,precision,sensitivity,specificity,recall,ppv,npv,accuracy,f1score
 * Added confusion matrix common metrics (``TruePositives``, ``TrueNegatives``, ``FalsePositives``, ``FalseNegatives``)
@@ -221,9 +222,11 @@ These are the current available phases and states, more might be added in future
         State.EXTERNAL
         Phase.PREDICT_END
 ```
-Callbacks will be executed by the order of the list.
+Callbacks will be executed under the relevant phase and satae, and by their order.
 
 With phases and states, you have full control over the timing of your callbacks.
+
+Let's take a look at some of the callbacks ``lpd`` provides:
 
 ### LossOptimizerHandler Callback
 Derives from ``LossOptimizerHandlerBase``, probably the most important callback during training 😎 
@@ -236,26 +239,24 @@ Use ``LossOptimizerHandler`` to determine when to call:
 ```
 Or, you may choose to create your own ``AwesomeLossOptimizerHandler`` class by deriving from ``LossOptimizerHandlerBase``.
 
-``Trainer.train(num_epochs)`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided.
+``Trainer.train(...)`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided.
 
-Let's see an example of customizing ``LossOptimizerHandler``
+Let's see an example of customizing the default ``LossOptimizerHandler``
 
 Say your machine can handle up to batch_size = 8, but you want to accumulate gradients until you reach 32 samples before you backprop, then you can define your optimizer handler function, to pass it later to ``LossOptimizerHandler``:
 ```python
     def my_optimizer_handler_closure(action):
-        last_invocation_sample_count = 0 # closure state
+        sample_counter = 0 # closure state
 
-        def handler(callback_context): # CallbackContext class will be passed here by LossOptimizerHandler
-            nonlocal last_invocation_sample_count # for closure state
-            trainer = callback_context.trainer
-            optimizer = callback_context.optimizer
+        def handler(callback_context):  # CallbackContext class will be passed here by LossOptimizerHandler
+            nonlocal sample_counter     # for closure state
             
-            if callback_context.sample_count - last_invocation_sample_count >= 32:
-                last_invocation_sample_count = callback_context.sample_count
+            if callback_context.sample_count - sample_counter >= 32: # check if we collected 32 more samples
+                sample_counter = callback_context.sample_count
                 if action == 'step':
-                    optimizer.step()
+                    callback_context.optimizer.step()
                 elif action == 'zero_grad':
-                    optimizer.zero_grad()
+                    callback_context.optimizer.zero_grad()
 
         return handler
 ```
@@ -272,18 +273,21 @@ And now, use it in ``LossOptimizerHandler`` callback :
 ### StatsPrint Callback
 ``StatsPrint`` callback prints informative summary of the trainer stats including loss and metrics.
 
+* ``CallbackMonitor`` can add nicer look with ``IMPROVED`` indication on improved loss or metric, see output example below. 
 * Loss (for all states) will be monitored as ``MonitorMode.MIN``
-* For train metrics, provide your own monitors via ``train_metrics_monitors``
-* Validation metrics monitors will be added automatically according to ``train_metrics_monitors``
+* For train metrics, provide your own monitors via ``train_metrics_monitors`` argument
+* Validation metrics monitors will be added automatically according to ``train_metrics_monitors`` argument
 
 ```python
+    from lpd.enums import Phase, State, MonitorType, StatsType, MonitorMode
+
     StatsPrint(apply_on_phase=Phase.EPOCH_END, 
                apply_on_states=State.EXTERNAL, 
                train_metrics_monitors=CallbackMonitor(monitor_type=MonitorType.METRIC,
                                                       stats_type=StatsType.TRAIN,
                                                       monitor_mode=MonitorMode.MAX,
                                                       metric_name='TruePositives'),
-               print_confusion_matrix_normalized=True) # in case you use one of the ConfusionMatrix metrics (e.g. TruePositives), you may print the confusion matrix 
+               print_confusion_matrix_normalized=True) # in case you use one of the ConfusionMatrix metrics (e.g. TruePositives), you may also print the confusion matrix 
 ```
 Output example: 
 
@@ -297,7 +301,7 @@ Saving a checkpoint when a monitored loss/metric has improved.
 The callback will save the model, optimizer, scheduler, and epoch number.
 You can also configure it to save Full Trainer.
 
-For example, ModelCheckPoint that will save a new *full trainer checkpoint* every time the validation metric_name ``my_metric``
+For example, ``ModelCheckPoint`` that will save a new *full trainer checkpoint* every time the validation metric_name ``my_metric``
 is getting higher than the highest value so far.
 
 ```python
@@ -305,16 +309,17 @@ is getting higher than the highest value so far.
                     State.EXTERNAL,
                     checkpoint_dir, 
                     checkpoint_file_name,
-                    CallbackMonitor(monitor_type=MonitorType.METRIC, 
-                                    stats_type=StatsType.VAL, 
-                                    monitor_mode=MonitorMode.MAX,
-                                    metric_name='my_metric'),
+                    CallbackMonitor(monitor_type=MonitorType.METRIC,    # It's a Metric and not a Loss 
+                                    stats_type=StatsType.VAL,           # check the value on the Validation set
+                                    monitor_mode=MonitorMode.MAX,       # MAX indicates higher is better
+                                    metric_name='my_metric'),           # since it's a Metric, mention its name
                     save_best_only=False, 
                     save_full_trainer=True)
 ```
 
 ### EarlyStopping Callback
 Stops the trainer when a monitored loss/metric has stopped improving.
+
 For example, EarlyStopping that will monitor at the end of every epoch, and stop the trainer if the validation loss didn't improve (decrease) for the last 10 epochs.
 ```python
 EarlyStopping(Phase.EPOCH_END, 
@@ -440,19 +445,28 @@ Let's create a custom metric using ``MetricBase`` and also show the use of ``Bin
     metric_name_to_func = {'accuracy':BinaryAccuracyWithLogits(), 'inaccuracy':InaccuracyWithLogits()}
 ``` 
 
-Let's do another example, a custom metric ``Positivity`` based on confusion matrix using ``MetricConfusionMatrixBase``
+Let's do another example, a custom metric ``Truthfulness`` based on confusion matrix using ``MetricConfusionMatrixBase``
 ```python
     from lpd.metrics import MetricConfusionMatrixBase, TruePositives, TrueNegatives
     from lpd.enums import ConfusionMatrixBasedMetric
 
     # our custom metric
-    class Positivity(MetricConfusionMatrixBase):
+    class Truthfulness(MetricConfusionMatrixBase):
         def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5):
-            super(Positivity, self).__init__(num_classes, labels, predictions_to_classes_convertor, threshold)
+            super(Truthfulness, self).__init__(num_classes, labels, predictions_to_classes_convertor, threshold)
+            self.tp = TruePositives(num_classes, labels, predictions_to_classes_convertor, threshold) # we exploit TruePositives for the computation
+            self.tn = TrueNegatives(num_classes, labels, predictions_to_classes_convertor, threshold) # we exploit TrueNegatives for the computation
 
-        def __call__(self, y_pred, y_true): # <=== implement this method!
-            tp_per_class = self.get_stats(ConfusionMatrixBasedMetric.TP)
-            tn_per_class = self.get_stats(ConfusionMatrixBasedMetric.TN)
+        def __call__(self, y_pred, y_true):  # <=== implement this method!
+            tp_per_class = self.tp(y_pred, y_true)
+            tn_per_class = self.tn(y_pred, y_true)
+
+            # you can also access more confusion matrix metrics such as
+            f1score = self.get_stats(ConfusionMatrixBasedMetric.F1SCORE)
+            precision = self.get_stats(ConfusionMatrixBasedMetric.PRECISION)
+            recall = self.get_stats(ConfusionMatrixBasedMetric.RECALL)
+            # see ConfusionMatrixBasedMetric enum for more             
+
             return tp_per_class + tn_per_class
 ``` 
 

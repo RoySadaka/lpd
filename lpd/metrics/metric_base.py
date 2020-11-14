@@ -16,6 +16,14 @@ class MetricBase(object):
 
 
 class MetricConfusionMatrixBase(MetricBase):
+    """
+        confusion_matrix_ is for INTERNAL USE ONLY!
+        the confusion matrix is being handled by TrainerStats, that way there is only one 
+        confusion matrix per State (TRAIN/VAL/TEST).
+        TrainerStats will inject the most updated confusion matrix here 
+    """
+    confusion_matrix_ = None
+
     def __init__(self, num_classes, labels, predictions_to_classes_convertor, threshold):
         super(MetricConfusionMatrixBase, self).__init__(MetricMethod.LAST)
         self.num_classes = num_classes
@@ -24,27 +32,16 @@ class MetricConfusionMatrixBase(MetricBase):
             raise ValueError(f'[MetricConfusionMatrixBase] - expecting same number for labels as num_classes, but got num_classes = {num_classes}, and {len(self.labels)} labels')
         self.predictions_to_classes_convertor = predictions_to_classes_convertor
         self.threshold = threshold
-        # confusion_matrix_ IS MANAGED INTERNALLY BY TRAINER-STATS VIA _set_confusion_matrix
-        self.confusion_matrix_ = None
-
-    def _set_confusion_matrix(self, confusion_matrix):
-        """
-            INTERNAL USE ONLY!
-            the confusion matrix is being handled by TrainerStats, that way there is only one 
-            confusion matrix per State (TRAIN/VAL/TEST).
-            TrainerStats will inject the most updated confusion matrix here 
-        """
-        self.confusion_matrix_ = confusion_matrix
 
     def _is_binary(self):
-        return self.confusion_matrix_.num_classes == 2
+        return MetricConfusionMatrixBase.confusion_matrix_.num_classes == 2
 
     def get_stats(self, metric: ConfusionMatrixBasedMetric):
-        stats = self.confusion_matrix_.get_stats()
+        stats = MetricConfusionMatrixBase.confusion_matrix_.get_stats()
         result_per_class = T.Tensor([stats_per_class[metric] for stats_per_class in stats.values()])
         if self._is_binary():
             return result_per_class[1]
         return result_per_class
 
     def get_confusion_matrix(self):
-        return self.confusion_matrix_.get_confusion_matrix()
+        return MetricConfusionMatrixBase.confusion_matrix_.get_confusion_matrix()

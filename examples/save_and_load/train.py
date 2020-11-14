@@ -6,7 +6,7 @@ from lpd.trainer import Trainer
 from lpd.callbacks import SchedulerStep, StatsPrint, ModelCheckPoint, LossOptimizerHandler, CallbackMonitor
 from lpd.extensions.custom_schedulers import DoNothingToLR
 from lpd.enums import Phase, State, MonitorType, StatsType, MonitorMode, MetricMethod
-from lpd.metrics import BinaryAccuracyWithLogits, MetricBase
+from lpd.metrics import BinaryAccuracyWithLogits, MetricBase, TruePositives, TrueNegatives, MetricConfusionMatrixBase
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 import examples.utils as eu
@@ -38,6 +38,18 @@ class InaccuracyWithLogits(MetricBase):
         return 1 - acc  # return the inaccuracy
 
 
+# LET'S CREATE A CUSTOM CONFUSION-MATRIX BASED METRIC
+class Truthfulness(MetricConfusionMatrixBase):
+    def __init__(self):
+        super(Truthfulness, self).__init__(num_classes=2, labels=None,  predictions_to_classes_convertor = None, threshold=0.0)
+        self.tp = TruePositives(num_classes=2, threshold=0.0) # we exploit TruePositives for the computation
+        self.tn = TrueNegatives(num_classes=2, threshold=0.0) # we exploit TrueNegatives for the computation
+
+    def __call__(self, y_pred, y_true):
+        tp_res = self.tp(y_pred, y_true)
+        tn_res = self.tn(y_pred, y_true)
+        return tp_res + tn_res
+
 def get_trainer_base(D_in, H, D_out):
     device = tu.get_gpu_device_if_available()
 
@@ -49,7 +61,11 @@ def get_trainer_base(D_in, H, D_out):
 
     scheduler = DoNothingToLR() #CAN ALSO USE scheduler=None, BUT DoNothingToLR IS MORE EXPLICIT
     
-    metric_name_to_func = {"Accuracy":BinaryAccuracyWithLogits(), "InAccuracy":InaccuracyWithLogits()}
+    metric_name_to_func = {"Accuracy":BinaryAccuracyWithLogits(), 
+                           "InAccuracy":InaccuracyWithLogits(), 
+                           "TruePositives":TruePositives(num_classes=2, threshold=0.0), 
+                           "TrueNegatives":TrueNegatives(num_classes=2, threshold=0.0), 
+                           "Truthfulness":Truthfulness()}
 
     return device, model, loss_func, optimizer, scheduler, metric_name_to_func
 
@@ -75,7 +91,8 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
                                                        CallbackMonitor(monitor_type=MonitorType.METRIC,
                                                                        stats_type=StatsType.TRAIN,
                                                                        monitor_mode=MonitorMode.MIN,
-                                                                       metric_name='InAccuracy')])
+                                                                       metric_name='InAccuracy')],
+                               print_confusion_matrix_normalized=True)
                 ]
 
     trainer = Trainer(model=model, 
