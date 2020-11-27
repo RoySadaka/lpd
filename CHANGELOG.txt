@@ -2,6 +2,11 @@ Change Log
 ==========
 
 
+0.3.7 (27/11/2020)
+-----------------
+* Added lpd-nodeps package in case you need to handle your own dependancies 
+
+
 0.3.6 (14/11/2020)
 -----------------
 * Improved handling of MetricConfusionMatrixBase with custom metrics

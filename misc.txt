@@ -7,6 +7,8 @@ Steps:
 6) Github Release
 7) PyPi release 
     Build pypi package cmd:
-    >> python setup.py sdist
+    >> python setup.py bdist_wheel -d .
+    >> python setup-nodeps.py bdist_wheel -d .
     Publish pypi package cmd:
-    >> twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+    >> twine upload lpd-0.3.7-py3-none-any.whl
+    >> twine upload lpd_nodeps-0.3.7-py3-none-any.whl

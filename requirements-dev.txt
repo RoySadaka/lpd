@@ -1,4 +1,3 @@
 tensorboard   # for exporting report
-tqdm          # we want nice prints
 numpy         # pretty much must have
 torch         # obviously

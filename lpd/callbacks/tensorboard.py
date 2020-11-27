@@ -4,7 +4,7 @@ from lpd.callbacks.callback_base import CallbackBase
 from lpd.callbacks.callback_context import CallbackContext
 from lpd.callbacks.callback_monitor import CallbackMonitorResult
 
-from torch.utils.tensorboard import SummaryWriter
+
 from typing import Union, List, Optional, Dict
 
 class Tensorboard(CallbackBase):
@@ -22,6 +22,7 @@ class Tensorboard(CallbackBase):
                         apply_on_states: Union[State, List[State]]=State.EXTERNAL,
                         summary_writer_dir: str=None):
         super(Tensorboard, self).__init__(apply_on_phase, apply_on_states)
+        from torch.utils.tensorboard import SummaryWriter # OPTIMIZATION FOR lpd-nodeps
         self.TRAIN_NAME = 'Train'
         self.VAL_NAME = 'Val'
         self.summary_writer_dir = summary_writer_dir
