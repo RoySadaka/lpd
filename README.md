@@ -15,18 +15,18 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 <!-- ![Follow](https://img.shields.io/twitter/follow/roysadaka?label=RoySadaka&style=social) -->
 
 There are 2 types of ``lpd`` packagaes available 
-* ``lpd`` which brings dependancies for pytorch, numpy and tensorboard
+* ``lpd`` which brings dependencies for pytorch, numpy and tensorboard
 ```sh
     pip install lpd
 ```
 
-* ``lpd-nodeps`` which **you provide** your own dependancies for pytorch, numpy and tensorboard
+* ``lpd-nodeps`` which **you provide** your own dependencies for pytorch, numpy and tensorboard
 ```sh
     pip install lpd-nodeps
 ```
 
 <b>[v0.3.7-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added lpd-nodeps package in case you need to handle your own dependancies 
+* Added lpd-nodeps package in case you need to handle your own dependencies 
 
 Previously on lpd: 
 * Improved handling of ``MetricConfusionMatrixBase`` with custom metrics
