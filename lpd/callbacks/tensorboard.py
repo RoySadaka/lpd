@@ -4,7 +4,6 @@ from lpd.callbacks.callback_base import CallbackBase
 from lpd.callbacks.callback_context import CallbackContext
 from lpd.callbacks.callback_monitor import CallbackMonitorResult
 
-
 from typing import Union, List, Optional, Dict
 
 class Tensorboard(CallbackBase):
@@ -15,7 +14,6 @@ class Tensorboard(CallbackBase):
             apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
             summary_writer_dir - the folder path to save tensorboard output
-                                 if passed None, will write to the current dir
     """
 
     def __init__(self, apply_on_phase: Phase=Phase.EPOCH_END, 
@@ -28,7 +26,7 @@ class Tensorboard(CallbackBase):
         self.summary_writer_dir = summary_writer_dir
         if self.summary_writer_dir is None:
             raise ValueError("[Tensorboard] - summary_writer_dir was not provided")
-        self.tensorboard_writer = SummaryWriter(summary_writer_dir + 'tensorboard_files')
+        self.tensorboard_writer = SummaryWriter(summary_writer_dir)
 
     def _write_to_summary(self, phase_name: str ,epoch: int, stats: TrainerStats):
         self.tensorboard_writer.add_scalar(f'{phase_name} loss', stats.get_loss(), global_step=epoch)

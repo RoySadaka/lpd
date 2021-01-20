@@ -16,7 +16,7 @@ import examples.utils as eu
 
 class TestTrainer(unittest.TestCase):
 
-    def test_metric_name_to_func_validation(self):
+    def test_metrics_validation(self):
         device = tu.get_gpu_device_if_available()
 
         model = eu.get_basic_model(10, 10, 10).to(device)
@@ -27,7 +27,7 @@ class TestTrainer(unittest.TestCase):
 
         scheduler = None
         
-        metric_name_to_func = {"acc":lambda x,y: x+y}
+        metric = lambda x,y: x+y
 
         callbacks = [   
                         LossOptimizerHandler(),
@@ -37,13 +37,13 @@ class TestTrainer(unittest.TestCase):
         data_loader = eu.examples_data_generator(10, 10, 10)
         data_loader_steps = 100
 
-        # ASSERT BAD VALUE FOR metric_name_to_func
+        # ASSERT BAD VALUE FOR metric
         self.assertRaises(ValueError, Trainer, model=model, 
                                                 device=device, 
                                                 loss_func=loss_func, 
                                                 optimizer=optimizer,
                                                 scheduler=scheduler,
-                                                metric_name_to_func=metric_name_to_func, 
+                                                metrics=metric, 
                                                 train_data_loader=data_loader, 
                                                 val_data_loader=data_loader,
                                                 train_steps=data_loader_steps,
@@ -51,14 +51,14 @@ class TestTrainer(unittest.TestCase):
                                                 callbacks=callbacks,
                                                 name='Trainer-Test')
 
-        # ASSERT GOOD VALUE FOR metric_name_to_func
-        metric_name_to_func = {"acc":BinaryAccuracyWithLogits()}
+        # ASSERT GOOD VALUE FOR metrics
+        metrics = BinaryAccuracyWithLogits('acc')
         trainer = Trainer(model=model, 
                         device=device, 
                         loss_func=loss_func, 
                         optimizer=optimizer,
                         scheduler=scheduler,
-                        metric_name_to_func=metric_name_to_func, 
+                        metrics=metrics, 
                         train_data_loader=data_loader, 
                         val_data_loader=data_loader,
                         train_steps=data_loader_steps,
@@ -81,7 +81,7 @@ class TestTrainer(unittest.TestCase):
 
         scheduler = KerasDecay(optimizer, 0.0001, last_step=-1)
         
-        metric_name_to_func = {"acc":CategoricalAccuracyWithLogits()}
+        metrics = CategoricalAccuracyWithLogits(name='acc')
 
         callbacks = [   
                         LossOptimizerHandler(),
@@ -107,7 +107,7 @@ class TestTrainer(unittest.TestCase):
                         loss_func=loss_func, 
                         optimizer=optimizer,
                         scheduler=scheduler,
-                        metric_name_to_func=metric_name_to_func, 
+                        metrics=metrics, 
                         train_data_loader=data_loader, 
                         val_data_loader=data_loader,
                         train_steps=data_loader_steps,
@@ -144,7 +144,7 @@ class TestTrainer(unittest.TestCase):
 
         scheduler = KerasDecay(optimizer, 0.0001, last_step=-1)
         
-        metric_name_to_func = {"acc":BinaryAccuracyWithLogits()}
+        metrics = BinaryAccuracyWithLogits(name='acc')
 
         callbacks = [   
                         StatsPrint()
@@ -161,7 +161,7 @@ class TestTrainer(unittest.TestCase):
                         loss_func=loss_func, 
                         optimizer=optimizer,
                         scheduler=scheduler,
-                        metric_name_to_func=metric_name_to_func, 
+                        metrics=metrics, 
                         train_data_loader=data_loader, 
                         val_data_loader=data_loader,
                         train_steps=data_loader_steps,

@@ -29,8 +29,8 @@ def get_parameters():
 
 # LET'S CREATE A CUSTOM (ALTOUGH NOT SO INFORMATIVE) METRIC
 class InaccuracyWithLogits(MetricBase):
-    def __init__(self):
-        super(InaccuracyWithLogits, self).__init__(MetricMethod.MEAN)
+    def __init__(self, name='InaccuracyWithLogits'):
+        super(InaccuracyWithLogits, self).__init__(name=name, metric_method=MetricMethod.MEAN)
         self.bawl = BinaryAccuracyWithLogits() # we exploit BinaryAccuracyWithLogits for the computation
 
     def __call__(self, y_pred, y_true): # <=== implement this method!
@@ -40,8 +40,8 @@ class InaccuracyWithLogits(MetricBase):
 
 # LET'S CREATE A CUSTOM CONFUSION-MATRIX BASED METRIC
 class Truthfulness(MetricConfusionMatrixBase):
-    def __init__(self):
-        super(Truthfulness, self).__init__(num_classes=2, labels=None,  predictions_to_classes_convertor = None, threshold=0.0)
+    def __init__(self, name='Truthfulness'):
+        super(Truthfulness, self).__init__(name=name, num_classes=2, labels=None,  predictions_to_classes_convertor = None, threshold=0.0)
         self.tp = TruePositives(num_classes=2, threshold=0.0) # we exploit TruePositives for the computation
         self.tn = TrueNegatives(num_classes=2, threshold=0.0) # we exploit TrueNegatives for the computation
 
@@ -61,16 +61,18 @@ def get_trainer_base(D_in, H, D_out):
 
     scheduler = DoNothingToLR() #CAN ALSO USE scheduler=None, BUT DoNothingToLR IS MORE EXPLICIT
     
-    metric_name_to_func = {"Accuracy":BinaryAccuracyWithLogits(), 
-                           "InAccuracy":InaccuracyWithLogits(), 
-                           "TruePositives":TruePositives(num_classes=2, threshold=0.0), 
-                           "TrueNegatives":TrueNegatives(num_classes=2, threshold=0.0), 
-                           "Truthfulness":Truthfulness()}
+    metrics = [
+                            BinaryAccuracyWithLogits(name='Accuracy'),
+                            InaccuracyWithLogits(name='InAccuracy'), 
+                            TruePositives(num_classes=2, threshold=0.0), 
+                            TrueNegatives(num_classes=2, threshold=0.0), 
+                            Truthfulness(name='Truthfulness')
+                           ]
 
-    return device, model, loss_func, optimizer, scheduler, metric_name_to_func
+    return device, model, loss_func, optimizer, scheduler, metrics
 
 def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
-    device, model, loss_func, optimizer, scheduler, metric_name_to_func = get_trainer_base(D_in, H, D_out)
+    device, model, loss_func, optimizer, scheduler, metrics = get_trainer_base(D_in, H, D_out)
 
     callbacks = [   
                     LossOptimizerHandler(),
@@ -100,7 +102,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
                       loss_func=loss_func, 
                       optimizer=optimizer,
                       scheduler=scheduler,
-                      metric_name_to_func=metric_name_to_func, 
+                      metrics=metrics, 
                       train_data_loader=data_loader, 
                       val_data_loader=data_loader,
                       train_steps=data_loader_steps,
@@ -110,7 +112,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
     return trainer
 
 def load_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
-    device, model, loss_func, optimizer, scheduler, metric_name_to_func = get_trainer_base(D_in, H, D_out)
+    device, model, loss_func, optimizer, scheduler, metrics = get_trainer_base(D_in, H, D_out)
 
     # NOTICE, load_trainer IS A STATIC METHOD IN Trainer CLASS
     loaded_trainer = Trainer.load_trainer(dir_path=save_to_dir,

@@ -2,13 +2,14 @@ from lpd.enums.metric_method import MetricMethod
 import torch as T
 from lpd.enums.confusion_matrix_based_metric import ConfusionMatrixBasedMetric
 
-class MetricBase(object):
+class MetricBase:
     """
         Args:
         metric_method - from lpd.enums.MetricMethod, use this to dictate how this metric is behaving over the batches,
                         whether its accumulates the MEAN, or the SUM, or taking the LAST value (for example in MetricConfusionMatrixBase)
     """
-    def __init__(self, metric_method: MetricMethod):
+    def __init__(self, name: str, metric_method: MetricMethod):
+        self.name = name
         self.metric_method = metric_method
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):
@@ -24,12 +25,12 @@ class MetricConfusionMatrixBase(MetricBase):
     """
     confusion_matrix_ = None
 
-    def __init__(self, num_classes, labels, predictions_to_classes_convertor, threshold):
-        super(MetricConfusionMatrixBase, self).__init__(MetricMethod.LAST)
+    def __init__(self, name, num_classes, labels, predictions_to_classes_convertor, threshold):
+        super(MetricConfusionMatrixBase, self).__init__(name=name, metric_method=MetricMethod.LAST)
         self.num_classes = num_classes
         self.labels = labels
         if self.labels and len(self.labels) != num_classes:
-            raise ValueError(f'[MetricConfusionMatrixBase] - expecting same number for labels as num_classes, but got num_classes = {num_classes}, and {len(self.labels)} labels')
+            raise ValueError(f'[{self.name}] - expecting same number for labels as num_classes, but got num_classes = {num_classes}, and {len(self.labels)} labels')
         self.predictions_to_classes_convertor = predictions_to_classes_convertor
         self.threshold = threshold
 

@@ -9,6 +9,11 @@ def is_folder_exists(folder_path):
 def create_folder(full_path):
     os.makedirs(full_path)
 
+def ensure_folder_created(full_path):
+    if os.path.isdir(full_path):
+        return
+    create_folder(full_path)
+
 def delete_file(full_path):
     os.remove(full_path)
 

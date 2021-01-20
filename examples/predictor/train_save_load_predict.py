@@ -37,12 +37,12 @@ def get_trainer_base(D_in, H, D_out):
 
     scheduler = DoNothingToLR() #CAN ALSO USE scheduler=None, BUT DoNothingToLR IS MORE EXPLICIT
     
-    metric_name_to_func = {"Accuracy":BinaryAccuracyWithLogits()}
+    metrics = BinaryAccuracyWithLogits(name='Accuracy')
 
-    return device, model, loss_func, optimizer, scheduler, metric_name_to_func
+    return device, model, loss_func, optimizer, scheduler, metrics
 
 def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
-    device, model, loss_func, optimizer, scheduler, metric_name_to_func = get_trainer_base(D_in, H, D_out)
+    device, model, loss_func, optimizer, scheduler, metrics = get_trainer_base(D_in, H, D_out)
 
     callbacks = [   
                     LossOptimizerHandler(),
@@ -67,7 +67,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
                       loss_func=loss_func, 
                       optimizer=optimizer,
                       scheduler=scheduler,
-                      metric_name_to_func=metric_name_to_func, 
+                      metrics=metrics, 
                       train_data_loader=data_loader, 
                       val_data_loader=data_loader,
                       train_steps=data_loader_steps,

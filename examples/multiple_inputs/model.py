@@ -77,10 +77,10 @@ def get_trainer(config,
     
     loss_func = nn.BCEWithLogitsLoss().to(device)
 
-    metric_name_to_func = {
-                           "Accuracy":BinaryAccuracyWithLogits(),
-                           "TP":TruePositives(2, threshold = 0)
-                           }
+    metrics = [
+                           BinaryAccuracyWithLogits(name='Accuracy'),
+                           TruePositives(num_classes=2, threshold=0, name='TP')
+                        ]
 
     callbacks = [   
                     LossOptimizerHandler(),
@@ -108,7 +108,7 @@ def get_trainer(config,
                       loss_func=loss_func, 
                       optimizer=optimizer,
                       scheduler=scheduler,
-                      metric_name_to_func=metric_name_to_func, 
+                      metrics=metrics, 
                       train_data_loader=train_data_loader, 
                       val_data_loader=val_data_loader,
                       train_steps=train_steps,

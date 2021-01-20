@@ -45,7 +45,7 @@ def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
     # EPOCH 5 LR: 0.1 * (1./(1. + 0.01 * 5)) = 0.09523809523
     scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) 
     
-    metric_name_to_func = {'acc':CategoricalAccuracyWithLogits()}
+    metrics = CategoricalAccuracyWithLogits('acc')
 
     callbacks = [   
                     LossOptimizerHandler(),
@@ -60,7 +60,7 @@ def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
                       loss_func=loss_func, 
                       optimizer=optimizer,
                       scheduler=scheduler,
-                      metric_name_to_func=metric_name_to_func, 
+                      metrics=metrics, 
                       train_data_loader=data_loader, 
                       val_data_loader=data_loader,
                       train_steps=data_loader_steps,

@@ -34,5 +34,5 @@ class CollectOutputs(CallbackBase):
             if state not in self.state_to_outputs:
                 self.state_to_outputs[state] = []
 
-            last_outputs = c.trainer._last_outputs.data
+            last_outputs = c.trainer._last_data[state].output.data
             self.state_to_outputs[state].append(last_outputs)

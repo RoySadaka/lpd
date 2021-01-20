@@ -4,6 +4,7 @@ from lpd.metrics import MetricBase
 from lpd.callbacks import CallbackContext, CollectOutputs, LossOptimizerHandlerBase
 from lpd.enums import State, Phase
 from lpd.trainer_stats import TrainerStats, StatsResult
+from lpd.input_output_label import InputOutputLabel
 import lpd.utils.file_utils as fu
 from lpd.extensions.custom_schedulers import DoNothingToLR
 
@@ -18,8 +19,7 @@ class Trainer():
             optimizer - the model's optimizer
             scheduler - the model's scheduler (make sure you add SchedulerStep to your callbacks),
                         pass None if you dont need scheduler
-            metric_name_to_func - a dictionary with string as key and metric function as value
-                        e.g.   {"binary_accuracy":lpd.metrics.BinaryAccuracy()}
+            metrics - metric or a list of metrics
             train_data_loader - an iterable or generator to get the next train data batch
             val_data_loader - an iterable or generator to get the next val data batch
             train_steps - total number of steps (batches) before declaring the epoch as finished
@@ -45,7 +45,7 @@ class Trainer():
                        loss_func,
                        optimizer,
                        scheduler,
-                       metric_name_to_func,
+                       metrics,
                        train_data_loader,
                        val_data_loader,
                        train_steps,
@@ -57,8 +57,8 @@ class Trainer():
         self.loss_func = loss_func
         self.optimizer = optimizer
         self.scheduler = scheduler if scheduler else DoNothingToLR()
-        self.metric_name_to_func = metric_name_to_func if metric_name_to_func else {}
-        self._validate_metric_name_to_func()
+        self.metrics = metrics if metrics else []
+        self._validate_metrics()
         self.train_data_loader = train_data_loader
         self.val_data_loader = val_data_loader
         self.train_steps = train_steps
@@ -74,22 +74,26 @@ class Trainer():
 
         self.state = State.EXTERNAL
         self.phase = Phase.IDLE
-        self.train_stats = TrainerStats(self.metric_name_to_func)
+        self.train_stats = TrainerStats(self.metrics)
         self.train_last_loss = None
-        self.val_stats = TrainerStats(self.metric_name_to_func)
+        self.val_stats = TrainerStats(self.metrics)
         self.val_last_loss = None
-        self.test_stats = TrainerStats(self.metric_name_to_func)
+        self.test_stats = TrainerStats(self.metrics)
         self.test_last_loss = None
 
         self._stopped = False
-        self._last_outputs = None
-        self._last_labels = None
+
+        self._last_data = {s:InputOutputLabel() for s in State}
+
         self._total_num_epochs = 0
 
-    def _validate_metric_name_to_func(self):
-        for name,func in self.metric_name_to_func.items():
-            if not isinstance(func, MetricBase):
-                raise ValueError(f'[Trainer] - metric "{name}" is of type {type(func)}, expected {MetricBase}')
+    def _validate_metrics(self):
+        if not isinstance(self.metrics, list):
+            self.metrics = [self.metrics]
+            
+        for metric in self.metrics:
+            if not isinstance(metric, MetricBase):
+                raise ValueError(f'[Trainer] - one of the metrics is of type {type(metric)}, expected {MetricBase}')
 
     def _train_callbacks_validation(self):
         has_loss_optimizer_handler = False
@@ -156,20 +160,20 @@ class Trainer():
             metrics_str = ''
         print(f'{desc}, loss={stats_result.loss}{stats_result.metrics_str}')
 
-    def _prepare_next_batch(self, batch):
+    def _prepare_batch(self, batch):
         if self.state == State.PREDICT:
             inputs,labels = batch, T.zeros(len(batch)) #FAKE LABELS FOR CODE CONSISTENCY, NO ACTUAL USE TO THEM 
         else:
             inputs,labels = batch
         return inputs,labels
 
-    def _fwd_pass_base(self, data_loader, steps, state_handler, stats, loss_f, verbose):
+    def _fwd_pass_base(self, data_loader, steps, state_handler, stats, loss_f, last_data, verbose):
         stats.reset()
         loop = tqdm(data_loader, total=steps-1, disable=verbose-1) #verbose-1 maps 0,2=>True, 1=>False
         self.sample_count_in_epoch = 0
         self.iteration_in_epoch = 0
         for batch in loop:
-            inputs,labels = self._prepare_next_batch(batch)
+            inputs,labels = self._prepare_batch(batch)
             steps -= 1
 
             self.phase = Phase.BATCH_BEGIN
@@ -179,8 +183,10 @@ class Trainer():
             y = self._labels_handler(labels)
             batch_size = len(y)
             outputs = self.model(*x)
-            self._last_outputs = outputs
-            self._last_labels = y
+
+            last_data.update(x, outputs, y)
+            self._last_data[State.EXTERNAL].update(x, outputs, y) #ALWAYS UPDATE EXTERNAL WITH LATEST DATA SO WE CAN CHOOSE TO USE THE LAST SAMPLE ONLY IN SPECIFIC PHASE/STATE
+            
             loss = loss_f(outputs, y)
             stats.add_loss(loss, batch_size)
             stats.add_metrics(outputs, y, batch_size)
@@ -208,6 +214,7 @@ class Trainer():
                                 self._predict_handler, 
                                 stats=TrainerStats({}), # NO STATS
                                 loss_f=lambda outputs, y: T.Tensor([0]), # DO NOTHING LOSS
+                                last_data=self._last_data[State.PREDICT],
                                 verbose=0) 
 
     def _fwd_pass_test(self, test_data_loader, test_steps, verbose):
@@ -221,6 +228,7 @@ class Trainer():
                                 self._test_handler, 
                                 self.test_stats, 
                                 loss_f=self.loss_func,
+                                last_data=self._last_data[State.TEST],
                                 verbose=verbose)
 
     def _fwd_pass_val(self, verbose):
@@ -234,6 +242,7 @@ class Trainer():
                                 self._val_handler, 
                                 self.val_stats, 
                                 loss_f=self.loss_func,
+                                last_data=self._last_data[State.VAL],
                                 verbose=verbose)
 
     def _fwd_pass_train(self, verbose):
@@ -246,6 +255,7 @@ class Trainer():
                             self._train_handler, 
                             self.train_stats, 
                             loss_f=self.loss_func,
+                            last_data=self._last_data[State.TRAIN],
                             verbose=verbose)
 
         self._print_verbos_2(self.train_stats, verbose)
@@ -304,7 +314,7 @@ class Trainer():
                             'loss_func': self.loss_func.state_dict(),
                             'optimizer': self.optimizer.state_dict(),
                             'scheduler':  self.scheduler.state_dict() if self.scheduler else None,
-                            'metric_name_to_func': self.metric_name_to_func,
+                            'metrics': self.metrics,
                             'callbacks': self.callbacks,
                             'name': self.name,
                             'epoch': self.epoch,
@@ -342,7 +352,7 @@ class Trainer():
                        loss_func=loss_func, 
                        optimizer=optimizer,
                        scheduler=scheduler,
-                       metric_name_to_func=checkpoint['metric_name_to_func'], 
+                       metrics=checkpoint['metrics'], 
                        train_data_loader=train_data_loader, 
                        val_data_loader=val_data_loader,
                        train_steps=train_steps,
@@ -458,6 +468,3 @@ class Trainer():
 
     def predict_data_loader(self, inputs_data_loader, steps):
         return self._predict(inputs_data_loader, steps)
-
-
-

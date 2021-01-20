@@ -9,7 +9,8 @@ tqdm = "==4.51.0"
 
 [packages]
 numpy = "==1.19.2"
-torch = "==1.6.0"
+torch = "*"
+torchvision = "*"
 
 [requires]
 python_version = "3.7.6"

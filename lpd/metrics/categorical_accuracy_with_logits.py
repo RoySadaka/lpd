@@ -8,8 +8,8 @@ class CategoricalAccuracyWithLogits(MetricBase):
     """
         Same as CategoricalAccuracy, but more explicit about the Logits
     """
-    def __init__(self):
-        super(CategoricalAccuracyWithLogits, self).__init__(MetricMethod.MEAN)
+    def __init__(self, name='CategoricalAccuracyWithLogits'):
+        super(CategoricalAccuracyWithLogits, self).__init__(name=name, metric_method=MetricMethod.MEAN)
         self.ca = CategoricalAccuracy()
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):

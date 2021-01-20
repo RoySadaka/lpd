@@ -63,14 +63,14 @@ class StatsResult():
                '------------------'
 
 class TrainerStats():
-    def __init__(self, metric_name_to_func):
-        self.metric_name_to_func = metric_name_to_func
+    def __init__(self, metrics):
+        self.metrics = metrics
         self.loss_stats = Stats(MetricMethod.MEAN)
-        self.metric_name_to_stats = {metric_name:Stats(metric.metric_method) for metric_name,metric in self.metric_name_to_func.items()}
+        self.metric_name_to_stats = {metric.name:Stats(metric.metric_method) for metric in self.metrics}
         self.confusion_matrix = self._handle_confusion_matrix()
 
     def _handle_confusion_matrix(self):
-        for _,metric in self.metric_name_to_func.items():
+        for metric in self.metrics:
             if isinstance(metric, MetricConfusionMatrixBase):
                 confusion_matrix = ConfusionMatrix(num_classes=metric.num_classes, 
                                                    labels=metric.labels, 
@@ -97,9 +97,10 @@ class TrainerStats():
             self.confusion_matrix.update_state(y_pred, y_true)
             MetricConfusionMatrixBase.confusion_matrix_ = self.confusion_matrix
 
-        for metric_name, stats in self.metric_name_to_stats.items():
-            metric_func = self.metric_name_to_func[metric_name]
-            metric_value = metric_func(y_pred, y_true)
+        for metric in self.metrics:
+            name = metric.name
+            stats = self.metric_name_to_stats[name]
+            metric_value = metric(y_pred, y_true)
             stats.add_value(metric_value.clone().detach(), batch_size)
 
     def get_loss(self):

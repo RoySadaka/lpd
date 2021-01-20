@@ -8,8 +8,8 @@ class BinaryAccuracyWithLogits(MetricBase):
         BinaryAccuracyWithLogits is basically BinaryAccuracy with threshold=0.0
         when positive examples are >= 0  and negative examples are < 0
     """
-    def __init__(self, threshold=0.0):
-        super(BinaryAccuracyWithLogits, self).__init__(MetricMethod.MEAN)
+    def __init__(self, threshold=0.0, name='BinaryAccuracyWithLogits'):
+        super(BinaryAccuracyWithLogits, self).__init__(name=name, metric_method=MetricMethod.MEAN)
         self.ba = BinaryAccuracy(threshold)
 
 

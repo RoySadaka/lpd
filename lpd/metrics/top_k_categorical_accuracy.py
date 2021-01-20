@@ -8,8 +8,8 @@ class TopKCategoricalAccuracy(MetricBase):
         Take top k predicted classes from our model and see if the correct class was selected as top k. 
         If it was we say that our model was correct.
     """
-    def __init__(self, k):
-        super(TopKCategoricalAccuracy, self).__init__(MetricMethod.MEAN)
+    def __init__(self, k, name='TopKCategoricalAccuracy'):
+        super(TopKCategoricalAccuracy, self).__init__(name=name, metric_method=MetricMethod.MEAN)
         self.k = k
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):

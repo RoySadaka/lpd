@@ -1,3 +1,4 @@
 tensorboard   # for exporting report
 numpy         # pretty much must have
 torch         # obviously
+torchvision   # obviously

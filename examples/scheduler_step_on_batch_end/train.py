@@ -31,7 +31,7 @@ def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
     # LETS ADD A StepLR SCHEDULER 
     scheduler = optim.lr_scheduler.StepLR(optimizer=optimizer, gamma=0.999, step_size=1)
     
-    metric_name_to_func = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
+    metrics = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
     # LETS ADD SchedulerStep WITH apply_on_phase=Phase.BATCH_END
     # AND apply_on_states=State.TRAIN
@@ -50,7 +50,7 @@ def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
                       loss_func=loss_func, 
                       optimizer=optimizer,
                       scheduler=scheduler,
-                      metric_name_to_func=metric_name_to_func, 
+                      metrics=metrics, 
                       train_data_loader=data_loader, 
                       val_data_loader=data_loader,
                       train_steps=data_loader_steps,

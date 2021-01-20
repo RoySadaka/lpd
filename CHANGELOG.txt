@@ -2,6 +2,16 @@ Change Log
 ==========
 
 
+0.3.8 (20/01/2021)
+-----------------
+* Added new callback - TensorboardImage
+* Added example for TensorboardImage
+* Added torchvision to requirements-dev.txt 
+* In Trainer - metric_name_to_func (dict) was changed to metrics (list)
+* Trainer now holds _last_data property - a class InputOutputLabel that holds (inputs, outputs, labels)
+* New method in file_utils ensure_folder_created
+
+
 0.3.7 (27/11/2020)
 -----------------
 * Added lpd-nodeps package in case you need to handle your own dependencies 

@@ -1,8 +1,8 @@
 Steps:
-1) Run tests and examples
+1) Run tests and examples (GPU as well)
 2) Update Readme with new version
 3) Update Changelog
-4) Update setup
+4) Update setup (and setup-nodeps)
 5) Push
 6) Github Release
 7) PyPi release 

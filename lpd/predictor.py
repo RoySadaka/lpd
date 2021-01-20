@@ -30,7 +30,7 @@ class Predictor():
                              loss_func=None,
                              optimizer=None,
                              scheduler=None,
-                             metric_name_to_func=None,
+                             metrics=None,
                              train_data_loader=None,
                              val_data_loader=None,
                              train_steps=0,

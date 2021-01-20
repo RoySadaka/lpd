@@ -35,18 +35,18 @@ def get_trainer_base(D_in, H, D_out, num_classes):
     scheduler = DoNothingToLR() #CAN ALSO USE scheduler=None, BUT DoNothingToLR IS MORE EXPLICIT
     
     labels = ['Cat', 'Dog', 'Bird']
-    metric_name_to_func = {
-                            "TP":TruePositives(num_classes, labels=labels, threshold = 0),
-                            "FP":FalsePositives(num_classes, labels=labels, threshold = 0),
-                            "TN":TrueNegatives(num_classes, labels=labels, threshold = 0),
-                            "FN":FalseNegatives(num_classes, labels=labels, threshold = 0)
-                          }
+    metrics = [
+                TruePositives(num_classes, labels=labels, threshold = 0),
+                FalsePositives(num_classes, labels=labels, threshold = 0),
+                TrueNegatives(num_classes, labels=labels, threshold = 0),
+                FalseNegatives(num_classes, labels=labels, threshold = 0)
+            ]
 
-    return device, model, loss_func, optimizer, scheduler, metric_name_to_func
+    return device, model, loss_func, optimizer, scheduler, metrics
 
 
 def get_trainer(N, D_in, H, D_out, num_epochs, num_classes, data_loader, data_loader_steps):
-    device, model, loss_func, optimizer, scheduler, metric_name_to_func = get_trainer_base(D_in, H, D_out, num_classes)
+    device, model, loss_func, optimizer, scheduler, metrics = get_trainer_base(D_in, H, D_out, num_classes)
 
     callbacks = [   
                     LossOptimizerHandler(),
@@ -58,7 +58,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, num_classes, data_loader, data_lo
                       loss_func=loss_func, 
                       optimizer=optimizer,
                       scheduler=scheduler,
-                      metric_name_to_func=metric_name_to_func, 
+                      metrics=metrics, 
                       train_data_loader=data_loader, 
                       val_data_loader=data_loader,
                       train_steps=data_loader_steps,

@@ -38,7 +38,7 @@ classifiers=[
 
 setup(
     name='lpd-nodeps',
-    version='0.3.7',
+    version='0.3.8',
     description='A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch',
     long_description_content_type='text/markdown',
     long_description=README_md,

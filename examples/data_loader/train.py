@@ -109,7 +109,7 @@ def get_trainer(params):
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.99)
 
-    metric_name_to_func = {"acc":BinaryAccuracyWithLogits()}
+    metrics = BinaryAccuracyWithLogits(name='acc')
 
     callbacks = [  
                     LossOptimizerHandler(),
@@ -123,7 +123,7 @@ def get_trainer(params):
                       loss_func=loss_func, 
                       optimizer=optimizer,
                       scheduler=scheduler,
-                      metric_name_to_func=metric_name_to_func, 
+                      metrics=metrics, 
                       train_data_loader=train_data_loader, 
                       val_data_loader=val_data_loader,
                       train_steps=len(train_dataset),

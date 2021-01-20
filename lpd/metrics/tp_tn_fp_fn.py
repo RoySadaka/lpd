@@ -15,8 +15,8 @@ class TruePositives(MetricConfusionMatrixBase):
             threshold - for binary or multilable classification
     """
 
-    def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5):
-        super(TruePositives, self).__init__(num_classes, labels, predictions_to_classes_convertor, threshold)
+    def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5, name='TruePositives'):
+        super(TruePositives, self).__init__(name, num_classes, labels, predictions_to_classes_convertor, threshold)
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):
         result_per_class = self.get_stats(metric.TP)
@@ -35,8 +35,8 @@ class TrueNegatives(MetricConfusionMatrixBase):
             threshold - for binary or multilable classification
     """
 
-    def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5):
-        super(TrueNegatives, self).__init__(num_classes, labels, predictions_to_classes_convertor, threshold)
+    def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5, name='TrueNegatives'):
+        super(TrueNegatives, self).__init__(name, num_classes, labels, predictions_to_classes_convertor, threshold)
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):
         result_per_class = self.get_stats(metric.TN)
@@ -55,8 +55,8 @@ class FalseNegatives(MetricConfusionMatrixBase):
             threshold - for binary or multilable classification
     """
 
-    def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5):
-        super(FalseNegatives, self).__init__(num_classes, labels, predictions_to_classes_convertor, threshold)
+    def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5, name='FalseNegatives'):
+        super(FalseNegatives, self).__init__(name, num_classes, labels, predictions_to_classes_convertor, threshold)
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):
         result_per_class = self.get_stats(metric.FN)
@@ -75,8 +75,8 @@ class FalsePositives(MetricConfusionMatrixBase):
             threshold - for binary or multilable classification
     """
 
-    def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5):
-        super(FalsePositives, self).__init__(num_classes, labels, predictions_to_classes_convertor, threshold)
+    def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5, name='FalsePositives'):
+        super(FalsePositives, self).__init__(name, num_classes, labels, predictions_to_classes_convertor, threshold)
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):
         result_per_class = self.get_stats(metric.FP)

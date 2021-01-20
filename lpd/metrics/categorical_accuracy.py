@@ -4,8 +4,8 @@ from lpd.enums.metric_method import MetricMethod
 
 
 class CategoricalAccuracy(MetricBase):
-    def __init__(self):
-        super(CategoricalAccuracy, self).__init__(MetricMethod.MEAN)
+    def __init__(self, name='CategoricalAccuracy'):
+        super(CategoricalAccuracy, self).__init__(name=name, metric_method=MetricMethod.MEAN)
 
     def __call__(self, y_pred: T.Tensor, y_true: T.Tensor):
         indices = T.max(y_pred, 1)[1]

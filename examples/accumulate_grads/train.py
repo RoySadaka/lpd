@@ -27,7 +27,7 @@ def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
    
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
-    metric_name_to_func = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
+    metrics = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
     # HERE WE DEFINE A CLOSURE THAT WILL ACCUMULATE BATCHES UNTIL WE REACH AT LEAST 32 SAMPLES
     # WITH GRADIENTS, AND ONLY THEN, INVOKE STEP AND ZERO GRAD
@@ -75,7 +75,7 @@ def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
                       loss_func=loss_func, 
                       optimizer=optimizer,
                       scheduler=None,
-                      metric_name_to_func=metric_name_to_func, 
+                      metrics=metrics, 
                       train_data_loader=data_loader,  # DATA LOADER WILL YIELD BATCH SIZE OF 1
                       val_data_loader=data_loader,
                       train_steps=data_loader_steps,

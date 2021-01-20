@@ -269,8 +269,8 @@ class TestMetrics(unittest.TestCase):
         # TEST ALSO AGAINST CUSTOM METRIC
 
         class Truthfulness(MetricConfusionMatrixBase):
-            def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5):
-                super(Truthfulness, self).__init__(num_classes=num_classes, labels=labels,  predictions_to_classes_convertor = predictions_to_classes_convertor, threshold=threshold)
+            def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5, name='Truthfulness'):
+                super(Truthfulness, self).__init__(name, num_classes=num_classes, labels=labels,  predictions_to_classes_convertor = predictions_to_classes_convertor, threshold=threshold)
                 self.tp = TruePositives(num_classes=num_classes, threshold=threshold) # we exploit TruePositives for the computation
                 self.tn = TrueNegatives(num_classes=num_classes, threshold=threshold) # we exploit TrueNegatives for the computation
 

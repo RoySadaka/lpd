@@ -58,9 +58,9 @@ class StatsPrint(CallbackBase):
             # ENSURED ALREADY
             return
 
-        metric_names = callback_context.trainer.metric_name_to_func.keys()
+        trainer_metrics = callback_context.trainer.metrics
         if self.train_metrics_monitors is None:
-            self.train_metrics_monitors = [CallbackMonitor(MonitorType.METRIC, StatsType.TRAIN, MonitorMode.MAX, metric_name=metric_name) for metric_name in metric_names]
+            self.train_metrics_monitors = [CallbackMonitor(MonitorType.METRIC, StatsType.TRAIN, MonitorMode.MAX, metric_name=trainer_metric.name) for trainer_metric in trainer_metrics]
 
         self.val_metric_monitors = []
         for m in self.train_metrics_monitors:

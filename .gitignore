@@ -6,3 +6,5 @@ examples/multiple_inputs/tensorboard/tensorboard_files
 examples/save_and_load/trainer_checkpoint
 tests/trainer_checkpoint
 examples/predictor/trainer_checkpoint
+examples/tensorbaord_images
+examples/multiple_inputs/tensorboard

@@ -25,21 +25,18 @@ There are 2 types of ``lpd`` packagaes available
     pip install lpd-nodeps
 ```
 
-<b>[v0.3.7-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added lpd-nodeps package in case you need to handle your own dependencies 
+<b>[v0.3.8-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added new callback - ``TensorboardImage``
+* Added example for ``TensorboardImage``
+* Added torchvision to requirements-dev.txt 
+* In ``Trainer`` - ``metric_name_to_func`` (dict) was changed to ``metrics`` (list)
+* Trainer now holds _last_data property - a class ``InputOutputLabel`` that holds (inputs, outputs, labels)
+* New method in file_utils - ``ensure_folder_created``
+
 
 Previously on lpd: 
-* Improved handling of ``MetricConfusionMatrixBase`` with custom metrics
-* ``CallbackMonitor`` patience argument now optional for cleaner code
-* Better handling for binary ``get_stats`` in confusion matrix based metric
-* Added ``MetricConfusionMatrixBase`` for adding custom confusion matrix based metrics
-* Added ``ConfusionMatrixBasedMetric`` Enum to get specific metrics such as tp,fp,fn,tn,precision,sensitivity,specificity,recall,ppv,npv,accuracy,f1score
-* Added confusion matrix common metrics (``TruePositives``, ``TrueNegatives``, ``FalsePositives``, ``FalseNegatives``)
-* Added ``MetricMethod`` enum to pass to ``MetricBase``, now you can define whether your metric is based on ``MEAN``, ``SUM`` or ``LAST`` of all batches
-* StatsPrint callback now support ``print_confusion_matrix`` and ``print_confusion_matrix_normalized`` arguments in case ``MetricConfusionMatrixBase`` metric is found
-* Added confusion matrix tests and example
-* Some custom layers renames (breaking changes in this part)
-
+* Added lpd-nodeps package in case you need to handle your own dependencies 
+* Added ConfusionMatrix support
 
 
 ## Usage
@@ -65,7 +62,7 @@ The main usages are given below.
     optimizer = torch.optim.SGD(params=model.parameters())
     scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) # decay scheduler using keras formula 
     loss_func = torch.nn.BCEWithLogitsLoss().to(device) # this is your loss class, already sent to the relevant device
-    metric_name_to_func = {'Accuracy':BinaryAccuracyWithLogits(), "FP":FalsePositives(num_class=2, threshold=0)} # define your metrics in a dictionary
+    metrics = [BinaryAccuracyWithLogits(name='Accuracy'), FalsePositives(name='FP', num_class=2, threshold=0)] # define your metrics
                            
 
     # you can use some of the defined callbacks, or you can create your own
@@ -100,7 +97,7 @@ The main usages are given below.
                       loss_func, 
                       optimizer,
                       scheduler,
-                      metric_name_to_func, 
+                      metrics, 
                       train_data_loader,  # DataLoader, Iterable or Generator
                       val_data_loader,    # DataLoader, Iterable or Generator
                       train_steps,
@@ -338,9 +335,38 @@ For example, SchedulerStep callback to invoke ``scheduler.step()`` at the end of
 ### Tensorboard Callback
 Will export the loss and the metrics at a given phase and state, in a format that can be viewed on Tensorboard 
 ```python
+    from lpd.callbacks import Tensorboard
     Tensorboard(apply_on_phase=Phase.EPOCH_END, 
                 apply_on_states=State.EXTERNAL, 
                 summary_writer_dir=dir_path)
+```
+
+
+### TensorboardImage Callback
+Will export images, in a format that can be viewed on Tensorboard.  
+For example, a TensorboardImage callback that will output all the images generated in validation
+```python
+    from lpd.callbacks import TensorboardImage
+    TensorboardImage(apply_on_phase=Phase.BATCH_END, 
+                     apply_on_states=State.VAL, 
+                     summary_writer_dir=dir_path,
+                     description='Generated Images',
+                     outputs_parser=None)
+```
+Lets pass outputs_parser that will change the range of the outputs from [-1,1] to [0,255]
+```python
+    from lpd.callbacks import TensorboardImage
+
+    def outputs_parser(input_output_label: InputOutputLabel):
+        outputs_scaled = (input_output_label.outputs + 1.0) / 2.0 * 255
+        outputs_scaled = torchvision.utils.make_grid(input_output_label.output)
+        return outputs_scaled
+
+    TensorboardImage(apply_on_phase=Phase.BATCH_END, 
+                     apply_on_states=State.VAL, 
+                     summary_writer_dir=dir_path,
+                     description='Generated Images',
+                     outputs_parser=outputs_parser)
 ```
 
 
@@ -433,7 +459,7 @@ Let's create a custom metric using ``MetricBase`` and also show the use of ``Bin
             return 1 - acc  # return the inaccuracy
 
     # we can now define our metrics and pass them to the trainer
-    metric_name_to_func = {'accuracy':BinaryAccuracyWithLogits(), 'inaccuracy':InaccuracyWithLogits()}
+    metrics = [BinaryAccuracyWithLogits(name='accuracy'), InaccuracyWithLogits(name='inaccuracy')]
 ``` 
 
 Let's do another example, a custom metric ``Truthfulness`` based on confusion matrix using ``MetricConfusionMatrixBase``

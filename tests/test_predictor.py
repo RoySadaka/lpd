@@ -29,7 +29,7 @@ class TestPredictor(unittest.TestCase):
 
         scheduler = None
         
-        metric_name_to_func = {"acc":BinaryAccuracyWithLogits()}
+        metrics = BinaryAccuracyWithLogits(name='acc')
 
         callbacks = [   
                         LossOptimizerHandler(),
@@ -51,7 +51,7 @@ class TestPredictor(unittest.TestCase):
                           loss_func=loss_func, 
                           optimizer=optimizer,
                           scheduler=scheduler,
-                          metric_name_to_func=metric_name_to_func, 
+                          metrics=metrics, 
                           train_data_loader=data_loader, 
                           val_data_loader=data_loader,
                           train_steps=data_loader_steps,
