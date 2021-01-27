@@ -40,7 +40,7 @@ class TensorboardImage(CallbackBase):
     @staticmethod
     def default_output_parser(input_output_label: InputOutputLabel):
         import torchvision # OPTIMIZATION FOR lpd-nodeps
-        tb_ready = torchvision.utils.make_grid(input_output_label.output, normalize=True)
+        tb_ready = torchvision.utils.make_grid(input_output_label.outputs, normalize=True)
         return tb_ready
 
     def __call__(self, callback_context: CallbackContext):

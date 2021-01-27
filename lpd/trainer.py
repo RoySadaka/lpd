@@ -378,27 +378,30 @@ class Trainer():
     def summary(self):
         print(f'Trainer - {self.name}')
 
-        print('defined callbacks:')
+        print('Defined callbacks:')
         for c in self.callbacks:
             print(c.get_description())
         print('')
 
-        print("parameters name and device:")
+        print("Parameters name and device:")
         for p in self.model.named_parameters():
             print(f'name: {p[0]}, device: {p[1].device}')
             # print(p[1].data)
 
         print('')
-        print('optimizer', type(self.optimizer))
-        print('')
+        print('Optimizer', type(self.optimizer))
         
+        print('')
+        print('Loss', type(self.loss_func))
+        
+        print('')
         print('Model Summary - ')
         print(self.model)
-        print('')
         
         total_params = sum(p.numel() for p in self.model.parameters())
         total_params_requires_grad = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
+        print('')
         print(f'Total params: {total_params}')
         print(f'Trainable params: {total_params_requires_grad}')
         print(f'Non-trainable params: {total_params_requires_grad-total_params}')

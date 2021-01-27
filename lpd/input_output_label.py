@@ -1,10 +1,10 @@
 class InputOutputLabel():
     def __init__(self):
         self.inputs = None
-        self.output = None
+        self.outputs = None
         self.labels = None
 
-    def update(self, inputs, output, labels):
+    def update(self, inputs, outputs, labels):
         self.inputs = inputs
-        self.output = output
+        self.outputs = outputs
         self.labels = labels
