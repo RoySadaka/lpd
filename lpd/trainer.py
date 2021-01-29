@@ -87,6 +87,17 @@ class Trainer():
 
         self._total_num_epochs = 0
 
+        # CANT STORE SUMMARY WRITERS INSIDE THE CALLBACK ITSELF, SINCE WE CAN'T PICKLE IT (IN MODEL-CHECKPOINT), IT WILL BE HANDLED HERE IN THE TRAINER
+        self._summary_writers = {}
+
+    def _get_summary_writer(self, uuid, summary_writer_dir):
+        from torch.utils.tensorboard import SummaryWriter # OPTIMIZATION FOR lpd-nodeps
+        if uuid in self._summary_writers:
+            return self._summary_writers[uuid]
+        writer = SummaryWriter(summary_writer_dir)
+        self._summary_writers[uuid] = writer
+        return writer
+
     def _validate_metrics(self):
         if not isinstance(self.metrics, list):
             self.metrics = [self.metrics]
@@ -378,27 +389,30 @@ class Trainer():
     def summary(self):
         print(f'Trainer - {self.name}')
 
-        print('defined callbacks:')
+        print('Defined callbacks:')
         for c in self.callbacks:
             print(c.get_description())
         print('')
 
-        print("parameters name and device:")
+        print("Parameters name and device:")
         for p in self.model.named_parameters():
             print(f'name: {p[0]}, device: {p[1].device}')
             # print(p[1].data)
 
         print('')
-        print('optimizer', type(self.optimizer))
-        print('')
+        print('Optimizer', type(self.optimizer))
         
+        print('')
+        print('Loss', type(self.loss_func))
+        
+        print('')
         print('Model Summary - ')
         print(self.model)
-        print('')
         
         total_params = sum(p.numel() for p in self.model.parameters())
         total_params_requires_grad = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
+        print('')
         print(f'Total params: {total_params}')
         print(f'Trainable params: {total_params_requires_grad}')
         print(f'Non-trainable params: {total_params_requires_grad-total_params}')

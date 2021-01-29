@@ -2,7 +2,7 @@ import torch.optim as optim
 import torch.nn as nn
 
 from lpd.trainer import Trainer
-from lpd.callbacks import StatsPrint, SchedulerStep, LossOptimizerHandler
+from lpd.callbacks import StatsPrint, SchedulerStep, LossOptimizerHandlerAccumulateBatches, LossOptimizerHandlerAccumulateSamples
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 import examples.utils as eu
@@ -17,7 +17,7 @@ def get_parameters():
     data_loader_steps = 100
     return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps
 
-def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
+def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps, mode):
 
     device = tu.get_gpu_device_if_available()
 
@@ -29,46 +29,14 @@ def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
 
     metrics = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
-    # HERE WE DEFINE A CLOSURE THAT WILL ACCUMULATE BATCHES UNTIL WE REACH AT LEAST 32 SAMPLES
-    # WITH GRADIENTS, AND ONLY THEN, INVOKE STEP AND ZERO GRAD
-    # SINCE IN THIS EXAMPLE THE BATCH SIZE WAS SET TO 1, WE EXPECT 31 SKIPS AND INVOCATION ON THE BATCH AFTER
-    # NOTICE, WE WILL ALSO INVOKE STEP AND ZERO GRAD ON THE LAST BATCH 
-    def get_optimizer_handler(action: str):
-        invoke_with_min_samples = 32
-        sample_count = 0
-
-        def is_last_batch(trainer):
-            return trainer.iteration_in_epoch == trainer.train_steps
-
-        def handler(callback_context):
-            trainer = callback_context.trainer
-            opt = callback_context.optimizer
-            nonlocal sample_count
-            invoke = False
-            if trainer.sample_count_in_epoch - sample_count >= invoke_with_min_samples:
-                sample_count = trainer.sample_count_in_epoch
-                invoke = True
-                print(f'[Trainer] - Accumulated {invoke_with_min_samples} samples, invoking optimizer {action}')
-
-            if is_last_batch(trainer):
-                sample_count = 0 #PREPARE FOR NEXT EPOCH
-                invoke = True
-                print(f'[Trainer] - Last batch in epoch, invoking optimizer {action}')
-            
-            if invoke:
-                if action == 'step':
-                    opt.step()
-                elif action == 'zero_grad':
-                    opt.zero_grad()
-            else:
-                print(f'[Trainer] - SKIPPING optimizer {action}, {(invoke_with_min_samples - (trainer.sample_count_in_epoch - sample_count))} samples to go')
-
-        return handler
-
-    callbacks = [  
-                    LossOptimizerHandler(optimizer_step_handler=get_optimizer_handler('step'), optimizer_zero_grad_handler=get_optimizer_handler('zero_grad')), 
-                    StatsPrint()
-                ]
+    if mode == 'LossOptimizerHandlerAccumulateBatches':
+        callbacks = [  
+                        LossOptimizerHandlerAccumulateBatches(min_num_batchs_before_backprop=10, verbose=1), 
+                    ]
+    if mode == 'LossOptimizerHandlerAccumulateSamples':
+        callbacks = [  
+                        LossOptimizerHandlerAccumulateSamples(min_num_samples_before_backprop=20, verbose=1), 
+                    ]
 
     trainer = Trainer(model=model, 
                       device=device, 
@@ -89,6 +57,10 @@ def run():
 
     N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps = get_parameters()
 
-    trainer = get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps)
+    trainer = get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps, 'LossOptimizerHandlerAccumulateBatches')
+
+    trainer.train(num_epochs)
+
+    trainer = get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps, 'LossOptimizerHandlerAccumulateSamples')
 
     trainer.train(num_epochs)

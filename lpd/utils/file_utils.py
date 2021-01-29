@@ -3,6 +3,9 @@ import pickle
 import gzip
 from shutil import copytree, copyfile, move
 
+def is_file_exists(full_path):
+    return os.path.exists(full_path)
+
 def is_folder_exists(folder_path):
     return os.path.exists(folder_path)
 

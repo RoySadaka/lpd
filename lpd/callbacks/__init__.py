@@ -10,3 +10,7 @@ from lpd.callbacks.callback_context import CallbackContext
 from lpd.callbacks.collect_outputs import CollectOutputs
 from lpd.callbacks.loss_optimizer_handler import LossOptimizerHandler
 from lpd.callbacks.loss_optimizer_handler_base import LossOptimizerHandlerBase
+from lpd.callbacks.loss_optimizer_handler_accumulate_batchs import LossOptimizerHandlerAccumulateBatches
+from lpd.callbacks.loss_optimizer_handler_accumulate_samples import LossOptimizerHandlerAccumulateSamples
+
+
