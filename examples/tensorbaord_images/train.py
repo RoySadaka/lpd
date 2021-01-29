@@ -4,11 +4,15 @@ import torch.nn as nn
 import torch.optim as optim
 from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import Dense
-from lpd.callbacks import StatsPrint, LossOptimizerHandler, TensorboardImage, Tensorboard
+from lpd.callbacks import StatsPrint, LossOptimizerHandler, TensorboardImage, Tensorboard, ModelCheckPoint, CallbackMonitor
+from lpd.enums import MonitorMode, MonitorType, StatsType
 from lpd.extensions.custom_schedulers import DoNothingToLR
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 import examples.utils as eu
+
+save_to_dir = os.path.dirname(__file__) + '/trainer_checkpoint/'
+trainer_file_name = 'trainer'
 
 def data_generator():
     # GENERATE RANDOM IMAGES WITH CxHxW = 1x64x64 in range [-1,1]
@@ -49,6 +53,13 @@ def get_trainer(data_loader):
                     LossOptimizerHandler(),
                     Tensorboard(summary_writer_dir=tensorboard_data_dir),
                     TensorboardImage(summary_writer_dir=tensorboard_data_dir, description='Generated'),
+                    ModelCheckPoint(checkpoint_dir=save_to_dir, 
+                                    checkpoint_file_name=trainer_file_name, 
+                                    callback_monitor=CallbackMonitor(monitor_type=MonitorType.LOSS, 
+                                                                     stats_type=StatsType.VAL, 
+                                                                     monitor_mode=MonitorMode.MIN),
+                                    save_best_only=True, 
+                                    save_full_trainer=True),
                     StatsPrint()
                 ]
 

@@ -3,7 +3,7 @@ import torch.optim as optim
 import torch.nn as nn
 
 from lpd.trainer import Trainer
-from lpd.callbacks import SchedulerStep, StatsPrint, ModelCheckPoint, LossOptimizerHandler, CallbackMonitor
+from lpd.callbacks import SchedulerStep, StatsPrint, ModelCheckPoint, LossOptimizerHandler, CallbackMonitor, Tensorboard
 from lpd.extensions.custom_schedulers import DoNothingToLR
 from lpd.enums import Phase, State, MonitorType, StatsType, MonitorMode, MetricMethod
 from lpd.metrics import BinaryAccuracyWithLogits, MetricBase, TruePositives, TrueNegatives, MetricConfusionMatrixBase
@@ -72,10 +72,14 @@ def get_trainer_base(D_in, H, D_out):
     return device, model, loss_func, optimizer, scheduler, metrics
 
 def get_trainer(N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps):
+    base_path = os.path.dirname(__file__) + '/'
+    tensorboard_data_dir = base_path + './tensorboard/'
+
     device, model, loss_func, optimizer, scheduler, metrics = get_trainer_base(D_in, H, D_out)
 
     callbacks = [   
                     LossOptimizerHandler(),
+                    Tensorboard(summary_writer_dir=tensorboard_data_dir),
                     #ADDING ModelCheckPoint WITH save_full_trainer=True TO SAVE FULL TRAINER
                     ModelCheckPoint(checkpoint_dir=save_to_dir, 
                                     checkpoint_file_name=trainer_file_name, 

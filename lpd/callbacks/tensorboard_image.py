@@ -5,6 +5,7 @@ from lpd.enums import Phase, State
 from lpd.callbacks.callback_base import CallbackBase
 from lpd.callbacks.callback_context import CallbackContext
 from lpd.input_output_label import InputOutputLabel
+import lpd.utils.general_utils as gu
 
 class TensorboardImage(CallbackBase):
     """ 
@@ -27,14 +28,12 @@ class TensorboardImage(CallbackBase):
                  outputs_parser: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]=None,
                 ):
         super(TensorboardImage, self).__init__(apply_on_phase, apply_on_states)
-        from torch.utils.tensorboard import SummaryWriter # OPTIMIZATION FOR lpd-nodeps
         self.summary_writer_dir = summary_writer_dir
         self.outputs_parser = outputs_parser if outputs_parser else TensorboardImage.default_output_parser
         self.description = description if description else 'Images'
-
         if self.summary_writer_dir is None:
             raise ValueError("[TensorboardImage] - summary_writer_dir was not provided")
-        self.tensorboard_writer = SummaryWriter(summary_writer_dir)
+        self.uuid = gu.generate_uuid()
         self.inner_step = 0
 
     @staticmethod
@@ -49,5 +48,6 @@ class TensorboardImage(CallbackBase):
 
         last_data = c.trainer._last_data[state]
         outputs = self.outputs_parser(last_data)
-        self.tensorboard_writer.add_image(f'{state} {self.description}', outputs, global_step=self.inner_step)
+        writer = c.trainer._get_summary_writer(self.uuid, self.summary_writer_dir)
+        writer.add_image(f'{state} {self.description}', outputs, global_step=self.inner_step)
         self.inner_step += 1

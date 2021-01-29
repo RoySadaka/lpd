@@ -2,7 +2,7 @@ import torch.optim as optim
 import torch.nn as nn
 
 from lpd.trainer import Trainer
-from lpd.callbacks import StatsPrint, SchedulerStep, LossOptimizerHandlerAccumulateBatches
+from lpd.callbacks import StatsPrint, SchedulerStep, LossOptimizerHandlerAccumulateBatches, LossOptimizerHandlerAccumulateSamples
 import lpd.utils.torch_utils as tu
 import lpd.utils.general_utils as gu
 import examples.utils as eu
@@ -17,7 +17,7 @@ def get_parameters():
     data_loader_steps = 100
     return N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps
 
-def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
+def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps, mode):
 
     device = tu.get_gpu_device_if_available()
 
@@ -29,9 +29,14 @@ def get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps):
 
     metrics = None # THIS EXAMPLE DOES NOT USE METRICS, ONLY LOSS
 
-    callbacks = [  
-                    LossOptimizerHandlerAccumulateBatches(min_num_batchs_before_backprop=10, verbose=1), 
-                ]
+    if mode == 'LossOptimizerHandlerAccumulateBatches':
+        callbacks = [  
+                        LossOptimizerHandlerAccumulateBatches(min_num_batchs_before_backprop=10, verbose=1), 
+                    ]
+    if mode == 'LossOptimizerHandlerAccumulateSamples':
+        callbacks = [  
+                        LossOptimizerHandlerAccumulateSamples(min_num_samples_before_backprop=20, verbose=1), 
+                    ]
 
     trainer = Trainer(model=model, 
                       device=device, 
@@ -52,6 +57,10 @@ def run():
 
     N, D_in, H, D_out, num_epochs, data_loader, data_loader_steps = get_parameters()
 
-    trainer = get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps)
+    trainer = get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps, 'LossOptimizerHandlerAccumulateBatches')
+
+    trainer.train(num_epochs)
+
+    trainer = get_trainer(N, D_in, H, D_out, data_loader, data_loader_steps, 'LossOptimizerHandlerAccumulateSamples')
 
     trainer.train(num_epochs)

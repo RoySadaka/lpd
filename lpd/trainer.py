@@ -87,6 +87,17 @@ class Trainer():
 
         self._total_num_epochs = 0
 
+        # CANT STORE SUMMARY WRITERS INSIDE THE CALLBACK ITSELF, SINCE WE CAN'T PICKLE IT (IN MODEL-CHECKPOINT), IT WILL BE HANDLED HERE IN THE TRAINER
+        self._summary_writers = {}
+
+    def _get_summary_writer(self, uuid, summary_writer_dir):
+        from torch.utils.tensorboard import SummaryWriter # OPTIMIZATION FOR lpd-nodeps
+        if uuid in self._summary_writers:
+            return self._summary_writers[uuid]
+        writer = SummaryWriter(summary_writer_dir)
+        self._summary_writers[uuid] = writer
+        return writer
+
     def _validate_metrics(self):
         if not isinstance(self.metrics, list):
             self.metrics = [self.metrics]
