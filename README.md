@@ -25,16 +25,15 @@ There are 2 types of ``lpd`` packagaes available
     pip install lpd-nodeps
 ```
 
-<b>[v0.3.8-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added new callback - ``TensorboardImage``
-* Added example for ``TensorboardImage``
-* Added torchvision to requirements-dev.txt 
-* In ``Trainer`` - ``metric_name_to_func`` (dict) was changed to ``metrics`` (list)
-* Trainer now holds _last_data property - a class ``InputOutputLabel`` that holds (inputs, outputs, labels)
-* New method in file_utils - ``ensure_folder_created``
+<b>[v0.3.9-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Bug fix when saving full trainer that has tensorboard callback
+* Added LossOptimizerHandlerAccumulateSamples 
+* Added LossOptimizerHandlerAccumulateBatches
+* Added is_file_exists method to file_utils
 
 
 Previously on lpd: 
+* Added new callback - ``TensorboardImage``
 * Added lpd-nodeps package in case you need to handle your own dependencies 
 * Added ConfusionMatrix support
 
@@ -236,33 +235,11 @@ Use ``LossOptimizerHandler`` to determine when to call:
     optimizer.zero_grad(...)
 ```
 Or, you may choose to create your own ``AwesomeLossOptimizerHandler`` class by deriving from ``LossOptimizerHandlerBase``.  
-``Trainer.train(...)`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided.  
-Let's see an example of customizing the default ``LossOptimizerHandler``  
-Say your machine can handle up to batch_size = 8, but you want to accumulate gradients until you reach 32 samples before you backprop, then you can define your optimizer handler function, to pass it later to ``LossOptimizerHandler``:
-```python
-    def my_optimizer_handler_closure(action):
-        sample_counter = 0 # closure state
+``Trainer.train(...)`` will validate that at least one ``LossOptimizerHandlerBase`` callback was provided.
 
-        def handler(callback_context):  # CallbackContext class will be passed here by LossOptimizerHandler
-            nonlocal sample_counter     # for closure state
-            
-            if callback_context.sample_count - sample_counter >= 32: # check if we collected 32 more samples
-                sample_counter = callback_context.sample_count
-                if action == 'step':
-                    callback_context.optimizer.step()
-                elif action == 'zero_grad':
-                    callback_context.optimizer.zero_grad()
-
-        return handler
-```
-And now, use it in ``LossOptimizerHandler`` callback :
-```python
-    LossOptimizerHandler(apply_on_phase=Phase.BATCH_END, 
-                         apply_on_states=State.TRAIN,
-                         loss_handler=None, # default loss handler will be used (calls loss.backward() every batch)
-                         optimizer_step_handler=my_optimizer_handler_closure(action='step'), 
-                         optimizer_zero_grad_handler=my_optimizer_handler_closure(action='zero_grad'))
-```
+### LossOptimizerHandlerAccumulateBatches Callback
+As well as ``LossOptimizerHandlerAccumulateSamples`` will call loss.backward() every batch, but invoke optimizer.step() and optimizer.zero_grad()  
+only after the defined num of batches (or samples) were accumulated 
 
 
 ### StatsPrint Callback

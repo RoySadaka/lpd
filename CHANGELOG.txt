@@ -2,8 +2,9 @@ Change Log
 ==========
 
 
-0.3.9 (????)
+0.3.9 (29/01/2021)
 -----------------
+* Bug fix when saving full trainer that has tensorboard callback
 * Added LossOptimizerHandlerAccumulateSamples 
 * Added LossOptimizerHandlerAccumulateBatches
 * Added is_file_exists method to file_utils
