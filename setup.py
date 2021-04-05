@@ -5,11 +5,14 @@ from io import open as io_open
 src_dir = os.path.abspath(os.path.dirname(__file__))
 
 install_requires = []
-requirements_dev = os.path.join(src_dir, 'requirements-dev.txt')
-with io_open(requirements_dev, mode='r') as fd:
-    for i in fd.read().strip().split('\n'):
-        req = i.strip().split('#', 1)[0].strip()
-        install_requires.append(req)
+
+path_requirements_dev = os.path.join(src_dir, 'requirements-dev.txt')
+path_requirements_dev_no_deps = os.path.join(src_dir, 'requirements-dev-nodeps.txt')
+for path in [path_requirements_dev, path_requirements_dev_no_deps]:
+    with io_open(path, mode='r') as fd:
+        for i in fd.read().strip().split('\n'):
+            req = i.strip().split('#', 1)[0].strip()
+            install_requires.append(req)
 
 
 README_md = ''
@@ -35,7 +38,7 @@ classifiers=[
 
 setup(
     name='lpd',
-    version='0.3.9',
+    version='0.4.0',
     description='A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch',
     long_description_content_type='text/markdown',
     long_description=README_md,

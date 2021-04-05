@@ -86,13 +86,7 @@ def get_trainer(config,
                     LossOptimizerHandler(),
                     SchedulerStep(scheduler_parameters_func=lambda callback_context: callback_context.val_stats.get_loss()),
                     
-                    ModelCheckPoint(checkpoint_dir=checkpoint_dir, 
-                                    checkpoint_file_name=checkpoint_file_name, 
-                                    callback_monitor=CallbackMonitor(monitor_type=MonitorType.LOSS, 
-                                                                     stats_type=StatsType.VAL, 
-                                                                     monitor_mode=MonitorMode.MIN),
-                                    save_best_only=True, 
-                                    round_values_on_print_to=7), 
+   
                     Tensorboard(summary_writer_dir=summary_writer_dir),
                     EarlyStopping(apply_on_phase=Phase.EPOCH_END, 
                                   apply_on_states=State.EXTERNAL,
@@ -100,7 +94,14 @@ def get_trainer(config,
                                                                     stats_type=StatsType.VAL, 
                                                                     monitor_mode=MonitorMode.MIN,
                                                                     patience=config.EARLY_STOPPING_PATIENCE)),
-                    StatsPrint(apply_on_phase=Phase.EPOCH_END, round_values_on_print_to=7, print_confusion_matrix_normalized=True) # BETTER TO PUT StatsPrint LAST (MAKES BETTER SENSE IN THE LOG PRINTS)
+                    StatsPrint(apply_on_phase=Phase.EPOCH_END, round_values_on_print_to=7, print_confusion_matrix_normalized=True),
+                    ModelCheckPoint(checkpoint_dir=checkpoint_dir, 
+                                    checkpoint_file_name=checkpoint_file_name, 
+                                    callback_monitor=CallbackMonitor(monitor_type=MonitorType.LOSS, 
+                                                                     stats_type=StatsType.VAL, 
+                                                                     monitor_mode=MonitorMode.MIN),
+                                    save_best_only=True, 
+                                    round_values_on_print_to=7), # BETTER TO PUT ModelCheckPoint LAST (SO IN CASE IT SAVES, THE STATES OF ALL THE CALLBACKS WILL BE UP TO DATE)
                 ]
 
     trainer = Trainer(model=model, 

@@ -3,7 +3,6 @@ from lpd.callbacks.callback_base import CallbackBase
 from lpd.callbacks.callback_context import CallbackContext
 from lpd.callbacks.callback_monitor import CallbackMonitor, CallbackMonitorResult
 import lpd.utils.file_utils as fu
-from lpd.utils.torch_utils import save_checkpoint
 from typing import Union, List, Optional, Dict
 
 class ModelCheckPoint(CallbackBase):
@@ -65,7 +64,7 @@ class ModelCheckPoint(CallbackBase):
             if self.save_full_trainer:
                 c.trainer.save_trainer(self.checkpoint_dir, file_name, msg=msg, verbose=self.verbose)
             else:
-                save_checkpoint(self.checkpoint_dir, file_name, c.trainer, msg=msg, verbose=self.verbose)
+                c.trainer.save_checkpoint(self.checkpoint_dir, file_name, msg=msg, verbose=self.verbose)
         else:
             if self.verbose:
                 print(f'[ModelCheckPoint] - {monitor_result.description} did not improved from {monitor_result.prev_best}.')

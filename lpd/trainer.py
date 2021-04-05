@@ -1,4 +1,4 @@
-import torch as T
+import torch
 from tqdm import tqdm
 from lpd.metrics import MetricBase
 from lpd.callbacks import CallbackContext, CollectOutputs, LossOptimizerHandlerBase
@@ -87,7 +87,7 @@ class Trainer():
 
         self._total_num_epochs = 0
 
-        # CANT STORE SUMMARY WRITERS INSIDE THE CALLBACK ITSELF, SINCE WE CAN'T PICKLE IT (IN MODEL-CHECKPOINT), IT WILL BE HANDLED HERE IN THE TRAINER
+        # CANNOT STORE SUMMARY WRITERS INSIDE THE CALLBACK ITSELF, SINCE WE CAN'T PICKLE IT (IN MODEL-CHECKPOINT), IT WILL BE HANDLED HERE IN THE TRAINER
         self._summary_writers = {}
 
     def _get_summary_writer(self, uuid, summary_writer_dir):
@@ -173,7 +173,11 @@ class Trainer():
 
     def _prepare_batch(self, batch):
         if self.state == State.PREDICT:
-            inputs,labels = batch, T.zeros(len(batch)) #FAKE LABELS FOR CODE CONSISTENCY, NO ACTUAL USE TO THEM 
+            #FAKE LABELS FOR CODE CONSISTENCY, NO ACTUAL USE TO THEM 
+            if isinstance(batch, list):
+                inputs,labels = batch, torch.zeros(len(batch[0]))
+            else:
+                inputs,labels = batch, torch.zeros(len(batch)) 
         else:
             inputs,labels = batch
         return inputs,labels
@@ -218,13 +222,13 @@ class Trainer():
         if self._stopped:
             return
             
-        with T.no_grad():
+        with torch.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
             self._fwd_pass_base(predict_data_loader, 
                                 predict_steps, 
                                 self._predict_handler, 
                                 stats=TrainerStats({}), # NO STATS
-                                loss_f=lambda outputs, y: T.Tensor([0]), # DO NOTHING LOSS
+                                loss_f=lambda outputs, y: torch.Tensor([0]), # DO NOTHING LOSS
                                 last_data=self._last_data[State.PREDICT],
                                 verbose=0) 
 
@@ -232,7 +236,7 @@ class Trainer():
         if self._stopped:
             return
             
-        with T.no_grad():
+        with torch.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
             self._fwd_pass_base(test_data_loader, 
                                 test_steps, 
@@ -246,7 +250,7 @@ class Trainer():
         if self._stopped or self.val_data_loader is None or self.val_steps == 0:
             return
 
-        with T.no_grad():
+        with torch.no_grad():
             self.model.eval()  #MARK STATUS AS EVAL
             self._fwd_pass_base(self.val_data_loader, 
                                 self.val_steps, 
@@ -275,6 +279,7 @@ class Trainer():
         if self._stopped:
             return
         context = CallbackContext(self)
+        
         for callback in self.callbacks:
             if callback.should_apply_on_phase(context) and \
                callback.should_apply_on_state(context):
@@ -308,6 +313,22 @@ class Trainer():
 
     # ---------------- PUBLIC ---------------- 
 
+    def save_checkpoint(self, dir_path, file_name, msg='', verbose=1):
+        full_path = dir_path + file_name
+        if verbose:
+            print(f'{msg} - Saving checkpoint to {full_path}')
+
+        if not fu.is_folder_exists(dir_path):
+            fu.create_folder(dir_path)
+
+        checkpoint = {
+                    'model': self.model.state_dict(),
+                    'optimizer': self.optimizer.state_dict(),
+                    'scheduler': self.scheduler.state_dict() if self.scheduler else None,
+                    'epoch': self.epoch,
+                    'name': self.name
+                    }
+        torch.save(checkpoint, full_path)
 
     def save_trainer(self, dir_path, file_name, msg='', verbose=1):
         full_path = dir_path + file_name
@@ -335,7 +356,17 @@ class Trainer():
                             'val_stats': self.val_stats,
                             'test_stats': self.test_stats
                             }
-        T.save(trainer_checkpoint, full_path)
+        torch.save(trainer_checkpoint, full_path)
+
+    @staticmethod
+    def load_checkpoint(full_path, model, optimizer, scheduler, device, verbose=1):
+        if verbose:
+            print(f'Loading checkpoint from {full_path}')
+        checkpoint = torch.load(full_path, map_location=device)
+        model.load_state_dict(checkpoint['model'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        scheduler.load_state_dict(checkpoint['scheduler'])
+        return {'name':checkpoint['name'], 'epoch':checkpoint['epoch']}
 
     @staticmethod
     def load_trainer(dir_path,
@@ -350,7 +381,7 @@ class Trainer():
                      train_steps,
                      val_steps):
         full_path = dir_path + file_name
-        checkpoint = T.load(full_path, map_location=device)
+        checkpoint = torch.load(full_path, map_location=device)
         print(f'[Trainer] - Loading from {full_path}')
         model.load_state_dict(checkpoint['model'])
         loss_func.load_state_dict(checkpoint['loss_func'])
@@ -471,9 +502,11 @@ class Trainer():
         return StatsResult(self.name, self.test_stats)
 
     def predict_sample(self, inputs):
-        # MAKE BATCH WITH 1 SAMPLE USING unsqueeze
-        outputs = self.predict_batch(inputs.unsqueeze(0))
-        return outputs[0]
+        if isinstance(inputs, list):
+            # MULTIPLE INPUTS CONSTRUCTED IN A LIST
+            return self.predict_batch([x.unsqueeze(0) for x in inputs])[0]
+        #SINGLE INPUT
+        return self.predict_batch(inputs.unsqueeze(0))[0]
 
     def predict_batch(self, inputs):
         # MAKE ITERATOR WITH 1 BATCH 1 STEP

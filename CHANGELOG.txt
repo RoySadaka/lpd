@@ -2,6 +2,12 @@ Change Log
 ==========
 
 
+0.4.0 (05/04/2021)
+-----------------
+* Fixed tqdm dependancy
+* Fixed predict_sample when sample is an array of input
+
+
 0.3.9 (29/01/2021)
 -----------------
 * Bug fix when saving full trainer that has tensorboard callback

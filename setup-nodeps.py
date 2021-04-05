@@ -5,13 +5,11 @@ from io import open as io_open
 src_dir = os.path.abspath(os.path.dirname(__file__))
 
 # collect the requirements for nodeps
-install_requires = []
 install_requires_nodeps = []
 requirements_dev = os.path.join(src_dir, 'requirements-dev-nodeps.txt')
 with io_open(requirements_dev, mode='r') as fd:
     for i in fd.read().strip().split('\n'):
         req = i.strip().split('#', 1)[0].strip()
-        install_requires.append(req)
         install_requires_nodeps.append(req)
 
 
@@ -38,7 +36,7 @@ classifiers=[
 
 setup(
     name='lpd-nodeps',
-    version='0.3.9',
+    version='0.4.0',
     description='A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch',
     long_description_content_type='text/markdown',
     long_description=README_md,
