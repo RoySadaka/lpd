@@ -1,4 +1,4 @@
-import torch as T
+import torch
 import torch.nn as nn
 import math
 
@@ -11,8 +11,8 @@ class MatMul2D(nn.Module):
 
     def forward(self, a, b):
         if self.transpose_b:
-            return T.bmm(a, b.transpose(1,2))
-        return T.bmm(a, b)
+            return torch.matmul(a, b.transpose(-2,-1))
+        return torch.matmul(a, b)
 
 class Dense(nn.Module):
     def __init__(self, in_dim, out_dim, use_bias=True, activation=None, name=None):
@@ -90,10 +90,11 @@ class Attention(nn.Module):
         scores = q_k / self.sqrt_key_dim                                       # (batch, ?, seq_len)
 
         if mask is not None:
-            mask_ready = T.log(mask)                                           # (batch, 1, seq_len)
-            scores += mask_ready                                               # (batch, ?, seq_len) (+= is doing broadcasting)
+            mask_ready = torch.log(mask)                                       # (batch, 1, seq_len)
+            scores = scores + mask_ready                                       # (batch, ?, seq_len) (+= is doing broadcasting)
 
         attention_weights = self.softmax_last_dim(scores)                      # (batch, ?, seq_len)
+        
         attention_output = self.mat_mul2d(attention_weights, v)                # (batch, ?, key_dim)
 
         return attention_output                                                # (batch, ?, key_dim)
@@ -143,7 +144,7 @@ class MultiHeadAttention(nn.Module):
 
     def forward(self, inputs, mask=None):                                                     # inputs.shape: (batch, seq_len, emb_size == out_dim)
         attention_outputs = [head(inputs, mask = mask) for head in self.attention_heads]      # [ (batch, seq_len, key_dim) ]
-        concatenated = T.cat(attention_outputs, dim=-1)                                       # (batch, seq_len, key_dim * num_heads)
+        concatenated = torch.cat(attention_outputs, dim=-1)                                   # (batch, seq_len, key_dim * num_heads)
         output = self.output_dense(concatenated)                                              # (batch, seq_len, out_dim)
         output = self.dropout(output)                                                         # (batch, seq_len, out_dim)
         return self.norm(inputs + output)                             # RESIDUAL & NORM       # (batch, seq_len, out_dim)
@@ -226,11 +227,11 @@ class PositionalEncoding(nn.Module):
 
     def _create_positional_encoding(self):
         if self.maximum_position_encoding:
-            pe = T.zeros(self.maximum_position_encoding, self.embedding_size)
-            position = T.arange(0, self.maximum_position_encoding, dtype=T.float).unsqueeze(1)
-            div_term = T.exp(T.arange(0, self.embedding_size, 2).float() * (-math.log(10000.0) / self.embedding_size))
-            pe[:, 0::2] = T.sin(position * div_term)
-            pe[:, 1::2] = T.cos(position * div_term)
+            pe = torch.zeros(self.maximum_position_encoding, self.embedding_size)
+            position = torch.arange(0, self.maximum_position_encoding, dtype=torch.float).unsqueeze(1)
+            div_term = torch.exp(torch.arange(0, self.embedding_size, 2).float() * (-math.log(10000.0) / self.embedding_size))
+            pe[:, 0::2] = torch.sin(position * div_term)
+            pe[:, 1::2] = torch.cos(position * div_term)
             pe = pe.unsqueeze(0).transpose(0, 1)
             self.register_buffer('pe', pe)
 
