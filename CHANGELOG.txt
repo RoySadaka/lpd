@@ -2,7 +2,7 @@ Change Log
 ==========
 
 
-0.4.2 (03/11/2021)
+0.4.3 (03/11/2021)
 -----------------
 * Fix to PositionalEncoding to be batch first
 

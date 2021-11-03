@@ -236,7 +236,7 @@ class PositionalEncoding(nn.Module):
             self.register_buffer('pe', pe)
 
     def forward(self, inputs):
-        inputs = inputs + self.pe[:inputs.size(1), :]
+        inputs = inputs + self.pe[:inputs.size(1), :].unsqueeze(0)
         return self.dropout(inputs)
 
 class TransformerEncoderStack(nn.Module):

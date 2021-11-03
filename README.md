@@ -25,7 +25,7 @@ There are 2 types of ``lpd`` packagaes available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.2-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+<b>[v0.4.3-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
 * Fix to PositionalEncoding to be batch first
 
 
