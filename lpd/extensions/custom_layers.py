@@ -227,16 +227,16 @@ class PositionalEncoding(nn.Module):
 
     def _create_positional_encoding(self):
         if self.maximum_position_encoding:
-            pe = torch.zeros(self.maximum_position_encoding, self.embedding_size)
-            position = torch.arange(0, self.maximum_position_encoding, dtype=torch.float).unsqueeze(1)
-            div_term = torch.exp(torch.arange(0, self.embedding_size, 2).float() * (-math.log(10000.0) / self.embedding_size))
-            pe[:, 0::2] = torch.sin(position * div_term)
-            pe[:, 1::2] = torch.cos(position * div_term)
-            pe = pe.unsqueeze(0).transpose(0, 1)
+            position = torch.arange(self.maximum_position_encoding).unsqueeze(1)
+            div_term = torch.exp(torch.arange(0, self.embedding_size, 2) * (-math.log(10000.0) / self.embedding_size))
+            pe = torch.zeros(self.maximum_position_encoding, 1, self.embedding_size)
+            pe[:, 0, 0::2] = torch.sin(position * div_term)
+            pe[:, 0, 1::2] = torch.cos(position * div_term)
+            pe = pe.squeeze(1)
             self.register_buffer('pe', pe)
 
     def forward(self, inputs):
-        inputs = inputs + self.pe[:inputs.size(0), :]
+        inputs = inputs + self.pe[:inputs.size(1), :]
         return self.dropout(inputs)
 
 class TransformerEncoderStack(nn.Module):

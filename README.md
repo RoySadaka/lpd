@@ -25,18 +25,15 @@ There are 2 types of ``lpd`` packagaes available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.1-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Minor change to MatMul2D, use torch.matmul instead of torch.bmm
+<b>[v0.4.2-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Fix to PositionalEncoding to be batch first
 
 
 Previously on lpd: 
+* Minor change to MatMul2D, use torch.matmul instead of torch.bmm
 * Bug fix when saving full trainer that has tensorboard callback
 * Added LossOptimizerHandlerAccumulateSamples 
 * Added LossOptimizerHandlerAccumulateBatches
-* Added is_file_exists method to file_utils
-* Added new callback - ``TensorboardImage``
-* Added lpd-nodeps package in case you need to handle your own dependencies 
-* Added ConfusionMatrix support
 
 
 ## Usage
