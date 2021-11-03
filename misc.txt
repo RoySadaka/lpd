@@ -10,5 +10,6 @@ Steps:
     >> python setup.py bdist_wheel -d .
     >> python setup-nodeps.py bdist_wheel -d .
     Publish pypi package cmd:
-    >> twine upload lpd-0.4.1-py3-none-any.whl
-    >> twine upload lpd_nodeps-0.4.1-py3-none-any.whl
+    >> pipenv shell
+    >> twine upload lpd-0.4.2-py3-none-any.whl
+    >> twine upload lpd_nodeps-0.4.2-py3-none-any.whl
