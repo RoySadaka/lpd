@@ -446,7 +446,8 @@ class Trainer():
         print('')
         print(f'Total params: {total_params}')
         print(f'Trainable params: {total_params_requires_grad}')
-        print(f'Non-trainable params: {total_params_requires_grad-total_params}')
+        print(f'Non-trainable params: {total_params-total_params_requires_grad}')
+        
 
     def stop(self):
         self._stopped = True
