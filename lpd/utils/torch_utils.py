@@ -5,7 +5,7 @@ def seed_torch(seed):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
 
-def is_gpu_available(verbose=1):
+def is_gpu_available(verbose=0):
     res = torch.cuda.is_available()
     if verbose: print(f"GPU Availability: {res}")
     return res
@@ -15,8 +15,8 @@ def how_many_gpus_available():
     print('GPUs amount: ', amount)
     return amount
 
-def get_gpu_device_if_available():
-    if is_gpu_available():
+def get_gpu_device_if_available(verbose=0):
+    if is_gpu_available(verbose):
         device = torch.device('cuda:0')
     else:
         device = torch.device('cpu')

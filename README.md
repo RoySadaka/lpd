@@ -25,11 +25,12 @@ There are 2 types of ``lpd`` packagaes available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.3-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Fix to PositionalEncoding to be batch first
+<b>[v0.4.4-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Verbosity change in torch_utils
 
 
 Previously on lpd: 
+* Fix to PositionalEncoding to be batch first
 * Minor change to MatMul2D, use torch.matmul instead of torch.bmm
 * Bug fix when saving full trainer that has tensorboard callback
 * Added LossOptimizerHandlerAccumulateSamples 
