@@ -160,7 +160,7 @@ class Trainer():
             else:
                 loop.set_postfix(loss=stats_result.loss)
             
-    def _print_verbos_2(self, stats, verbose):
+    def _print_verbose_2(self, stats, verbose):
         if verbose != 2:
             return
         desc = self._get_epoch_description()
@@ -169,7 +169,7 @@ class Trainer():
             metrics_str = f', metrics={stats_result.metrics}'
         else:
             metrics_str = ''
-        print(f'{desc}, loss={stats_result.loss}{stats_result.metrics_str}')
+        print(f'{desc}, loss={stats_result.loss}{metrics_str}')
 
     def _prepare_batch(self, batch):
         if self.state == State.PREDICT:
@@ -273,7 +273,7 @@ class Trainer():
                             last_data=self._last_data[State.TRAIN],
                             verbose=verbose)
 
-        self._print_verbos_2(self.train_stats, verbose)
+        self._print_verbose_2(self.train_stats, verbose)
 
     def _invoke_callbacks(self):
         if self._stopped:

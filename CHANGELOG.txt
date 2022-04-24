@@ -1,6 +1,11 @@
 Change Log
 ==========
 
+0.4.5 (24/04/2022)
+-----------------
+* Bug fix in verbosity level 2 in train
+
+
 0.4.4 (17/03/2022)
 -----------------
 * Verbosity change in torch_utils
