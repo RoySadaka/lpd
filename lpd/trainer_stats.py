@@ -1,21 +1,21 @@
 from lpd.enums.metric_method import MetricMethod
 from lpd.metrics.metric_base import MetricConfusionMatrixBase
 from lpd.metrics.confusion_matrix import ConfusionMatrix
-
+import torch
 
 
 class Stats():
     def __init__(self, metric_method: MetricMethod):
-        self.sum = 0
+        self.sum = torch.Tensor([0.0])
         self.count = 0
-        self.last = 0
+        self.last = None
         self.metric_method = metric_method
         self.reset()
 
     def reset(self):
-        self.sum = 0
+        self.sum = torch.Tensor([0.0])
         self.count = 0
-        self.last = 0
+        self.last = None
 
     def add_value(self, value, count):
         if self.metric_method == MetricMethod.MEAN:
@@ -35,7 +35,7 @@ class Stats():
     def get_value(self):
         if self.metric_method == MetricMethod.MEAN:
             if self.count == 0:
-                return 0
+                return torch.Tensor([0.0])
             return self.sum/self.count
 
         elif self.metric_method == MetricMethod.SUM:

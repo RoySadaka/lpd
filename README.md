@@ -25,11 +25,12 @@ There are 2 types of ``lpd`` packagaes available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.5-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Bug fix in verbosity level 2 in train
+<b>[v0.4.6-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Bug fix in case validation samples are empy
 
 
 Previously on lpd: 
+* Bug fix in verbosity level 2 in train
 * Verbosity change in torch_utils
 * Fix to PositionalEncoding to be batch first
 * Minor change to MatMul2D, use torch.matmul instead of torch.bmm
