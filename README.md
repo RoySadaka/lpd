@@ -26,7 +26,7 @@ There are 2 types of ``lpd`` packagaes available
 ```
 
 <b>[v0.4.6-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Bug fix in case validation samples are empy
+* Bug fix in case validation samples are empty
 
 
 Previously on lpd: 

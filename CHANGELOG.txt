@@ -4,7 +4,7 @@ Change Log
 
 0.4.6 (21/06/2022)
 -----------------
-* Bug fix in case validation samples are empy
+* Bug fix in case validation samples are empty
 
 
 0.4.5 (24/04/2022)
