@@ -2,7 +2,7 @@ from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 from lpd.callbacks.callback_context import CallbackContext
 from typing import Union, List, Optional, Dict
 from math import inf
-import torch as T
+import torch
 
 class CallbackMonitor():
     """
@@ -22,8 +22,8 @@ class CallbackMonitor():
         self.stats_type = stats_type
         self.monitor_mode = monitor_mode
         self.metric_name = metric_name
-        self.minimum = inf
-        self.maximum = -inf
+        self.minimum = torch.tensor(inf)
+        self.maximum = torch.tensor(-inf)
         self.previous = self._get_best()
         self.description = self._get_description()
         self._track_invoked = False 
@@ -60,8 +60,8 @@ class CallbackMonitor():
             value_to_consider = metrics_to_consider[self.metric_name]
 
         if not self._track_invoked:
-            self.minimum = -T.log(T.zeros_like(value_to_consider))  # [[inf,inf,inf,inf]]
-            self.maximum = T.log(T.zeros_like(value_to_consider)) # [[-inf,-inf,-inf,-inf]]
+            self.minimum = -torch.log(torch.zeros_like(value_to_consider))  # [[inf,inf,inf,inf]]
+            self.maximum = torch.log(torch.zeros_like(value_to_consider)) # [[-inf,-inf,-inf,-inf]]
             self._track_invoked = True
 
 
@@ -72,8 +72,8 @@ class CallbackMonitor():
         change_from_best = value_to_consider - curr_best
         curr_minimum = self.minimum
         curr_maximum = self.maximum
-        self.minimum = T.min(self.minimum, value_to_consider)
-        self.maximum = T.max(self.maximum, value_to_consider)
+        self.minimum = torch.min(self.minimum, value_to_consider)
+        self.maximum = torch.max(self.maximum, value_to_consider)
         curr_previous = self.previous
         self.previous = value_to_consider
         did_improve = False

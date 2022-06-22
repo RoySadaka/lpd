@@ -66,10 +66,16 @@ class StatsPrint(CallbackBase):
         for m in self.train_metrics_monitors:
             self.val_metric_monitors.append(CallbackMonitor(m.monitor_type, StatsType.VAL, m.monitor_mode, patience=m.patience, metric_name=m.metric_name))
 
+    def _get_print_from_monitor_result_aux(self, value):
+        if len(value.shape) == 0:
+            return value.item()
+        return value.tolist()
+
     def _get_print_from_monitor_result(self, monitor_result: CallbackMonitorResult) -> str:
         r = self.round_to #READABILITY
+        aux = self._get_print_from_monitor_result_aux
         mtr = monitor_result #READABILITY
-        return f'curr:{r(mtr.new_value)}, prev:{r(mtr.prev_value)}, best:{r(mtr.new_best)}, change_from_prev:{r(mtr.change_from_previous)}, change_from_best:{r(mtr.change_from_best)}'
+        return f'curr:{aux(r(mtr.new_value))}, prev:{aux(r(mtr.prev_value))}, best:{aux(r(mtr.new_best))}, change_from_prev:{aux(r(mtr.change_from_previous))}, change_from_best:{aux(r(mtr.change_from_best))}'
 
     def _get_print_from_metrics(self, train_metric_monitor_results: Iterable[CallbackMonitorResult], prefix: str='') -> str:
         gdic = self._get_did_improved_colored #READABILITY 

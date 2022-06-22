@@ -6,18 +6,21 @@ import torch
 
 class Stats():
     def __init__(self, metric_method: MetricMethod):
-        self.sum = torch.Tensor([0.0])
+        self.sum = None
         self.count = 0
         self.last = None
         self.metric_method = metric_method
         self.reset()
 
     def reset(self):
-        self.sum = torch.Tensor([0.0])
+        self.sum = None
         self.count = 0
         self.last = None
 
     def add_value(self, value, count):
+        if self.sum is None:
+            self.sum = torch.zeros_like(value)
+            
         if self.metric_method == MetricMethod.MEAN:
             self.sum += value * count
             self.count += count
@@ -35,7 +38,7 @@ class Stats():
     def get_value(self):
         if self.metric_method == MetricMethod.MEAN:
             if self.count == 0:
-                return torch.Tensor([0.0])
+                return torch.tensor(0.0)
             return self.sum/self.count
 
         elif self.metric_method == MetricMethod.SUM:

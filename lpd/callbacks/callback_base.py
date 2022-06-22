@@ -1,6 +1,7 @@
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 from lpd.callbacks.callback_context import CallbackContext
 from typing import Union, List, Optional, Dict, Iterable
+import torch
 
 class CallbackBase():
     """
@@ -119,6 +120,8 @@ class CallbackBase():
                 return [round(v, self.round_values_on_print_to) for v in value]
             if isinstance(value, float):
                 return round(value, self.round_values_on_print_to)
+            if torch.is_tensor(value):
+                return torch.round(value, decimals=self.round_values_on_print_to)
         return value
 
     def should_apply_on_phase(self, callback_context: CallbackContext):
