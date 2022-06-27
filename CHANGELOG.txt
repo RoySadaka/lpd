@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+0.4.7 (27/06/2022)
+-----------------
+* Bug fix in case validation samples are empty
+
 
 0.4.6 (21/06/2022)
 -----------------

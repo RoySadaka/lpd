@@ -25,7 +25,7 @@ There are 2 types of ``lpd`` packagaes available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.6-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+<b>[v0.4.7-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
 * Bug fix in case validation samples are empty
 
 

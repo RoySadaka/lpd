@@ -36,9 +36,10 @@ class Stats():
         self.last = value
 
     def get_value(self):
+        if self.count == 0:
+            return torch.tensor(0.0)
+
         if self.metric_method == MetricMethod.MEAN:
-            if self.count == 0:
-                return torch.tensor(0.0)
             return self.sum/self.count
 
         elif self.metric_method == MetricMethod.SUM:
