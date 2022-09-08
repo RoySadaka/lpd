@@ -50,7 +50,7 @@ class CallbackBase():
             State.EXTERNAL
             Phase.PREDICT_END
 
-        Agrs:
+        Args:
             apply_on_phase - (lpd.enums.Phase) the phase to invoke this callback
             apply_on_states - (lpd.enums.State) state or list of states to invoke this parameter (under the relevant phase), None will invoke it on all states
             round_values_on_print_to - optional, it will round the numerical values in the prints
