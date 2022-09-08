@@ -35,11 +35,11 @@ class AbsoluteThresholdChecker(ThresholdChecker):
             raise ValueError(f"Threshold must be non-negative, but got {threshold}")
         super(AbsoluteThresholdChecker, self).__init__(threshold)
 
-    def is_new_value_higher(self, new_value: Union[float, Tensor], old_value2: Union[float, Tensor]) -> bool:
-        return new_value - old_value2 >= self.threshold
+    def is_new_value_higher(self, new_value: Union[float, Tensor], old_value: Union[float, Tensor]) -> bool:
+        return new_value - old_value > self.threshold
 
     def is_new_value_lower(self, new_value: Union[float, Tensor], old_value: Union[float, Tensor]) -> bool:
-        return old_value - new_value >= self.threshold
+        return old_value - new_value > self.threshold
 
 
 class RelativeThresholdChecker(ThresholdChecker):
@@ -56,7 +56,7 @@ class RelativeThresholdChecker(ThresholdChecker):
         super(RelativeThresholdChecker, self).__init__(threshold)
 
     def is_new_value_higher(self, new_value: Union[float, Tensor], old_value: Union[float, Tensor]) -> bool:
-        return (new_value - old_value) / old_value >= self.threshold
+        return (new_value - old_value) / old_value > self.threshold
 
     def is_new_value_lower(self, new_value: Union[float, Tensor], old_value: Union[float, Tensor]) -> bool:
-        return (old_value - new_value) / old_value >= self.threshold
+        return (old_value - new_value) / old_value > self.threshold
