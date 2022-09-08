@@ -14,4 +14,4 @@ torchvision = "*"
 protobuf = "==3.20.*"
 
 [requires]
-python_version = "3.9.13"
+python_version = "3.7.6"
