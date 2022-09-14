@@ -21,11 +21,11 @@ class CallbackMonitor:
     def __init__(self, monitor_type: MonitorType, stats_type: StatsType, monitor_mode: MonitorMode,
                  threshold_checker: Optional[ThresholdChecker] = None, patience: int=None, metric_name: Optional[str]=None):
         self.patience = inf if patience is None or patience < 0 else patience
-        self.threshold_checker = AbsoluteThresholdChecker() if threshold_checker is None else threshold_checker
         self.patience_countdown = self.patience
         self.monitor_type = monitor_type
         self.stats_type = stats_type
         self.monitor_mode = monitor_mode
+        self.threshold_checker = AbsoluteThresholdChecker(monitor_mode) if threshold_checker is None else threshold_checker
         self.metric_name = metric_name
         self.minimum = torch.tensor(inf)
         self.maximum = torch.tensor(-inf)
@@ -87,8 +87,7 @@ class CallbackMonitor:
 
         if len(value_to_consider.shape) == 0 or  \
            (len(value_to_consider.shape) == 1 and value_to_consider.shape[0] == 1):
-            if self.monitor_mode == MonitorMode.MIN and self.threshold_checker.is_new_value_lower(value_to_consider, curr_minimum)\
-               or self.monitor_mode == MonitorMode.MAX and self.threshold_checker.is_new_value_higher(value_to_consider, curr_maximum):
+            if self.threshold_checker(new_value=value_to_consider, old_value=curr_best):
                 did_improve = True
                 self.patience_countdown = self.patience
         else:
