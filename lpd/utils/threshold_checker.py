@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Union
-
 from torch import Tensor
-
 from lpd.enums import MonitorMode
 
 
@@ -12,8 +10,13 @@ class ThresholdChecker(ABC):
     This is an abstract class meant to be inherited by different threshold checkers
     Can also be inherited by the user to create custom threshold checkers
     """
-    def __init__(self, threshold: float):
+    def __init__(self, monitor_mode: MonitorMode, threshold: float):
+        self.monitor_mode = monitor_mode
         self.threshold = threshold
+
+    def validate_input(self):
+        if self.threshold < 0:
+            raise ValueError(f"Threshold must be non-negative, but got {self.threshold}")
 
     @abstractmethod
     def __call__(self, new_value: Union[float, Tensor], old_value: Union[float, Tensor]) -> bool:
@@ -30,10 +33,7 @@ class AbsoluteThresholdChecker(ThresholdChecker):
         threshold - the threshold to check (must be non-negative)
     """
     def __init__(self, monitor_mode: MonitorMode, threshold: float = 0.0):
-        if threshold < 0:
-            raise ValueError(f"Threshold must be non-negative, but got {threshold}")
-        super(AbsoluteThresholdChecker, self).__init__(threshold)
-        self.monitor_mode = monitor_mode
+        super(AbsoluteThresholdChecker, self).__init__(monitor_mode, threshold)
 
     def _is_new_value_lower(self, new_value: Union[float, Tensor], old_value: Union[float, Tensor]) -> bool:
         return old_value - new_value > self.threshold
@@ -57,10 +57,7 @@ class RelativeThresholdChecker(ThresholdChecker):
         threshold - the threshold to check (must be non-negative)
     """
     def __init__(self, monitor_mode: MonitorMode, threshold: float = 0.0):
-        if threshold < 0:
-            raise ValueError(f"Threshold must be non-negative, but got {threshold}")
-        super(RelativeThresholdChecker, self).__init__(threshold)
-        self.monitor_mode = monitor_mode
+        super(RelativeThresholdChecker, self).__init__(monitor_mode, threshold)
 
     def _is_new_value_lower(self, new_value: Union[float, Tensor], old_value: Union[float, Tensor]) -> bool:
         return (old_value - new_value) / old_value > self.threshold

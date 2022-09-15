@@ -2,6 +2,7 @@ from tests.test_metrics import TestMetrics
 from tests.test_trainer import TestTrainer
 from tests.test_predictor import TestPredictor
 from tests.test_callbacks import TestCallbacks
+from tests.test_utils import TestUtils
 import unittest
 
 import examples.multiple_inputs.train as multiple_inputs_example

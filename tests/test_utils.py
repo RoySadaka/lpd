@@ -3,7 +3,7 @@ import unittest
 from lpd.enums import MonitorMode
 
 
-class TestCallbacks(unittest.TestCase):
+class TestUtils(unittest.TestCase):
 
     def test_absolute_threshold_checker__true(self):
         from lpd.utils.threshold_checker import AbsoluteThresholdChecker
