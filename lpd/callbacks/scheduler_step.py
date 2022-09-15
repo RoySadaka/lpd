@@ -8,7 +8,7 @@ from typing import Union, List, Optional, Dict, Callable
 class SchedulerStep(CallbackBase):
     """This callback will invoke a "step()" on the scheduler.
 
-        Agrs:
+        Args:
             apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
             scheduler_parameters_func - Since some schedulers takes parameters in step(param1, param2...)
