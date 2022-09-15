@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+
+0.4.8 (15/09/2022)
+-----------------
+* Added AbsoluteThresholdChecker & RelativeThresholdChecker classes
+* ThresholdCheckers can now be used in CallbackMonitor to better define metric tracking
+
+
 0.4.7 (27/06/2022)
 -----------------
 * Bug fix in case validation samples are empty

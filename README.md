@@ -25,11 +25,13 @@ There are 2 types of ``lpd`` packagaes available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.7-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Bug fix in case validation samples are empty
+<b>[v0.4.8-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added AbsoluteThresholdChecker & RelativeThresholdChecker classes
+* ThresholdCheckers can now be used in CallbackMonitor to better define metric tracking
 
 
 Previously on lpd: 
+* Bug fix in case validation samples are empty
 * Bug fix in verbosity level 2 in train
 * Verbosity change in torch_utils
 * Fix to PositionalEncoding to be batch first
@@ -54,6 +56,7 @@ The main usages are given below.
     from lpd.metrics import BinaryAccuracyWithLogits, FalsePositives
     from lpd.utils.torch_utils import get_gpu_device_if_available
     from lpd.utils.general_utils import seed_all
+    from lpd.utils.threshold_checker import AbsoluteThresholdChecker
 
     seed_all(seed=42) # because its the answer to life and the universe
 
@@ -80,7 +83,8 @@ The main usages are given below.
                                               stats_type=StatsType.VAL, 
                                               monitor_mode=MonitorMode.MAX,
                                               patience=10,
-                                              metric_name='Accuracy')),
+                                              metric_name='Accuracy'),
+                                              threshold_checker=AbsoluteThresholdChecker(monitor_mode=MonitorMode.MAX, threshold=0.01)),
                 StatsPrint(train_metrics_monitors=[CallbackMonitor(monitor_type=MonitorType.METRIC,
                                                                    stats_type=StatsType.TRAIN,
                                                                    monitor_mode=MonitorMode.MAX,  # <-- notice MAX
@@ -417,6 +421,29 @@ Lets expand ``MyAwesomeCallback`` with ``CallbackMonitor`` to track if our valid
                 print(f'[MyAwesomeCallback] - {monitor_result.description} has stopped improving')
                 callback_context.trainer.stop()
 ```
+
+
+### CallbackMonitor, AbsoluteThresholdChecker and RelativeThresholdChecker
+When using callbacks such as ``EarlyStopping``, a ``CallbackMonitor`` is provided to track  
+a certain metric and reset/trigger the stopping event (or any event in other callbacks).  
+  
+``CallbackMonitor`` will internally use ``ThresholdChecker`` when comparing new value to old value  
+for the tracked metric, and ``AbsoluteThresholdChecker`` or ``RelativeThresholdChecker`` will be used  
+to check if the criteria was met.  
+The following example creates a ``CallbackMonitor`` that will track if the metric 'accuracy'  
+has increased with more then 1% using ``RelativeThresholdChecker``
+```python
+    from lpd.utils.threshold_checker import RelativeThresholdChecker
+    relative_threshold_checker_1_percent = RelativeThresholdChecker(monitor_mode=MonitorMode.MAX, threshold=0.01)
+
+    CallbackMonitor(monitor_type=MonitorType.METRIC,                        # It's a Metric and not a Loss 
+                    stats_type=StatsType.VAL,                               # check the value on the Validation set
+                    monitor_mode=MonitorMode.MAX,                           # MAX indicates higher is better
+                    metric_name='accuracy',                                 # since it's a Metric, mention its name
+                    threshold_checker=relative_threshold_checker_1_percent) # track 1% increase from last highest value     
+```
+
+
 
 ## Metrics
 ``lpd.metrics`` provides metrics to check the accuracy of your model.  
