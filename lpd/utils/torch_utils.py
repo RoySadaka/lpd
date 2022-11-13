@@ -31,4 +31,4 @@ def get_lrs_from_optimizer(optimizer):
     return [group['lr'] for group in optimizer.param_groups]
 
 def copy_model_weights(source_model, target_model):
-    self.target_model.load_state_dict(self.source_model.state_dict())
+    target_model.load_state_dict(source_model.state_dict())
