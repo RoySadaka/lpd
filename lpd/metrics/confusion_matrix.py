@@ -148,4 +148,5 @@ class ConfusionMatrix():
         y_true_class_idxs = y_true.long()
 
         for row, col in zip(y_pred_class_idxs, y_true_class_idxs):
-            self.confusion[row][col] += 1
+            self.confusion[row.cpu()][col.cpu()] += 1
+

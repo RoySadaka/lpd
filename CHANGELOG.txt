@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+0.4.9 (22/01/2023)
+-----------------
+* Added assert to Attention class (from extensions) when mask is used
+* Fixed confusion matrix cpu/gpu device error
+* Better handling on callbacks where apply_on_states=None (apply on all states)
+* Updated Pipfile
+
 
 0.4.8 (15/09/2022)
 -----------------

@@ -41,63 +41,53 @@ class Dense(nn.Module):
 class Attention(nn.Module):
     """
         The architecture is based on the paper “Attention Is All You Need”
-        Usage (1)
-        It can be used as Attention in transformer if q,k,v share the same dimensions.
-        
-        Usage (2)
-        It can also be used as a method to aggregate a group of vectors into 1 vector if q dimensions are (batch, 1, key_dim)
-        that way, instead of using Sum, or Average, you can have a learnable query vector (or a few of them) that will learn the aggregation function.
-        See example in lpd.examples.multiple_inputs.model, where we define external_query_attention like so:
-        external_query_attention = Attention(key_dim=config.EMBEDDINGS_SIZE, use_query_dense=True)  
+        Used as the Attention layer in transformer.
 
         Args:
         key_dim - as defined in the paper, the number of expected features in the encoder inputs
-        use_query_dense - whether to pass q input into another Dense layer, mostly used in Usage (2), to
-                          run q into a transformation that will transform it into the vector space of k and v
         name - optional, any string to describe this layer
     """
-    def __init__(self, key_dim, use_query_dense=False, name=None):
+    def __init__(self, name=None):
         super(Attention, self).__init__()
         #PARAMS
-        self.key_dim            = key_dim
-        self.sqrt_key_dim       = key_dim ** 0.5
-        self.use_query_dense    = use_query_dense
         self.name               = name if name else 'attention'
         #LAYERS
         self.mat_mul2d          = MatMul2D(transpose_b=False, name = f'{self.name}__MatMul2D')
         self.mat_mul2d_t        = MatMul2D(transpose_b=True, name = f'{self.name}__MatMul2DT')
         self.softmax_last_dim   = nn.Softmax(dim=-1)
-        if self.use_query_dense:
-            # SOMETIMES WE WANT TO GO THROUGH ANOTHER TRANSFORMATION BEFORE RUNNING THE QUERY,
-            # FOR EXAMPLE, WHEN THIS IS USED AS A STANDALONE LAYER
-            self.query_dense    = Dense(in_dim=self.key_dim, out_dim=self.key_dim, use_bias=False, activation=None, name = f'{self.name}__Dense')
 
     def forward(self, q,k,v, mask = None):
-        # q:    (batch, ?, key_dim)             where "?" can be 1 or seq_len
-        # k:    (batch, seq_len, key_dim)
-        # v:    (batch, seq_len, key_dim)
-        # mask: (batch, 1, seq_len)
+        # q:    (batch, seq_len, emb_dim)
+        # k:    (batch, seq_len, emb_dim)
+        # v:    (batch, seq_len, emb_dim)
+        # mask: (batch, seq_len)
 
         # APPLY ATTENTION:
         #                       (     Q * Kt     )
         #               softmax (   ----------   ) * V
         #                       (    sqrt(dk)    )
 
-        if self.use_query_dense:
-            q = self.query_dense(q)                                            # (batch, seq_len, key_dim)
+        if mask is not None:
+            assert q.shape == k.shape == v.shape, 'Dimensions mismatch, When using mask it is expected that the shape of q,k,v will be identical'
 
-        q_k = self.mat_mul2d_t(q, k)                                           # (batch, ?, seq_len)
-        scores = q_k / self.sqrt_key_dim                                       # (batch, ?, seq_len)
+        emb_dim = q.shape[-1]
+        q = q / (emb_dim ** 0.5)                                                # (batch, seq_len, emb_dim)
+        q_k = self.mat_mul2d_t(q, k)                                            # (batch, seq_len, seq_len)
 
         if mask is not None:
-            mask_ready = torch.log(mask)                                       # (batch, 1, seq_len)
-            scores = scores + mask_ready                                       # (batch, ?, seq_len) (+= is doing broadcasting)
+            # PREPARE MASK FOR SOFTMAX ON COLUMNS, WILL ZERO OUT MASKED COLUMNS
+            mask_ready = torch.log(mask).unsqueeze(-2)                          # (batch, 1, seq_len)
+            q_k = q_k + mask_ready                                              # (batch, seq_len, seq_len)  (broadcasting op)
 
-        attention_weights = self.softmax_last_dim(scores)                      # (batch, ?, seq_len)
-        
-        attention_output = self.mat_mul2d(attention_weights, v)                # (batch, ?, key_dim)
+        attention_weights = self.softmax_last_dim(q_k)                          # (batch, seq_len, seq_len)
 
-        return attention_output                                                # (batch, ?, key_dim)
+        attention_output = self.mat_mul2d(attention_weights, v)                 # (batch, seq_len, emb_dim)
+
+        if mask is not None:
+            # A CLEAN UP THAT WILL RESTORE MASKED ROWS TO THEIR ORIGINAL VALUES
+            attention_output = (attention_output * mask.unsqueeze(-1)) + (q * (1-mask).unsqueeze(-1)) # (batch, seq_len, emb_dim)
+
+        return attention_output                                                # (batch, seq_len, emb_dim)
 
 class AttentionHead(nn.Module):
     def __init__(self, in_dim, key_dim, name=None):
@@ -112,7 +102,7 @@ class AttentionHead(nn.Module):
         self.query_dense  = Dense(self.in_dim, self.key_dim, use_bias=True, activation=None, name = f'{self.name}__Q-Dense')
         self.key_dense    = Dense(self.in_dim, self.key_dim, use_bias=True, activation=None, name = f'{self.name}__K-Dense')
         self.value_dense  = Dense(self.in_dim, self.key_dim, use_bias=True, activation=None, name = f'{self.name}__V-Dense')
-        self.att          = Attention(self.key_dim, name = f'{self.name}__Attention')
+        self.att          = Attention(name = f'{self.name}__Attention')
 
     def forward(self, inputs, mask = None):     # inputs:(batch, seq_len, emb_size), mask:(batch, seq_len)
         q = self.query_dense(inputs)            # (batch, seq_len, key_dim)
@@ -282,4 +272,3 @@ class TransformerEncoderStack(nn.Module):
         for encoder_layer in self.transformer_blocks:
             outputs = encoder_layer(inputs=outputs, mask=mask)
         return outputs                                # (batch, seq_len, out_dim)   <-- USUALLY out_dim = emb_size
-

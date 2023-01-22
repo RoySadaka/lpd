@@ -29,16 +29,14 @@ classifiers=[
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Utilities'
     ]
 
 setup(
     name='lpd',
-    version='0.4.8',
+    version='0.4.9',
     description='A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch',
     long_description_content_type='text/markdown',
     long_description=README_md,
@@ -49,7 +47,7 @@ setup(
     maintainer_email='torch.lpd@gmail.com',
     packages=find_packages(exclude=['tests', 'tests/*', 'examples', 'examples/*']),
     install_requires=install_requires,
-    python_requires='>=3.6',
+    python_requires='>=3.9',
     classifiers=classifiers,
     keywords=['pytorch,trainer,callback,callbacks,earlystopping,tensorboard,modelcheckpoint,checkpoint,layers,dense,metrics,predictor,binary accuracy,extensions,track,monitor,machine,deep learning,neural,networks,AI,keras decay,confusion matrix']
 )

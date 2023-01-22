@@ -1,5 +1,5 @@
 import random
-import torch as T
+import torch
 import os 
 from .config import Config
 from .model import get_trainer
@@ -12,7 +12,8 @@ def prepare_chunk_to_model_input(config, chunk):
     x2 = [c[config.IDX_OF_X2] for c in chunk]
     x3 = [c[config.IDX_OF_X3] for c in chunk]
     y = [c[config.IDX_OF_LABEL] for c in chunk]
-    return [T.LongTensor(x1), T.LongTensor(x2), T.LongTensor(x3)], T.Tensor(y)
+    index_select_aux = torch.LongTensor([0])
+    return [torch.LongTensor(x1), torch.LongTensor(x2), torch.LongTensor(x3), index_select_aux], torch.Tensor(y)
 
 def get_data_stats(data_generator, verbose=1):
     sanity_count = int(1e6)

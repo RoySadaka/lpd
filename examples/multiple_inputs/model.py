@@ -1,4 +1,4 @@
-import torch as T
+import torch
 import torch.nn as nn
 import torch.optim as optim
 
@@ -30,11 +30,11 @@ class TestModel(nn.Module):
                                                             drop_out_proba=config.TRANSFORMER_DROP_OUT_PROBA,
                                                             ff_expansion_rate=config.TRANSFORMER_FF_EXPANSION_RATE)
 
-        self.external_query_attention = Attention(key_dim=config.EMBEDDINGS_SIZE, use_query_dense=True)
+        self.external_query_attention = Attention()
         self.norm = nn.LayerNorm(normalized_shape=config.EMBEDDINGS_SIZE) # WILL APPLY NORM OVER THE LAST DIMENTION ONLY
         self.mat_mul2d = MatMul2D(transpose_b=True)
 
-    def forward(self, x1, x2, x3):
+    def forward(self, x1, x2, x3, index_select_aux):
         # x1   : sequence-Input  	(batch, num_elements)
         # x2   : some1-Input        (batch, 1)
         # x3   : some2-Input        (batch, 1)
@@ -43,14 +43,17 @@ class TestModel(nn.Module):
         x1_emb_transformed = self.transformer_encoder(x1_emb)                                 # (batch, num_elements, emb_size)
         
         x3_emb = self.embedding_layer(x3)                                                     # (batch, emb_size)
-        x3_emb_unsqueesed = x3_emb.unsqueeze(1)                                               # (batch, 1, emb_size)
+        x3_emb_unsqueeze = x3_emb.unsqueeze(1)                                               # (batch, 1, emb_size)
 
-        x1_with_x3_reduced = self.external_query_attention(q=x3_emb_unsqueesed, 
-                                                           k=x1_emb_transformed, 
-                                                           v=x1_emb_transformed)              # (batch, 1, emb_size)
+        x1_with_x3_reduced = torch.cat([x3_emb_unsqueeze, x1_emb_transformed], dim=1)          # (batch, num_elements+1, emb_size)
+
+        x1_with_x3_reduced = self.external_query_attention(q=x1_with_x3_reduced, 
+                                                           k=x1_with_x3_reduced, 
+                                                           v=x1_with_x3_reduced)              # (batch, num_elements+1, emb_size)
         
+        x1_with_x3_reduced = torch.index_select(x1_with_x3_reduced, dim=1, index=index_select_aux) # (batch, 1, emb_size)
 
-        x1_with_x3_residual = self.norm(x1_with_x3_reduced + x3_emb_unsqueesed)     		  # (batch, 1, emb_size)
+        x1_with_x3_residual = self.norm(x1_with_x3_reduced + x3_emb_unsqueeze)     		  # (batch, 1, emb_size)
 
         x2_emb = self.embedding_layer(x2)                                                     # (batch, emb_size)
 

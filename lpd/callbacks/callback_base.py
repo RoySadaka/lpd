@@ -80,7 +80,8 @@ class CallbackBase():
                     raise ValueError(f'[CallbackBase] - {s} is of type {type(s)}, expected type {State}')
             return result
         elif apply_on_states is None:
-            result.add(apply_on_states)
+            for state in State:
+                result.add(state) 
             return result
 
         raise ValueError(f'[CallbackBase] - got bad value for apply_on_states')
@@ -88,8 +89,8 @@ class CallbackBase():
     def _validations(self):
         if self.apply_on_phase is None:
             raise ValueError('[CallbackBase] - No callback phase was provided')
-        if None in self.apply_on_states:
-            print('[CallbackBase][!] - apply_on_states is None, callback will be applied to all states')
+        if self.apply_on_states is None:
+            print('[CallbackBase] - apply_on_states is None, callback will be applied to all states')
 
         valid_pairs = {
                         Phase.TRAIN_BEGIN:{None, State.EXTERNAL}, 
@@ -130,11 +131,4 @@ class CallbackBase():
         raise ValueError('[CallbackBase] - got bad value for apply_on_phase')
 
     def should_apply_on_state(self, callback_context: CallbackContext):
-        if None in self.apply_on_states:
-            return True
-
-        for state in self.apply_on_states:
-            if callback_context.trainer_state == state:
-                return True
-
-        return False
+        return callback_context.trainer_state in self.apply_on_states

@@ -4,8 +4,8 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-tensorboard = "==2.3.0"
-tqdm = "==4.51.0"
+tensorboard = "*"
+tqdm = "*"
 
 [packages]
 numpy = "*"
@@ -14,4 +14,4 @@ torchvision = "*"
 protobuf = "==3.20.*"
 
 [requires]
-python_version = "3.7.6"
+python_version = "3.9.1"

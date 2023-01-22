@@ -25,9 +25,11 @@ There are 2 types of ``lpd`` packagaes available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.8-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added AbsoluteThresholdChecker & RelativeThresholdChecker classes
-* ThresholdCheckers can now be used in CallbackMonitor to better define metric tracking
+<b>[v0.4.9-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
+* Added assert to Attention class (from extensions) when mask is used
+* Fixed confusion matrix cpu/gpu device error
+* Better handling on callbacks where apply_on_states=None (apply on all states)
+* Updated Pipfile
 
 
 Previously on lpd: 
