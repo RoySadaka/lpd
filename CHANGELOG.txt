@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+
+0.4.10 (04/02/2023)
+-----------------
+* TransformerEncoderStack to support activation as input
+* PositionalEncoding to support more than 3 dimensions input
+
+
 0.4.9 (22/01/2023)
 -----------------
 * Added assert to Attention class (from extensions) when mask is used

@@ -1,6 +1,10 @@
+from typing import Callable, Union
 import torch
+from torch import Tensor
 import torch.nn as nn
 import math
+
+nn.TransformerDecoderLayer
 
 class MatMul2D(nn.Module):
     def __init__(self, transpose_b, name=None):
@@ -144,6 +148,7 @@ class TransformerEncoderFeedForward(nn.Module):
                        out_dim,
                        drop_out_proba,
                        expansion_rate,
+                       activation,
                        name=None):
         super(TransformerEncoderFeedForward, self).__init__()
         #PARAMS
@@ -151,10 +156,11 @@ class TransformerEncoderFeedForward(nn.Module):
         self.out_dim = out_dim
         self.drop_out_proba = drop_out_proba
         self.expansion_rate = expansion_rate
+        self.activation = activation
         self.name = name if name else 'Transformer-Encoder__Feed-Forward'
 
         #LAYERS
-        self.hidden_dense = Dense(in_dim=self.in_dim, out_dim=self.out_dim * self.expansion_rate, use_bias=True, activation=nn.ReLU(), name = f'{self.name}__Hidden-Dense')
+        self.hidden_dense = Dense(in_dim=self.in_dim, out_dim=self.out_dim * self.expansion_rate, use_bias=True, activation=activation, name = f'{self.name}__Hidden-Dense')
         self.output_dense = Dense(in_dim=self.out_dim * self.expansion_rate, out_dim=self.out_dim, use_bias=True, activation=None, name = f'{self.name}__Out-Dense')
         self.dropout = nn.Dropout(p=self.drop_out_proba)
 
@@ -167,13 +173,14 @@ class TransformerEncoderFeedForward(nn.Module):
         return self.norm(inputs + output)    #RESIDUAL & NORM               # (batch, num_elements, out_dim)
 
 class TransformerBlock(nn.Module):
-    def __init__(self, in_dim,
-                       key_dim,
-                       out_dim,
-                       num_heads,
-                       drop_out_proba,
-                       ff_expansion_rate,
-                       name = None):
+    def __init__(self, in_dim:int,
+                       key_dim:int,
+                       out_dim:int,
+                       num_heads:int,
+                       drop_out_proba:float,
+                       ff_expansion_rate:int,
+                       activation: Callable[[Tensor], Tensor]=nn.ReLU(),
+                       name:str = None):
         super(TransformerBlock, self).__init__()
         #PARAMS
         self.in_dim = in_dim
@@ -182,6 +189,7 @@ class TransformerBlock(nn.Module):
         self.num_heads = num_heads
         self.drop_out_proba = drop_out_proba
         self.ff_expansion_rate = ff_expansion_rate
+        self.activation = activation
         self.name = name if name else 'Transformer-Encoder'
         #LAYERS
         self.multi_head_self_attention = MultiHeadAttention(self.in_dim,
@@ -195,6 +203,7 @@ class TransformerBlock(nn.Module):
                                                           self.out_dim,
                                                           self.drop_out_proba,
                                                           self.ff_expansion_rate,
+                                                          self.activation,
                                                           name = f'{self.name}__FF')
 
 
@@ -216,17 +225,16 @@ class PositionalEncoding(nn.Module):
         self._create_positional_encoding()
 
     def _create_positional_encoding(self):
-        if self.maximum_position_encoding:
-            position = torch.arange(self.maximum_position_encoding).unsqueeze(1)
-            div_term = torch.exp(torch.arange(0, self.embedding_size, 2) * (-math.log(10000.0) / self.embedding_size))
-            pe = torch.zeros(self.maximum_position_encoding, 1, self.embedding_size)
-            pe[:, 0, 0::2] = torch.sin(position * div_term)
-            pe[:, 0, 1::2] = torch.cos(position * div_term)
-            pe = pe.squeeze(1)
-            self.register_buffer('pe', pe)
+        position = torch.arange(self.maximum_position_encoding).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, self.embedding_size, 2) * (-math.log(10000.0) / self.embedding_size))
+        pe = torch.zeros(self.maximum_position_encoding, 1, self.embedding_size)
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        pe = pe.squeeze(1)
+        self.register_buffer('pe', pe)
 
     def forward(self, inputs):
-        inputs = inputs + self.pe[:inputs.size(1), :].unsqueeze(0)
+        inputs = inputs + self.pe[:inputs.size(-2), :].unsqueeze(0)
         return self.dropout(inputs)
 
 class TransformerEncoderStack(nn.Module):
@@ -238,6 +246,7 @@ class TransformerEncoderStack(nn.Module):
                        drop_out_proba,
                        ff_expansion_rate,
                        maximum_position_encoding=None,
+                       activation: Callable[[Tensor], Tensor]=nn.ReLU(),
                        name=None):
         super(TransformerEncoderStack, self).__init__()
         #PARAMS
@@ -249,6 +258,7 @@ class TransformerEncoderStack(nn.Module):
         self.drop_out_proba = drop_out_proba
         self.ff_expansion_rate = ff_expansion_rate
         self.maximum_position_encoding = maximum_position_encoding
+        self.activation = activation
         self.name = name if name else 'Transformer-Encoder-Stack'
 
         #LAYERS
@@ -258,9 +268,11 @@ class TransformerEncoderStack(nn.Module):
                                                     self.num_heads,
                                                     self.drop_out_proba,
                                                     self.ff_expansion_rate,
+                                                    self.activation,
                                                     name=f'{self.name}__E{i}')
                                                     for i in range(self.num_encoders)])
-        self.pos_encoder = PositionalEncoding(self.in_dim, self.drop_out_proba, self.maximum_position_encoding)
+        if self.maximum_position_encoding is not None:
+            self.pos_encoder = PositionalEncoding(self.in_dim, self.drop_out_proba, self.maximum_position_encoding)
 
     def forward(self, inputs, mask=None):
         outputs = inputs                                        # (batch, seq_len, emb_size)

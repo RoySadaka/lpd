@@ -14,7 +14,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ![Liecense](https://img.shields.io/github/license/roysadaka/lpd)
 <!-- ![Follow](https://img.shields.io/twitter/follow/roysadaka?label=RoySadaka&style=social) -->
 
-There are 2 types of ``lpd`` packagaes available 
+There are 2 types of ``lpd`` packages available 
 * ``lpd`` which brings dependencies for pytorch, numpy and tensorboard
 ```sh
     pip install lpd
@@ -25,14 +25,16 @@ There are 2 types of ``lpd`` packagaes available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.9-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b>
-* Added assert to Attention class (from extensions) when mask is used
+<b>[v0.4.10-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b> 
+
+* ``TransformerEncoderStack`` to support activation as input
+* ``PositionalEncoding`` to support more than 3 dimensions input
+
+
+Previously on lpd:
+* Updated Pipfile
 * Fixed confusion matrix cpu/gpu device error
 * Better handling on callbacks where apply_on_states=None (apply on all states)
-* Updated Pipfile
-
-
-Previously on lpd: 
 * Bug fix in case validation samples are empty
 * Bug fix in verbosity level 2 in train
 * Verbosity change in torch_utils
@@ -62,7 +64,7 @@ The main usages are given below.
 
     seed_all(seed=42) # because its the answer to life and the universe
 
-    device = get_gpu_device_if_available() # with fallback to CPU if GPU not avilable
+    device = get_gpu_device_if_available() # with fallback to CPU if GPU not available
     model = MyModel().to(device) # this is your model class, and its being sent to the relevant device
     optimizer = torch.optim.SGD(params=model.parameters())
     scheduler = KerasDecay(optimizer, decay=0.01, last_step=-1) # decay scheduler using keras formula 
@@ -175,7 +177,7 @@ Here are some examples
 
 ## Callbacks
 Will be used to perform actions at various stages.  
-Some common callbacks are available under ``lpd.callbacks``, and you can also create your own, more detailes below.  
+Some common callbacks are available under ``lpd.callbacks``, and you can also create your own, more details below.  
 In a callback, ``apply_on_phase`` (``lpd.enums.Phase``) will determine the execution phase,  
 and ``apply_on_states`` (``lpd.enums.State`` or ``list(lpd.enums.State)``) will determine the execution states  
 These are the current available phases and states, more might be added in future releases
