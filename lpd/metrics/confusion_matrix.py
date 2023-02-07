@@ -1,17 +1,17 @@
-import torch as T
+import torch
 from lpd.enums.confusion_matrix_based_metric import ConfusionMatrixBasedMetric as metric
 
 class ConfusionMatrix():
     """
-        Agrs:
+        Args:
             num_classes - The number of classes in the classification
             labels - names of classes, for nice prints, if not provided, the class index will be the label
             predictions_to_classes_convertor - (optional) a function that takes y_pred batch and y_true batch and converts it into class indices batch where
                                                each index represents the chosen class
                                                if None:  
                                                         torch.max with indices will be used for multi-class .
-                                                        threshold will be used for binary or multilabel.
-            threshold - for binary or multilable classification
+                                                        threshold will be used for binary or multi-label.
+            threshold - for binary or multi-label classification
 
     """
     def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5):
@@ -37,17 +37,17 @@ class ConfusionMatrix():
     
     def _build_confusion(self):
         length = len(self.class_idxs)
-        confusion = T.zeros((length, length)).long()
+        confusion = torch.zeros((length, length)).long()
         return confusion
 
     def _normalized(self):
-        asum = T.sum(self.confusion)
+        asum = torch.sum(self.confusion)
         return self.confusion / asum.float()
 
-    def _convert_predictions_to_classes(self, y_pred: T.Tensor, y_true: T.Tensor):
+    def _convert_predictions_to_classes(self, y_pred: torch.Tensor, y_true: torch.Tensor):
         if not (len(y_pred.shape) == len(y_true.shape) or \
                 len(y_pred.shape) == len(y_true.shape) + 1):
-            raise ValueError("Expecting y_pred and y_true to has same amount of dimentions, or y_pred to have an extra one")
+            raise ValueError("Expecting y_pred and y_true to has same amount of dimensions, or y_pred to have an extra one")
 
         if self.num_classes == 2:
             if len(y_pred.shape) == 2 and y_pred.shape[1] == 1:
@@ -61,7 +61,7 @@ class ConfusionMatrix():
 
         if len(y_pred.shape) == len(y_true.shape) + 1:
             # MULTI CLASS
-            classes = T.max(y_pred, dim=1)[1]
+            classes = torch.max(y_pred, dim=1)[1]
             return classes
 
     def get_confusion_matrix(self, normalized=False):
@@ -74,12 +74,12 @@ class ConfusionMatrix():
             # USE CACHE
             return self.last_stats
 
-        asum = T.sum(self.confusion)
+        asum = torch.sum(self.confusion)
         stats = {}
         for class_idx in self.class_idxs:
             class_stats = {}
-            row_sum = T.sum(self.confusion[class_idx])
-            col_sum = T.sum(self.confusion[:,class_idx])
+            row_sum = torch.sum(self.confusion[class_idx])
+            col_sum = torch.sum(self.confusion[:,class_idx])
 
             tp  = self.confusion[class_idx][class_idx]
             fp  = row_sum - tp
@@ -115,7 +115,7 @@ class ConfusionMatrix():
         return stats
 
     def confusion_matrix_string(self, row_prefix='\n', normalized=False):
-        max_value_len = len(str(T.max(self.confusion).item()))
+        max_value_len = len(str(torch.max(self.confusion).item()))
         cellwidth = max(7, max_value_len)
 
         if normalized:
@@ -142,11 +142,10 @@ class ConfusionMatrix():
         self.last_stats = None # INVALIDATE CACHE
         self.confusion = self.confusion * 0
 
-    def update_state(self, y_pred: T.Tensor, y_true: T.Tensor):
+    def update_state(self, y_pred: torch.Tensor, y_true: torch.Tensor):
         self.last_stats = None # INVALIDATE CACHE
         y_pred_class_idxs = self.predictions_to_classes_convertor(y_pred, y_true)
         y_true_class_idxs = y_true.long()
 
         for row, col in zip(y_pred_class_idxs, y_true_class_idxs):
             self.confusion[row.cpu()][col.cpu()] += 1
-

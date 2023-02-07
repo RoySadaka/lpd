@@ -6,7 +6,7 @@ from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep, LossOptimizerHandler, CallbackMonitor
-from lpd.metrics import BinaryAccuracyWithLogits, TruePositives
+from lpd.metrics import BinaryAccuracyWithLogits, TruePositives, FalsePositives
 from lpd.extensions.custom_schedulers import DoNothingToLR
 import lpd.utils.torch_utils as tu
 
@@ -82,7 +82,8 @@ def get_trainer(config,
 
     metrics = [
                            BinaryAccuracyWithLogits(name='Accuracy'),
-                           TruePositives(num_classes=2, threshold=0, name='TP')
+                           TruePositives(num_classes=2, threshold=0, name='TP'),
+                           FalsePositives(num_classes=2, threshold=0, name='FP')
                         ]
 
     callbacks = [   

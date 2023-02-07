@@ -4,15 +4,15 @@ from lpd.enums.confusion_matrix_based_metric import ConfusionMatrixBasedMetric a
 
 class TruePositives(MetricConfusionMatrixBase):
     """
-        Agrs:
+        Args:
             num_classes - The number of classes in the classification
             labels - names of classes, for nice prints, if not provided, the class index will be the label
             predictions_to_classes_convertor - (optional) a function that takes y_pred batch and y_true batch and converts it into class indices batch where
                                                each index represents the chosen class
                                                if None:  
                                                         torch.max with indices will be used for multi-class.
-                                                        threshold will be used for binary or multilabel.
-            threshold - for binary or multilable classification
+                                                        threshold will be used for binary or multi-label.
+            threshold - for binary or multi-label classification
     """
 
     def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5, name='TruePositives'):
@@ -24,15 +24,15 @@ class TruePositives(MetricConfusionMatrixBase):
 
 class TrueNegatives(MetricConfusionMatrixBase):
     """
-        Agrs:
+        Args:
             num_classes - The number of classes in the classification
             labels - names of classes, for nice prints, if not provided, the class index will be the label
             predictions_to_classes_convertor - (optional) a function that takes y_pred batch and y_true batch and converts it into class indices batch where
                                                each index represents the chosen class
                                                if None:  
                                                         torch.max with indices will be used for multi-class.
-                                                        threshold will be used for binary or multilabel.
-            threshold - for binary or multilable classification
+                                                        threshold will be used for binary or multi-label.
+            threshold - for binary or multi-label classification
     """
 
     def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5, name='TrueNegatives'):
@@ -44,15 +44,15 @@ class TrueNegatives(MetricConfusionMatrixBase):
 
 class FalseNegatives(MetricConfusionMatrixBase):
     """
-        Agrs:
+        Args:
             num_classes - The number of classes in the classification
             labels - names of classes, for nice prints, if not provided, the class index will be the label
             predictions_to_classes_convertor - (optional) a function that takes y_pred batch and y_true batch and converts it into class indices batch where
                                                each index represents the chosen class
                                                if None:  
                                                         torch.max with indices will be used for multi-class.
-                                                        threshold will be used for binary or multilabel.
-            threshold - for binary or multilable classification
+                                                        threshold will be used for binary or multi-label.
+            threshold - for binary or multi-label classification
     """
 
     def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5, name='FalseNegatives'):
@@ -64,15 +64,15 @@ class FalseNegatives(MetricConfusionMatrixBase):
 
 class FalsePositives(MetricConfusionMatrixBase):
     """
-        Agrs:
+        Args:
             num_classes - The number of classes in the classification
             labels - names of classes, for nice prints, if not provided, the class index will be the label
             predictions_to_classes_convertor - (optional) a function that takes y_pred batch and y_true batch and converts it into class indices batch where
                                                each index represents the chosen class
                                                if None:  
                                                         torch.max with indices will be used for multi-class.
-                                                        threshold will be used for binary or multilabel.
-            threshold - for binary or multilable classification
+                                                        threshold will be used for binary or multi-label.
+            threshold - for binary or multi-label classification
     """
 
     def __init__(self, num_classes, labels=None, predictions_to_classes_convertor=None, threshold=0.5, name='FalsePositives'):

@@ -50,7 +50,7 @@ def get_trainer(N, D_in, H, D_out, num_epochs, num_classes, data_loader, data_lo
 
     callbacks = [   
                     LossOptimizerHandler(),
-                    StatsPrint(print_confusion_matrix=True)
+                    StatsPrint(print_confusion_matrix_normalized=True)
                 ]
 
     trainer = Trainer(model=model, 
