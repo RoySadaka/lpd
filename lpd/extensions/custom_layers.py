@@ -19,7 +19,11 @@ class MatMul2D(nn.Module):
         return torch.matmul(a, b)
 
 class Dense(nn.Module):
-    def __init__(self, in_dim, out_dim, use_bias=True, activation=None, name=None):
+    """
+        Args:
+        norm_first(bool) - if True, normalization will be performed before activation, otherwise after. Default: True (before).
+    """
+    def __init__(self, in_dim, out_dim, use_bias=True, activation=None, name=None, norm=None, norm_first=True):
         super(Dense, self).__init__()
         #PARAMS
         self.in_dim = in_dim
@@ -27,6 +31,8 @@ class Dense(nn.Module):
         self.use_bias = use_bias
         self.activation = activation
         self.name = name if name else 'dense'
+        self.norm = norm
+        self.norm_first = norm_first
         #LAYERS
         self.fc = nn.Linear(self.in_dim, self.out_dim, bias=self.use_bias)
         self._init_weights()
@@ -38,8 +44,12 @@ class Dense(nn.Module):
 
     def forward(self, inputs):
         x = self.fc(inputs)
+        if self.norm and self.norm_first:
+            x = self.norm(x)
         if self.activation:
             x = self.activation(x)
+        if self.norm and not self.norm_first:
+            x = self.norm(x)
         return x
 
 class Attention(nn.Module):
