@@ -5,6 +5,9 @@ from lpd.callbacks.callback_monitor import CallbackMonitor, CallbackMonitorResul
 from lpd.metrics.metric_base import MetricConfusionMatrixBase
 from lpd.utils.torch_utils import get_lrs_from_optimizer
 from typing import Union, List, Optional, Dict, Iterable
+import math
+from lpd.enums.confusion_matrix_based_metric import ConfusionMatrixBasedMetric as metric
+
 
 class StatsPrint(CallbackBase):
     """
@@ -37,6 +40,8 @@ class StatsPrint(CallbackBase):
         self.train_metrics_monitors = self._parse_train_metrics_monitors(train_metrics_monitors)
         self.print_confusion_matrix = print_confusion_matrix
         self.print_confusion_matrix_normalized = print_confusion_matrix_normalized
+        self._train_best_confusion_matrix_metric = -math.inf
+        self._val_best_confusion_matrix_metric = -math.inf
         self.val_metric_monitors: List[CallbackMonitor] = None
         self._validate_stats_type()
         self.GREEN_PRINT_COLOR = "\033[92m"
@@ -133,9 +138,8 @@ class StatsPrint(CallbackBase):
         cm_str = '\n'.join([f'{a}{b}' for a,b in zip(current_cm_str.split('\n'), best_cm_str.split('\n'))])
 
         return f'{row_gap}{row_start}{cm_str}{total_end_delimiter}'
-        
 
-    def _handle_best_confusion_matrix(self, callback_context: CallbackContext, train_loss_monitor_result: CallbackMonitorResult, val_loss_monitor_result: CallbackMonitorResult):
+    def _handle_best_confusion_matrix(self, callback_context: CallbackContext):
         c = callback_context #READABILITY 
         
         def indent_cm(cm_text):
@@ -152,11 +156,15 @@ class StatsPrint(CallbackBase):
             return cm_text
 
         if self.print_confusion_matrix or self.print_confusion_matrix_normalized:
-            if train_loss_monitor_result.has_improved():
+            new_confusion_matrix_metric = sum(class_stats[metric.ACCURACY] for class_stats in c.train_stats.confusion_matrix.get_stats().values())
+            if new_confusion_matrix_metric > self._train_best_confusion_matrix_metric:
+                self._train_best_confusion_matrix_metric = new_confusion_matrix_metric
                 self._train_best_confusion_matrix = c.train_stats.confusion_matrix.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized)
                 self._train_best_confusion_matrix = indent_cm(self._train_best_confusion_matrix)
 
-            if val_loss_monitor_result.has_improved():
+            new_confusion_matrix_metric = sum(class_stats[metric.ACCURACY] for class_stats in c.val_stats.confusion_matrix.get_stats().values())
+            if new_confusion_matrix_metric > self._val_best_confusion_matrix_metric:
+                self._val_best_confusion_matrix_metric = new_confusion_matrix_metric
                 self._val_best_confusion_matrix = c.val_stats.confusion_matrix.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized)
                 self._val_best_confusion_matrix = indent_cm(self._val_best_confusion_matrix)
 
@@ -170,7 +178,7 @@ class StatsPrint(CallbackBase):
         train_loss_monitor_result = self.train_loss_monitor.track(c)
         val_loss_monitor_result = self.val_loss_monitor.track(c)
 
-        self._handle_best_confusion_matrix(c, train_loss_monitor_result, val_loss_monitor_result)
+        self._handle_best_confusion_matrix(c)
 
         train_metric_monitor_results = [m.track(c) for m in self.train_metrics_monitors]
         val_metric_monitor_results = [m.track(c) for m in self.val_metric_monitors]
