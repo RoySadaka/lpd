@@ -1,5 +1,6 @@
 from lpd.callbacks.callback_base import CallbackBase
-from lpd.callbacks.callback_monitor import CallbackMonitor, CallbackMonitorResult
+from lpd.callbacks.callback_monitor import CallbackMonitor
+from lpd.callbacks.callback_monitor_result import CallbackMonitorResult
 from lpd.callbacks.stats_print import StatsPrint
 from lpd.callbacks.model_checkpoint import ModelCheckPoint
 from lpd.callbacks.tensorboard import Tensorboard
@@ -12,5 +13,3 @@ from lpd.callbacks.loss_optimizer_handler import LossOptimizerHandler
 from lpd.callbacks.loss_optimizer_handler_base import LossOptimizerHandlerBase
 from lpd.callbacks.loss_optimizer_handler_accumulate_batchs import LossOptimizerHandlerAccumulateBatches
 from lpd.callbacks.loss_optimizer_handler_accumulate_samples import LossOptimizerHandlerAccumulateSamples
-
-

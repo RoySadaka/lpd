@@ -5,7 +5,6 @@ from lpd.callbacks.callback_monitor import CallbackMonitor, CallbackMonitorResul
 from lpd.metrics.metric_base import MetricConfusionMatrixBase
 from lpd.utils.torch_utils import get_lrs_from_optimizer
 from typing import Union, List, Optional, Dict, Iterable
-import math
 from lpd.enums.confusion_matrix_based_metric import ConfusionMatrixBasedMetric as metric
 
 

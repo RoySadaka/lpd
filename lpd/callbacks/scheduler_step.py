@@ -1,7 +1,6 @@
-from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
+from lpd.enums import Phase, State
 from lpd.callbacks.callback_base import CallbackBase
 from lpd.callbacks.callback_context import CallbackContext
-from lpd.callbacks.callback_monitor import CallbackMonitorResult
 from lpd.utils.torch_utils import get_lrs_from_optimizer
 from typing import Union, List, Optional, Dict, Callable
 
@@ -12,7 +11,7 @@ class SchedulerStep(CallbackBase):
             apply_on_phase - see in CallbackBase
             apply_on_states - see in CallbackBase
             scheduler_parameters_func - Since some schedulers takes parameters in step(param1, param2...)
-                And other schedulers step() are parameterless, provide:
+                And other schedulers step() are parameter-less, provide:
                 a function (or lambda) that except CallbackContext and returns whatever information needed,
                 e.g. for scheduler that takes val_loss as parameter, initialize like this:
                     SchedulerStep(scheduler_parameters_func=lambda callback_context: callback_context.val_stats.get_loss())
