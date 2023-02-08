@@ -26,6 +26,11 @@ class StatsPrint(CallbackBase):
             print_confusion_matrix - If one of the metrics is of type MetricConfusionMatrixBase, setting this to True will print the confusion matrix
                                      If False, confusion matrix will not be printed (but the metric stats will remain)
             print_confusion_matrix_normalized - same as 'print_confusion_matrix', except it prints the normalized confusion matrix
+
+            train_best_confusion_matrix_monitor - Provide if you wish also to track the best confusion matrix according to the metric defined in the monitor 
+                                                  If None, best confusion matrix will not be tracked,
+                                                  val_best_confusion_matrix_monitor will be applied automatically based in train_best_confusion_matrix_monitor
+
     """
 
     def __init__(self, apply_on_phase: Phase=Phase.EPOCH_END, 
@@ -33,15 +38,16 @@ class StatsPrint(CallbackBase):
                        round_values_on_print_to: Optional[int]=None,
                        train_metrics_monitors: Union[CallbackMonitor,Iterable[CallbackMonitor]]=None,
                        print_confusion_matrix: bool=False,
-                       print_confusion_matrix_normalized: bool=False):
+                       print_confusion_matrix_normalized: bool=False,
+                       train_best_confusion_matrix_monitor:CallbackMonitor=None):
         super(StatsPrint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
         self.train_loss_monitor = CallbackMonitor(MonitorType.LOSS, StatsType.TRAIN, MonitorMode.MIN)
         self.val_loss_monitor = CallbackMonitor(MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN)
         self.train_metrics_monitors = self._parse_train_metrics_monitors(train_metrics_monitors)
         self.print_confusion_matrix = print_confusion_matrix
         self.print_confusion_matrix_normalized = print_confusion_matrix_normalized
-        self._train_best_confusion_matrix_metric = -math.inf
-        self._val_best_confusion_matrix_metric = -math.inf
+        self.stats_type_to_best_confusion_matrix_monitor: Dict[StatsType, CallbackMonitor] = self._get_stats_type_to_best_confusion_matrix_monitor(train_best_confusion_matrix_monitor)
+        self.stats_type_to_best_confusion_matrix_text: Dict[StatsType,str] = {StatsType.TRAIN:'', StatsType.VAL:''}
         self.val_metric_monitors: List[CallbackMonitor] = None
         self._validate_stats_type()
         self.GREEN_PRINT_COLOR = "\033[92m"
@@ -49,8 +55,25 @@ class StatsPrint(CallbackBase):
         self.LIGHT_YELLOW_PRINT_COLOR = "\u001b[38;5;222m"
         self.BOLD_PRINT_COLOR = "\033[1m"
         self.END_PRINT_COLOR = "\033[0m"
-        self._train_best_confusion_matrix = None
-        self._val_best_confusion_matrix = None
+
+    def _is_confusion_matrix_on(self):
+        return self.print_confusion_matrix or self.print_confusion_matrix_normalized
+
+    def _is_confusion_matrix_track_best_on(self):
+        return self._is_confusion_matrix_on() and self.stats_type_to_best_confusion_matrix_monitor is not None
+
+    def _get_stats_type_to_best_confusion_matrix_monitor(self, train_best_confusion_matrix_monitor: CallbackMonitor):
+        if not self._is_confusion_matrix_on():
+            return None
+
+        if train_best_confusion_matrix_monitor is None:
+            return None
+
+        return {StatsType.TRAIN:train_best_confusion_matrix_monitor,
+                StatsType.VAL: CallbackMonitor(monitor_type=train_best_confusion_matrix_monitor.monitor_type, 
+                                               stats_type=StatsType.VAL,
+                                               monitor_mode=train_best_confusion_matrix_monitor.monitor_mode,
+                                               threshold_checker=train_best_confusion_matrix_monitor.threshold_checker)}
 
     def _parse_train_metrics_monitors(self, train_metrics_monitors):
         if isinstance(train_metrics_monitors, list):
@@ -108,7 +131,7 @@ class StatsPrint(CallbackBase):
         return ''
 
     def _get_print_confusion_matrix(self, state: State, callback_context: CallbackContext, prefix: str='') -> str:
-        if not self.print_confusion_matrix and not self.print_confusion_matrix_normalized:
+        if not self._is_confusion_matrix_on():
             if state == State.TRAIN:
                 return '┃   ┃'
             elif state == State.VAL:
@@ -130,17 +153,27 @@ class StatsPrint(CallbackBase):
             raise ValueError('[StatsPrint] - print_confusion_matrix is set to True, but no confusion matrix based metric was set on trainer')
         
         current_cm_str = cm.confusion_matrix_string(prefix, normalized = self.print_confusion_matrix_normalized)
-        if state == State.TRAIN:
-            best_cm_str = self._train_best_confusion_matrix
-        elif state == State.VAL:
-            best_cm_str = self._val_best_confusion_matrix
-        
-        cm_str = '\n'.join([f'{a}{b}' for a,b in zip(current_cm_str.split('\n'), best_cm_str.split('\n'))])
+
+        if self._is_confusion_matrix_track_best_on():
+            if state == State.TRAIN:
+                best_cm_str = self.stats_type_to_best_confusion_matrix_text[StatsType.TRAIN]
+            elif state == State.VAL:
+                best_cm_str = self.stats_type_to_best_confusion_matrix_text[StatsType.VAL]
+            
+            cm_str = '\n'.join([f'{a}{b}' for a,b in zip(current_cm_str.split('\n'), best_cm_str.split('\n'))])
+        else:
+            cm_str = current_cm_str
 
         return f'{row_gap}{row_start}{cm_str}{total_end_delimiter}'
 
     def _handle_best_confusion_matrix(self, callback_context: CallbackContext):
-        c = callback_context #READABILITY 
+        c = callback_context #READABILITY
+
+        if not self._is_confusion_matrix_on():
+            return 
+
+        if not self._is_confusion_matrix_track_best_on():
+            return
         
         def indent_cm(cm_text):
             mc_split = cm_text.split('\n')
@@ -155,18 +188,14 @@ class StatsPrint(CallbackBase):
             cm_text = '\n'.join(cm_final)
             return cm_text
 
-        if self.print_confusion_matrix or self.print_confusion_matrix_normalized:
-            new_confusion_matrix_metric = sum(class_stats[metric.ACCURACY] for class_stats in c.train_stats.confusion_matrix.get_stats().values())
-            if new_confusion_matrix_metric > self._train_best_confusion_matrix_metric:
-                self._train_best_confusion_matrix_metric = new_confusion_matrix_metric
-                self._train_best_confusion_matrix = c.train_stats.confusion_matrix.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized)
-                self._train_best_confusion_matrix = indent_cm(self._train_best_confusion_matrix)
+        train_callback_monitor_result = self.stats_type_to_best_confusion_matrix_monitor[StatsType.TRAIN].track(c)
+        val_callback_monitor_result = self.stats_type_to_best_confusion_matrix_monitor[StatsType.VAL].track(c)
 
-            new_confusion_matrix_metric = sum(class_stats[metric.ACCURACY] for class_stats in c.val_stats.confusion_matrix.get_stats().values())
-            if new_confusion_matrix_metric > self._val_best_confusion_matrix_metric:
-                self._val_best_confusion_matrix_metric = new_confusion_matrix_metric
-                self._val_best_confusion_matrix = c.val_stats.confusion_matrix.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized)
-                self._val_best_confusion_matrix = indent_cm(self._val_best_confusion_matrix)
+        if train_callback_monitor_result.has_improved():
+            self.stats_type_to_best_confusion_matrix_text[StatsType.TRAIN] = indent_cm(c.train_stats.confusion_matrix.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized))
+
+        if val_callback_monitor_result.has_improved():
+            self.stats_type_to_best_confusion_matrix_text[StatsType.VAL] = indent_cm(c.val_stats.confusion_matrix.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized))
 
 
     def __call__(self, callback_context: CallbackContext):
