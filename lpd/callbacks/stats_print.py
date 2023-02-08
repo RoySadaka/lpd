@@ -27,8 +27,8 @@ class StatsPrint(CallbackBase):
             print_confusion_matrix_normalized - same as 'print_confusion_matrix', except it prints the normalized confusion matrix
 
             train_best_confusion_matrix_monitor - Provide if you wish also to track the best confusion matrix according to the metric defined in the monitor 
-                                                  If None, best confusion matrix will not be tracked,
-                                                  val_best_confusion_matrix_monitor will be applied automatically based in train_best_confusion_matrix_monitor
+                                                  If None, best confusion matrix will not be tracked.
+                                                  val_best_confusion_matrix_monitor will be applied automatically based on train_best_confusion_matrix_monitor
 
     """
 
