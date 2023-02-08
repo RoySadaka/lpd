@@ -38,7 +38,7 @@ class StatsPrint(CallbackBase):
                        train_metrics_monitors: Union[CallbackMonitor,Iterable[CallbackMonitor]]=None,
                        print_confusion_matrix: bool=False,
                        print_confusion_matrix_normalized: bool=False,
-                       train_best_confusion_matrix_monitor:CallbackMonitor=None):
+                       train_best_confusion_matrix_monitor: CallbackMonitor=None):
         super(StatsPrint, self).__init__(apply_on_phase, apply_on_states, round_values_on_print_to)
         self.train_loss_monitor = CallbackMonitor(MonitorType.LOSS, StatsType.TRAIN, MonitorMode.MIN)
         self.val_loss_monitor = CallbackMonitor(MonitorType.LOSS, StatsType.VAL, MonitorMode.MIN)
@@ -68,10 +68,13 @@ class StatsPrint(CallbackBase):
         if train_best_confusion_matrix_monitor is None:
             return None
 
+        assert train_best_confusion_matrix_monitor.stats_type == StatsType.TRAIN, f'train_best_confusion_matrix_monitor must be with stats_type={StatsType.TRAIN}'
+
         return {StatsType.TRAIN:train_best_confusion_matrix_monitor,
                 StatsType.VAL: CallbackMonitor(monitor_type=train_best_confusion_matrix_monitor.monitor_type, 
                                                stats_type=StatsType.VAL,
                                                monitor_mode=train_best_confusion_matrix_monitor.monitor_mode,
+                                               metric_name=train_best_confusion_matrix_monitor.metric_name,
                                                threshold_checker=train_best_confusion_matrix_monitor.threshold_checker)}
 
     def _parse_train_metrics_monitors(self, train_metrics_monitors):
@@ -148,8 +151,7 @@ class StatsPrint(CallbackBase):
             stats = callback_context.val_stats
         
         cm = stats.confusion_matrix
-        if cm is None:
-            raise ValueError('[StatsPrint] - print_confusion_matrix is set to True, but no confusion matrix based metric was set on trainer')
+        assert cm is not None, '[StatsPrint] - print_confusion_matrix is set to True, but no confusion matrix based metric was set on trainer'
         
         current_cm_str = cm.confusion_matrix_string(prefix, normalized = self.print_confusion_matrix_normalized)
 
