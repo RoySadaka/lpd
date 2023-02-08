@@ -36,7 +36,7 @@ classifiers=[
 
 setup(
     name='lpd',
-    version='0.4.10',
+    version='0.4.11',
     description='A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch',
     long_description_content_type='text/markdown',
     long_description=README_md,

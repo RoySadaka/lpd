@@ -25,24 +25,23 @@ There are 2 types of ``lpd`` packages available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.10-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b> 
+<b>[v0.4.11-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b> 
 
-* ``TransformerEncoderStack`` to support activation as input
-* ``PositionalEncoding`` to support more than 3 dimensions input
+* ``Dense`` custom layer to support apply norm (configurable to before or after activation) 
+* ``StatsPrint`` callback to support printing best confusion matrix when at least one of the metrics is of type ``MetricConfusionMatrixBase``
+* Some minor cosmetic changes
+
 
 
 Previously on lpd:
+* ``TransformerEncoderStack`` to support activation as input
+* ``PositionalEncoding`` to support more than 3 dimensions input
 * Updated Pipfile
 * Fixed confusion matrix cpu/gpu device error
 * Better handling on callbacks where apply_on_states=None (apply on all states)
 * Bug fix in case validation samples are empty
 * Bug fix in verbosity level 2 in train
 * Verbosity change in torch_utils
-* Fix to PositionalEncoding to be batch first
-* Minor change to MatMul2D, use torch.matmul instead of torch.bmm
-* Bug fix when saving full trainer that has tensorboard callback
-* Added LossOptimizerHandlerAccumulateSamples 
-* Added LossOptimizerHandlerAccumulateBatches
 
 
 ## Usage
@@ -271,7 +270,7 @@ only after the defined num of batches (or samples) were accumulated
 ```
 Output example: 
 
-![EpochSummary](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/epoch_summary.png)
+![EpochSummary](https://raw.githubusercontent.com/RoySadaka/ReposMedia/main/lpd/images/epoch_summary_0_4_11.png)
 
 
 
