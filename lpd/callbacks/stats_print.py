@@ -158,6 +158,7 @@ class StatsPrint(CallbackBase):
         assert cm is not None, '[StatsPrint] - print_confusion_matrix is set to True, but no confusion matrix based metric was set on trainer'
         
         current_cm_str = cm.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized)
+        current_cm_str_split = current_cm_str.split('\n')
 
         if self._is_confusion_matrix_track_best_on():
             if state == State.TRAIN:
@@ -174,7 +175,6 @@ class StatsPrint(CallbackBase):
 
             best_cm_str = self.stats_type_to_best_confusion_matrix_text[stats_type]
             
-            current_cm_str_split = current_cm_str.split('\n')
             best_cm_str_split = best_cm_str.split('\n')
             assert len(current_cm_str_split) == len(best_cm_str_split)
 
@@ -188,7 +188,7 @@ class StatsPrint(CallbackBase):
                     lines.append(f'{prefix}{curr}{spaces}  ┃  {best}')
             cm_str = '\n'.join(lines)
         else:
-            cm_str = current_cm_str
+            cm_str = '\n'.join([f'{prefix}{x}' if idx > 0 else x for idx,x in enumerate(current_cm_str_split)])
 
         return f'{row_gap}{row_start}{cm_str}{total_end_delimiter}'
 
