@@ -9,6 +9,12 @@ from lpd.enums.confusion_matrix_based_metric import ConfusionMatrixBasedMetric a
 
 
 class StatsPrint(CallbackBase):
+    GREEN_PRINT_COLOR = "\033[92m"
+    CYAN_PRINT_COLOR = "\033[96m"
+    LIGHT_YELLOW_PRINT_COLOR = "\u001b[38;5;222m"
+    BOLD_PRINT_COLOR = "\033[1m"
+    END_PRINT_COLOR = "\033[0m"
+
     """
         Prints informative summary of the trainer stats including loss and metrics.
         Args:
@@ -49,11 +55,7 @@ class StatsPrint(CallbackBase):
         self.stats_type_to_best_confusion_matrix_text: Dict[StatsType,str] = {StatsType.TRAIN:'', StatsType.VAL:''}
         self.val_metric_monitors: List[CallbackMonitor] = None
         self._validate_stats_type()
-        self.GREEN_PRINT_COLOR = "\033[92m"
-        self.CYAN_PRINT_COLOR = "\033[96m"
-        self.LIGHT_YELLOW_PRINT_COLOR = "\u001b[38;5;222m"
-        self.BOLD_PRINT_COLOR = "\033[1m"
-        self.END_PRINT_COLOR = "\033[0m"
+
 
     def _is_confusion_matrix_on(self):
         return self.print_confusion_matrix or self.print_confusion_matrix_normalized
@@ -111,7 +113,7 @@ class StatsPrint(CallbackBase):
         r = self.round_to #READABILITY
         aux = self._get_print_from_monitor_result_aux
         mtr = monitor_result #READABILITY
-        return f'curr:{aux(r(mtr.new_value))}, prev:{aux(r(mtr.prev_value))}, best:{aux(r(mtr.new_best))}, change_from_prev:{aux(r(mtr.change_from_previous))}, change_from_best:{aux(r(mtr.change_from_best))}'
+        return f'curr:{r(aux(r(mtr.new_value)))}, prev:{r(aux(r(mtr.prev_value)))}, best:{r(aux(r(mtr.new_best)))}, change_from_prev:{r(aux(r(mtr.change_from_previous)))}, change_from_best:{r(aux(r(mtr.change_from_best)))}'
 
     def _get_print_from_metrics(self, train_metric_monitor_results: Iterable[CallbackMonitorResult], prefix: str='') -> str:
         gdic = self._get_did_improved_colored #READABILITY 
@@ -129,7 +131,7 @@ class StatsPrint(CallbackBase):
 
     def _get_did_improved_colored(self, monitor_result):
         if monitor_result.has_improved():
-            return self.GREEN_PRINT_COLOR + ' IMPROVED' + self.END_PRINT_COLOR
+            return StatsPrint.GREEN_PRINT_COLOR + ' IMPROVED' + StatsPrint.END_PRINT_COLOR
         return ''
 
     def _get_print_confusion_matrix(self, state: State, callback_context: CallbackContext, prefix: str='') -> str:
@@ -139,65 +141,56 @@ class StatsPrint(CallbackBase):
             elif state == State.VAL:
                 return '┃'
 
+        c = callback_context #READABILITY
+
         if state == State.TRAIN:
             total_end_delimiter = '\n┃   ┃           ┗' + '━' * 84
             row_gap = '┃   ┃           ┃\n'
             row_start = '┃   ┃           ┣━━ '
-            stats = callback_context.train_stats
+            stats = c.train_stats
         elif state == State.VAL:
             total_end_delimiter = '\n┃               ┗' + '━' * 84
             row_gap = '┃               ┃\n'
             row_start = '┃               ┣━━ '
-            stats = callback_context.val_stats
+            stats = c.val_stats
         
         cm = stats.confusion_matrix
         assert cm is not None, '[StatsPrint] - print_confusion_matrix is set to True, but no confusion matrix based metric was set on trainer'
         
-        current_cm_str = cm.confusion_matrix_string(prefix, normalized = self.print_confusion_matrix_normalized)
+        current_cm_str = cm.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized)
 
         if self._is_confusion_matrix_track_best_on():
             if state == State.TRAIN:
-                best_cm_str = self.stats_type_to_best_confusion_matrix_text[StatsType.TRAIN]
+                stats_type = StatsType.TRAIN
+                cm = c.train_stats.confusion_matrix
             elif state == State.VAL:
-                best_cm_str = self.stats_type_to_best_confusion_matrix_text[StatsType.VAL]
+                stats_type = StatsType.VAL
+                cm = c.val_stats.confusion_matrix
+
+            callback_monitor_result = self.stats_type_to_best_confusion_matrix_monitor[stats_type].track(c)
+            improved_colored_txt = self._get_did_improved_colored(callback_monitor_result)
+            if callback_monitor_result.has_improved():
+                self.stats_type_to_best_confusion_matrix_text[stats_type] = cm.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized)
+
+            best_cm_str = self.stats_type_to_best_confusion_matrix_text[stats_type]
             
-            cm_str = '\n'.join([f'{a}{b}' for a,b in zip(current_cm_str.split('\n'), best_cm_str.split('\n'))])
+            current_cm_str_split = current_cm_str.split('\n')
+            best_cm_str_split = best_cm_str.split('\n')
+            assert len(current_cm_str_split) == len(best_cm_str_split)
+
+            max_curr_line_length = max(len(line) for line in current_cm_str_split)
+            lines = []
+            for idx,(curr,best) in enumerate(zip(current_cm_str_split, best_cm_str_split)):
+                if idx == 0: # HEADER
+                    lines.append(f'{curr}{improved_colored_txt}  ┳  {StatsPrint.BOLD_PRINT_COLOR}Best {StatsPrint.END_PRINT_COLOR}{best}')
+                else:
+                    spaces = ' '*(max_curr_line_length+min(9,max(0, len(improved_colored_txt)))-len(curr)) # BUT HACKY " IMPROVED" IS AT MOST 9 LETTERS, BUT HAS COLORING
+                    lines.append(f'{prefix}{curr}{spaces}  ┃  {best}')
+            cm_str = '\n'.join(lines)
         else:
             cm_str = current_cm_str
 
         return f'{row_gap}{row_start}{cm_str}{total_end_delimiter}'
-
-    def _handle_best_confusion_matrix(self, callback_context: CallbackContext):
-        c = callback_context #READABILITY
-
-        if not self._is_confusion_matrix_on():
-            return 
-
-        if not self._is_confusion_matrix_track_best_on():
-            return
-        
-        def indent_cm(cm_text):
-            mc_split = cm_text.split('\n')
-            max_line_length = max(len(line) for line in mc_split)
-            cm_final = [] 
-            for idx, line in enumerate(mc_split):
-                spaces = ' '*(max_line_length-len(line))
-                if idx == 0:
-                    cm_final.append(f'{spaces}\t┳\t{self.BOLD_PRINT_COLOR}Best{self.END_PRINT_COLOR} {line}')
-                else:
-                    cm_final.append(f'{spaces}\t┃\t{line}')
-            cm_text = '\n'.join(cm_final)
-            return cm_text
-
-        train_callback_monitor_result = self.stats_type_to_best_confusion_matrix_monitor[StatsType.TRAIN].track(c)
-        val_callback_monitor_result = self.stats_type_to_best_confusion_matrix_monitor[StatsType.VAL].track(c)
-
-        if train_callback_monitor_result.has_improved():
-            self.stats_type_to_best_confusion_matrix_text[StatsType.TRAIN] = indent_cm(c.train_stats.confusion_matrix.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized))
-
-        if val_callback_monitor_result.has_improved():
-            self.stats_type_to_best_confusion_matrix_text[StatsType.VAL] = indent_cm(c.val_stats.confusion_matrix.confusion_matrix_string(normalized = self.print_confusion_matrix_normalized))
-
 
     def __call__(self, callback_context: CallbackContext):
         c = callback_context #READABILITY
@@ -207,8 +200,6 @@ class StatsPrint(CallbackBase):
         # INVOKE MONITORS
         train_loss_monitor_result = self.train_loss_monitor.track(c)
         val_loss_monitor_result = self.val_loss_monitor.track(c)
-
-        self._handle_best_confusion_matrix(c)
 
         train_metric_monitor_results = [m.track(c) for m in self.train_metrics_monitors]
         val_metric_monitor_results = [m.track(c) for m in self.val_metric_monitors]
@@ -220,7 +211,7 @@ class StatsPrint(CallbackBase):
         gpfm = self._get_print_from_metrics #READABILITY 
         gpcm = self._get_print_confusion_matrix #READABILITY 
 
-        Y,C,E = self.LIGHT_YELLOW_PRINT_COLOR, self.CYAN_PRINT_COLOR, self.END_PRINT_COLOR 
+        Y,C,E = StatsPrint.LIGHT_YELLOW_PRINT_COLOR, StatsPrint.CYAN_PRINT_COLOR, StatsPrint.END_PRINT_COLOR 
         print(f'┏{"━"*100}')
         print(f'┃   [StatsPrint]')
         print(f'┃   ┏━━ {Y}Name{E}: "{c.trainer.name}"')
@@ -233,13 +224,13 @@ class StatsPrint(CallbackBase):
         print(f'┃   ┃     ┃     ┗━━ {self._get_print_from_monitor_result(train_loss_monitor_result)}')
         print(f'┃   ┃     ┗━━ {Y}metrics{E}')
         print(f'┃   ┃           ┣━━ {gpfm(train_metric_monitor_results, prefix="┃   ┃           ┣━━ ")}')
-        print(gpcm(State.TRAIN, c, prefix="\n┃   ┃           ┃   "))
+        print(gpcm(State.TRAIN, c, prefix="┃   ┃           ┃   "))
         print(f'┃   ┃')
         print(f'┃   ┗━━ {C}Validation{E}')
         print(f'┃         ┣━━ {Y}loss{E}{gdic(val_loss_monitor_result)}')
         print(f'┃         ┃     ┗━━ {self._get_print_from_monitor_result(val_loss_monitor_result)}')
         print(f'┃         ┗━━ {Y}metrics{E}')
         print(f'┃               ┣━━ {gpfm(val_metric_monitor_results, prefix="┃               ┣━━ ")}')
-        print(gpcm(State.VAL, c, prefix="\n┃               ┃   "))
+        print(gpcm(State.VAL, c, prefix="┃               ┃   "))
         print(f'┗{"━"*100}')
         print('') #EMPTY LINE SEPARATOR
