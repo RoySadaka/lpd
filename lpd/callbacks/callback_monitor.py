@@ -1,3 +1,4 @@
+from lpd.callbacks.callback_monitor_result import CallbackMonitorResult
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 from lpd.callbacks.callback_context import CallbackContext
 from typing import Union, List, Optional, Dict
@@ -5,7 +6,6 @@ from math import inf
 import torch
 
 from lpd.utils.threshold_checker import ThresholdChecker, AbsoluteThresholdChecker
-
 
 class CallbackMonitor:
     """
@@ -15,14 +15,14 @@ class CallbackMonitor:
                     (negative number will set to inf)
         monitor_type - e.g lpd.enums.MonitorType.LOSS
         stats_type - e.g lpd.enums.StatsType.VAL
-        monitor_mode - e.g. lpd.enums.MonitorMode.MIN, min wothh check if the metric decreased, MAX will check for increase
+        monitor_mode - e.g. lpd.enums.MonitorMode.MIN, will check if the metric decreased, MonitorMode.MAX will check for increase
         metric_name - in case of monitor_mode=lpd.enums.MonitorMode.METRIC, provide metric_name, otherwise, leave it None
         threshold_checker - to check if the criteria was met, if None, AbsoluteThresholdChecker with threshold=0.0 will be used
     """
-    def __init__(self, monitor_type: MonitorType, 
-                        stats_type: StatsType, 
+    def __init__(self, monitor_type: MonitorType,
+                        stats_type: StatsType,
                         monitor_mode: MonitorMode,
-                        patience: int=None, 
+                        patience: int=None,
                         metric_name: Optional[str]=None,
                         threshold_checker: Optional[ThresholdChecker]=None):
         self.patience = inf if patience is None or patience < 0 else patience
@@ -32,9 +32,9 @@ class CallbackMonitor:
         self.monitor_mode = monitor_mode
         self.threshold_checker = AbsoluteThresholdChecker(monitor_mode) if threshold_checker is None else threshold_checker
         self.metric_name = metric_name
-        self.minimum = torch.tensor(inf)
-        self.maximum = torch.tensor(-inf)
-        self.previous = self._get_best()
+        self.minimum = None
+        self.maximum = None
+        self.previous = None
         self.description = self._get_description()
         self._track_invoked = False
 
@@ -47,7 +47,7 @@ class CallbackMonitor:
     def _get_best(self):
         return self.minimum if self.monitor_mode == MonitorMode.MIN else self.maximum
 
-    def track(self, callback_context: CallbackContext):
+    def track(self, callback_context: CallbackContext) -> CallbackMonitorResult:
         c = callback_context #READABILITY DOWN THE ROAD
 
         # EXTRACT value_to_consider
@@ -70,8 +70,9 @@ class CallbackMonitor:
             value_to_consider = metrics_to_consider[self.metric_name]
 
         if not self._track_invoked:
-            self.minimum = -torch.log(torch.zeros_like(value_to_consider))  # [[inf,inf,inf,inf]]
-            self.maximum = torch.log(torch.zeros_like(value_to_consider)) # [[-inf,-inf,-inf,-inf]]
+            self.minimum = -torch.log(torch.zeros_like(value_to_consider))  # [[inf,...,inf]]
+            self.maximum = torch.log(torch.zeros_like(value_to_consider)) # [[-inf,...,-inf]]
+            self.previous = self._get_best()
             self._track_invoked = True
 
 
@@ -80,13 +81,11 @@ class CallbackMonitor:
         change_from_previous = value_to_consider - self.previous
         curr_best = self._get_best()
         change_from_best = value_to_consider - curr_best
-        curr_minimum = self.minimum
-        curr_maximum = self.maximum
         self.minimum = torch.min(self.minimum, value_to_consider)
         self.maximum = torch.max(self.maximum, value_to_consider)
         curr_previous = self.previous
         self.previous = value_to_consider
-        did_improve = False
+        did_improve = False # UNLESS SAID OTHERWISE
         new_best = self._get_best()
         name = self.metric_name if self.metric_name else 'loss'
 
@@ -109,32 +108,3 @@ class CallbackMonitor:
                                      patience_left=self.patience_countdown,
                                      description=self.description,
                                      name = name)
-
-
-class CallbackMonitorResult():
-    def __init__(self, did_improve: bool,
-                        new_value: float,
-                        prev_value: float,
-                        new_best: float,
-                        prev_best: float,
-                        change_from_previous: float,
-                        change_from_best: float,
-                        patience_left: int,
-                        description: str,
-                        name: str):
-        self.name = name
-        self.did_improve = did_improve
-        self.new_value = new_value
-        self.prev_value = prev_value
-        self.new_best = new_best
-        self.prev_best = prev_best
-        self.change_from_previous = change_from_previous
-        self.change_from_best = change_from_best
-        self.patience_left = patience_left
-        self.description = description
-
-    def has_improved(self):
-        return self.did_improve
-
-    def has_patience(self):
-        return self.patience_left > 0

@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+0.4.11 (08/02/2023)
+-----------------
+* Dense custom layer to support apply norm (configurable to before or after activation) 
+* StatsPrint callback to support printing best confusion matrix when at least one of the metrics is of type ``MetricConfusionMatrixBase``
+* Some minor cosmetic changes
+
 
 0.4.10 (04/02/2023)
 -----------------

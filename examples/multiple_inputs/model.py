@@ -6,7 +6,7 @@ from lpd.trainer import Trainer
 from lpd.extensions.custom_layers import TransformerEncoderStack, Attention, MatMul2D
 from lpd.enums import Phase, State, MonitorType, MonitorMode, StatsType
 from lpd.callbacks import StatsPrint, ModelCheckPoint, Tensorboard, EarlyStopping, SchedulerStep, LossOptimizerHandler, CallbackMonitor
-from lpd.metrics import BinaryAccuracyWithLogits, TruePositives
+from lpd.metrics import BinaryAccuracyWithLogits, TruePositives, FalsePositives
 from lpd.extensions.custom_schedulers import DoNothingToLR
 import lpd.utils.torch_utils as tu
 
@@ -82,7 +82,8 @@ def get_trainer(config,
 
     metrics = [
                            BinaryAccuracyWithLogits(name='Accuracy'),
-                           TruePositives(num_classes=2, threshold=0, name='TP')
+                           TruePositives(num_classes=2, threshold=0, name='TP'),
+                           FalsePositives(num_classes=2, threshold=0, name='FP')
                         ]
 
     callbacks = [   
@@ -94,10 +95,15 @@ def get_trainer(config,
                     EarlyStopping(apply_on_phase=Phase.EPOCH_END, 
                                   apply_on_states=State.EXTERNAL,
                                   callback_monitor=CallbackMonitor(monitor_type=MonitorType.LOSS, 
-                                                                    stats_type=StatsType.VAL, 
-                                                                    monitor_mode=MonitorMode.MIN,
-                                                                    patience=config.EARLY_STOPPING_PATIENCE)),
-                    StatsPrint(apply_on_phase=Phase.EPOCH_END, round_values_on_print_to=7, print_confusion_matrix_normalized=True),
+                                                                   stats_type=StatsType.VAL, 
+                                                                   monitor_mode=MonitorMode.MIN,
+                                                                   patience=config.EARLY_STOPPING_PATIENCE)),
+                    StatsPrint(apply_on_phase=Phase.EPOCH_END, 
+                               round_values_on_print_to=7, 
+                               print_confusion_matrix_normalized=True, 
+                               train_best_confusion_matrix_monitor=CallbackMonitor(monitor_type=MonitorType.LOSS, 
+                                                                                   stats_type=StatsType.TRAIN, 
+                                                                                   monitor_mode=MonitorMode.MIN)),
                     ModelCheckPoint(checkpoint_dir=checkpoint_dir, 
                                     checkpoint_file_name=checkpoint_file_name, 
                                     callback_monitor=CallbackMonitor(monitor_type=MonitorType.LOSS, 

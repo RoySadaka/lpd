@@ -20,10 +20,20 @@ class MatMul2D(nn.Module):
 
 class Dense(nn.Module):
     """
+        Implements the operation: 
+        output = activation(norm(linear(input)))
+                        or 
+        output = norm(activation(linear(input)))
+
         Args:
-        norm_first(bool) - if True, normalization will be performed before activation, otherwise after. Default: True (before).
+        in_dim - positive integer, dim of the input
+        out_dim - positive integer, dim of the output
+        use_bias - determine whether the linear layer will hold a bias
+        activation - Activation function to use. if None provided, identity function will be used: activation(x) = x
+        norm - a norm layer to be applied during the computation, if None provided, no norm will be applied
+        norm_first - if True, normalization will be performed before activation, otherwise after
     """
-    def __init__(self, in_dim, out_dim, use_bias=True, activation=None, name=None, norm=None, norm_first=True):
+    def __init__(self, in_dim, out_dim, use_bias=True, activation=None, norm=None, norm_first=True, name=None):
         super(Dense, self).__init__()
         #PARAMS
         self.in_dim = in_dim
