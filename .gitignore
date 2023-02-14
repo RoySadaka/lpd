@@ -9,3 +9,4 @@ examples/predictor/trainer_checkpoint
 examples/tensorbaord_images
 examples/multiple_inputs/tensorboard
 examples/save_and_load/tensorboard
+__pycache__
