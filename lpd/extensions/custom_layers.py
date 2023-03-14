@@ -4,8 +4,6 @@ from torch import Tensor
 import torch.nn as nn
 import math
 
-nn.TransformerDecoderLayer
-
 class MatMul2D(nn.Module):
     def __init__(self, transpose_b, name=None):
         super(MatMul2D, self).__init__()
