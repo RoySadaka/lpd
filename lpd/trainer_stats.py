@@ -28,9 +28,8 @@ class Stats():
         elif self.metric_method == MetricMethod.SUM:
             self.sum += value
             self.count += count
-        
+
         elif self.metric_method == MetricMethod.LAST:
-            self.sum = value
             self.count = 1
 
         self.last = value
@@ -46,7 +45,7 @@ class Stats():
             return self.sum
 
         elif self.metric_method == MetricMethod.LAST:
-            return self.sum
+            return self.last
 
 class StatsResult():
     def __init__(self, trainer_name, stats):
