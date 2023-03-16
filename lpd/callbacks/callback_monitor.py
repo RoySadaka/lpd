@@ -32,8 +32,7 @@ class CallbackMonitor:
         self.monitor_mode = monitor_mode
         self.threshold_checker = AbsoluteThresholdChecker(monitor_mode) if threshold_checker is None else threshold_checker
         self.metric_name = metric_name
-        self.minimum = None
-        self.maximum = None
+        self.best = None
         self.previous = None
         self.description = self._get_description()
         self._track_invoked = False
@@ -45,7 +44,7 @@ class CallbackMonitor:
         return desc
 
     def _get_best(self):
-        return self.minimum if self.monitor_mode == MonitorMode.MIN else self.maximum
+        return self.best
 
     def track(self, callback_context: CallbackContext) -> CallbackMonitorResult:
         c = callback_context #READABILITY DOWN THE ROAD
@@ -70,8 +69,10 @@ class CallbackMonitor:
             value_to_consider = metrics_to_consider[self.metric_name]
 
         if not self._track_invoked:
-            self.minimum = -torch.log(torch.zeros_like(value_to_consider))  # [[inf,...,inf]]
-            self.maximum = torch.log(torch.zeros_like(value_to_consider)) # [[-inf,...,-inf]]
+            if self.monitor_mode == MonitorMode.MIN:
+                self.best = -torch.log(torch.zeros_like(value_to_consider))  # [[inf,...,inf]]
+            elif self.monitor_mode == MonitorMode.MAX:
+                self.best = torch.log(torch.zeros_like(value_to_consider)) # [[-inf,...,-inf]]
             self.previous = self._get_best()
             self._track_invoked = True
 
@@ -81,12 +82,10 @@ class CallbackMonitor:
         change_from_previous = value_to_consider - self.previous
         curr_best = self._get_best()
         change_from_best = value_to_consider - curr_best
-        self.minimum = torch.min(self.minimum, value_to_consider)
-        self.maximum = torch.max(self.maximum, value_to_consider)
         curr_previous = self.previous
         self.previous = value_to_consider
         did_improve = False # UNLESS SAID OTHERWISE
-        new_best = self._get_best()
+        new_best = curr_best # UNLESS SAID OTHERWISE
         name = self.metric_name if self.metric_name else 'loss'
 
         if len(value_to_consider.shape) == 0 or  \
@@ -94,6 +93,7 @@ class CallbackMonitor:
             if self.threshold_checker(new_value=value_to_consider, old_value=curr_best):
                 did_improve = True
                 self.patience_countdown = self.patience
+                self.best = new_best = value_to_consider
         else:
             if self.patience != inf:
                 raise ValueError("[CallbackMonitor] - can't monitor patience for metric that has multiple values")
