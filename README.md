@@ -11,7 +11,7 @@ A Fast, Flexible Trainer with Callbacks and Extensions for PyTorch
 ## For latest PyPI stable release 
 [![PyPI version](https://badge.fury.io/py/lpd.svg)](https://badge.fury.io/py/lpd) 
 [![Downloads](https://pepy.tech/badge/lpd)](https://pepy.tech/project/lpd)
-![Liecense](https://img.shields.io/github/license/roysadaka/lpd)
+![License](https://img.shields.io/github/license/roysadaka/lpd)
 <!-- ![Follow](https://img.shields.io/twitter/follow/roysadaka?label=RoySadaka&style=social) -->
 
 There are 2 types of ``lpd`` packages available 
@@ -25,23 +25,22 @@ There are 2 types of ``lpd`` packages available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.11-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b> 
+<b>[v0.4.12-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b> 
 
-* ``Dense`` custom layer to support apply norm (configurable to before or after activation) 
-* ``StatsPrint`` callback to support printing best confusion matrix when at least one of the metrics is of type ``MetricConfusionMatrixBase``
+* ``ThresholdChecker`` is updated to compute improvement according to last improved step and not to the best received metric
 * Some minor cosmetic changes
 
 
 
 Previously on lpd:
+* ``Dense`` custom layer to support apply norm (configurable to before or after activation) 
+* ``StatsPrint`` callback to support printing best confusion matrix when at least one of the metrics is of type ``MetricConfusionMatrixBase``
 * ``TransformerEncoderStack`` to support activation as input
 * ``PositionalEncoding`` to support more than 3 dimensions input
 * Updated Pipfile
 * Fixed confusion matrix cpu/gpu device error
 * Better handling on callbacks where apply_on_states=None (apply on all states)
 * Bug fix in case validation samples are empty
-* Bug fix in verbosity level 2 in train
-* Verbosity change in torch_utils
 
 
 ## Usage
@@ -535,11 +534,6 @@ For example, a good practice is to use ``seed_all`` as early as possible in your
 ``lpd.extensions`` provides some custom PyTorch layers, and schedulers, these are just some stuff we like using when we create our models, to gain better flexibility.  
 So you can use them at your own will, more extensions are added from time to time.
 
-## TODOS (more added frequently)
-* Add Logger
-* Add support for multiple schedulers 
-* Add support for multiple losses
-* Add colab examples
 
 ## Something is missing?! please share with us
 You can open an issue, but also feel free to email us at torch.lpd@gmail.com
