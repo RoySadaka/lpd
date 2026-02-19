@@ -11,5 +11,8 @@ Steps:
     >> python setup-nodeps.py bdist_wheel -d .
     Publish pypi package cmd:
     >> pipenv shell
-    >> twine upload lpd-0.4.12-py3-none-any.whl
-    >> twine upload lpd_nodeps-0.4.12-py3-none-any.whl
+    >> twine upload lpd-0.4.13-py3-none-any.whl 
+        >> To use with API token:
+            Set your username to __token__
+            Set your password to the token value, including the pypi- prefix
+    >> twine upload lpd_nodeps-0.4.13-py3-none-any.whl
