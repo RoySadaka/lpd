@@ -108,6 +108,8 @@ class TrainerStats():
                 # WILL BE ABLE TO CONSUME THE SAME CM FOR THE CURRENT CALCULATION
                 MetricConfusionMatrixBase._INJECTED_CONFUSION_MATRIX = self.confusion_matrix
             metric_value = metric(y_pred, y_true)
+            if metric_value is None: # USER CAN DECIDE TO SKIP SOME BATCHES
+                continue
             stats.add_value(metric_value.clone().detach(), batch_size)
 
     def get_loss(self):

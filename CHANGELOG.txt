@@ -2,6 +2,12 @@ Change Log
 ==========
 
 
+
+0.4.13 (19/02/2026)
+-----------------
+* Metric can return None and be skipped for some batches
+
+
 0.4.12 (28/03/2023)
 -----------------
 * ThresholdChecker is updated to compute improvement according to last improved step and not to the best received metric

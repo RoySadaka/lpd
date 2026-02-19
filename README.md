@@ -25,7 +25,7 @@ There are 2 types of ``lpd`` packages available
     pip install lpd-nodeps
 ```
 
-<b>[v0.4.12-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b> 
+<b>[v0.4.13-beta](https://github.com/RoySadaka/lpd/releases) Release - contains the following:</b> 
 
 * ``ThresholdChecker`` is updated to compute improvement according to last improved step and not to the best received metric
 * Some minor cosmetic changes
